@@ -282,3 +282,46 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .clock.warn { background: var(--bad); }
 
 .inkdebug { position: fixed; left: 8px; right: 8px; top: calc(env(safe-area-inset-top, 0px) + 6px); z-index: 70; background: rgba(22,24,29,0.88); color: #fff; font: 600 12px/1.4 var(--mono); padding: 6px 10px; border-radius: 8px; pointer-events: none; }
+
+/* ink v4: vector layers */
+.inklayer svg.inksvg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; overflow: visible; }
+
+/* floating pen palette (iPad) */
+body.has-inkbar .vista { display: none; }
+body.has-inkbar main { padding-bottom: 120px; }
+.inkbar {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  display: flex; align-items: flex-end; gap: 10px; height: 88px; padding: 0 18px; max-width: calc(100vw - 24px);
+  background: #fff; border-radius: 30px; box-shadow: 0 10px 30px rgba(20,30,60,0.16), 0 1px 3px rgba(20,30,60,0.08); overflow: hidden;
+}
+.ib-undo { display: flex; gap: 2px; align-self: center; }
+.ib-undo button { width: 40px; height: 40px; border: 0; border-radius: 12px; background: transparent; color: #3a3f47; cursor: pointer; display: grid; place-items: center; }
+.ib-undo button:active { background: #eef0f4; }
+.ib-undo svg { width: 22px; height: 22px; }
+.ib-pens { display: flex; align-items: flex-end; height: 100%; }
+.ib-pen { width: 44px; height: 88px; border: 0; padding: 0; background: transparent; cursor: pointer; position: relative; overflow: visible; }
+.ib-pen svg { position: absolute; left: 0; top: 14px; transition: transform 0.18s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 1px 1px rgba(0,0,0,0.12)); }
+.ib-pen[aria-pressed="true"] svg { transform: translateY(-12px); }
+.ib-colors { display: flex; gap: 8px; align-self: center; padding-left: 6px; }
+.ib-dot { width: 46px; height: 46px; border: 0; padding: 0; border-radius: 50%; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.ib-dot span { width: 38px; height: 38px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+.ib-dot[aria-pressed="true"] { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #9aa3b2; }
+.ib-dot.more span { width: 30px; height: 30px; background: conic-gradient(#e5484d, #fde047, #86efac, #2f3fd8, #7c3aed, #e5484d); }
+@media (max-width: 700px) { .inkbar { gap: 4px; padding: 0 10px; } .ib-pen { width: 38px; } .ib-dot { width: 38px; height: 38px; } .ib-dot span { width: 30px; height: 30px; } }
+.inkpanel {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(112px + env(safe-area-inset-bottom, 0px)); z-index: 61;
+  width: min(420px, calc(100vw - 24px)); background: #fff; border-radius: 20px; padding: 14px 16px; display: grid; gap: 14px;
+  box-shadow: 0 14px 40px rgba(20,30,60,0.2), 0 1px 3px rgba(20,30,60,0.08);
+}
+.ip-row { display: grid; gap: 8px; }
+.ip-lab { font: 600 0.72rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ip-sizes { display: flex; gap: 8px; }
+.ip-sizes button { flex: 1; height: 44px; border-radius: 12px; border: 1.5px solid var(--line2); background: #fff; cursor: pointer; display: grid; place-items: center; }
+.ip-sizes button[aria-pressed="true"] { border-color: var(--vec); background: var(--vec-soft); }
+.ip-sizes span { width: 60%; border-radius: 4px; display: block; }
+.ip-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+.ip-colors button { width: 40px; height: 40px; border: 0; padding: 0; border-radius: 50%; background: transparent; cursor: pointer; display: grid; place-items: center; }
+.ip-colors button span { width: 32px; height: 32px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+.ip-colors button[aria-pressed="true"] { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #9aa3b2; }
+.ip-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.inkhint { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(112px + env(safe-area-inset-bottom, 0px)); z-index: 59; background: #16181d; color: #fff; font: 600 0.84rem var(--body); padding: 8px 14px; border-radius: 12px; max-width: calc(100vw - 24px); text-align: center; }

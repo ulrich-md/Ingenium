@@ -52,7 +52,12 @@ El inicio muestra el siguiente paso del ciclo: Diagnóstico → Notas de clase �
 
 ## Escritura en iPad
 
-Baja latencia: mientras el lápiz se mueve solo se dibuja el segmento nuevo, en un lienzo del tamaño de la pantalla y sin suavizado que retrase. Al levantarlo, el trazo se pinta una sola vez en su capa. Pluma con presión en 8 colores y 3 grosores. Resaltador en 5 colores que siempre queda debajo de la tinta. Borrador. Lazo para seleccionar trazos y arrastrarlos, borrarlos, duplicarlos o cambiarles el color. Deshacer y rehacer. El dedo desplaza la hoja con el scroll nativo y la palma no raya.
+- **Tinta vectorial:** cada trazo terminado es un trazo SVG, así que se ve nítido a cualquier zoom, como en una app de notas.
+- **Baja latencia:** mientras el lápiz se mueve solo se dibuja el segmento nuevo, en un lienzo del tamaño de la pantalla cuya resolución sigue el zoom. Si el navegador lo ofrece, se dibuja también la punta predicha.
+- **Barra flotante abajo,** con plumas dibujadas: estilográfica (sensible a la presión), bolígrafo, lápiz, plumón, resaltador (siempre debajo de la tinta), borrador y lazo. Hay tres colores rápidos y un panel con grosor, más colores, "dedo escribe" y "borrar hoja". Cada pluma recuerda su color y grosor.
+- **Lazo:** selecciona, arrastra, borra, duplica o cambia de color.
+- El dedo desplaza y hace zoom con el scroll nativo, y la palma no raya.
+- `?inkdebug=1` en la URL muestra eventos por segundo, tiempo de dibujo, predicción, zoom y resolución.
 
 ## Correr el proyecto
 
