@@ -9,11 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts src/lib/inkGeom.test.ts"
   },
   "dependencies": {
     "next": "15.5.28",
     "perfect-freehand": "1.2.3",
+    "polygon-clipping": "^0.15.7",
     "react": "19.1.1",
     "react-dom": "19.1.1"
   },

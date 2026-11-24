@@ -52,12 +52,16 @@ El inicio muestra el siguiente paso del ciclo: Diagnóstico → Notas de clase �
 
 ## Escritura en iPad
 
-- **Tinta vectorial:** cada trazo terminado es un trazo SVG, así que se ve nítido a cualquier zoom, como en una app de notas.
-- **Baja latencia:** mientras el lápiz se mueve solo se dibuja el segmento nuevo, en un lienzo del tamaño de la pantalla cuya resolución sigue el zoom. Si el navegador lo ofrece, se dibuja también la punta predicha.
-- **Barra flotante abajo,** con plumas dibujadas: estilográfica (sensible a la presión), bolígrafo, lápiz, plumón, resaltador (siempre debajo de la tinta), borrador y lazo. Hay tres colores rápidos y un panel con grosor, más colores, "dedo escribe" y "borrar hoja". Cada pluma recuerda su color y grosor.
+Funciona como en las apps de notas (ver `src/lib/inkGeom.ts`):
+
+- **Entrada:** se usan todos los puntos intermedios del Pencil (240 Hz desde iPadOS 18.2) y su predicción, que dibuja la punta un poco por delante.
+- **Grosor variable:** cada pluma convierte la presión a su manera y la mezcla con la velocidad (más rápido = más delgado). La estilográfica varía mucho y el bolígrafo casi nada.
+- **Trazo limpio:** perfect-freehand suaviza los puntos y construye el contorno, y `polygon-clipping` lo une consigo mismo para que no queden huecos blancos donde el trazo se cruza.
+- **Vectorial:** el trazo terminado es un trazo SVG, nítido a cualquier zoom. El trazo en vivo usa el mismo contorno, así no cambia de forma al soltar el lápiz.
+- **Barra de plumas:** estilográfica, bolígrafo, lápiz, plumón, resaltador (siempre debajo de la tinta), borrador y lazo, con tres colores rápidos y un panel de grosor y colores. Se arrastra desde el asa (⋮⋮) y se pega al borde más cercano: abajo, arriba, izquierda o derecha.
 - **Lazo:** selecciona, arrastra, borra, duplica o cambia de color.
 - El dedo desplaza y hace zoom con el scroll nativo, y la palma no raya.
-- `?inkdebug=1` en la URL muestra eventos por segundo, tiempo de dibujo, predicción, zoom y resolución.
+- `?inkdebug=1` muestra eventos por segundo, puntos intermedios, predicción, rango de presión, zoom y resolución.
 
 ## Correr el proyecto
 

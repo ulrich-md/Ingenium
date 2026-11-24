@@ -6,7 +6,7 @@
  * colors, finger drawing and clearing the sheet. Each pen remembers its own
  * color and thickness.
  */
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { store } from "@/lib/storage";
 import type { InkHandle, Pen, Tool } from "./InkLayer";
 
@@ -19,20 +19,21 @@ export const HL_COLORS = [
   { c: "#fde047", n: "Amarillo" }, { c: "#86efac", n: "Verde" }, { c: "#f9a8d4", n: "Rosa" }, { c: "#93c5fd", n: "Azul" }, { c: "#fdba74", n: "Naranja" },
 ];
 const SIZES: Record<Pen | "hl", number[]> = {
-  fountain: [2.4, 3.6, 5.4],
-  ball: [2.0, 3.0, 4.4],
-  pencil: [2.2, 3.2, 4.8],
-  marker: [3.2, 4.8, 7.2],
-  hl: [14, 20, 28],
+  fountain: [1.8, 2.8, 4.2],
+  ball: [1.5, 2.2, 3.2],
+  pencil: [1.7, 2.5, 3.8],
+  marker: [2.6, 3.8, 5.6],
+  hl: [12, 18, 26],
 };
 type Inked = Pen | "hl";
 const NAMES: Record<Tool, string> = {
   fountain: "Pluma estilográfica", ball: "Bolígrafo", pencil: "Lápiz", marker: "Plumón", hl: "Resaltador", erase: "Borrador", lasso: "Lazo",
 };
 
-interface Saved { tool: Tool; last: Inked; finger: boolean; set: Record<Inked, { c: string; i: number }> }
+export type Dock = "bottom" | "top" | "left" | "right";
+interface Saved { tool: Tool; last: Inked; finger: boolean; dock: Dock; set: Record<Inked, { c: string; i: number }> }
 const DEFAULTS: Saved = {
-  tool: "fountain", last: "fountain", finger: false,
+  tool: "fountain", last: "fountain", finger: false, dock: "bottom",
   set: {
     fountain: { c: "#2f3fd8", i: 1 }, ball: { c: "#121417", i: 1 }, pencil: { c: "#121417", i: 1 },
     marker: { c: "#e5484d", i: 1 }, hl: { c: "#fde047", i: 1 },
@@ -46,6 +47,7 @@ export interface InkTools {
   colorOf: (t: Inked) => string; setColor: (c: string) => void;
   sizeIdx: number; setSizeIdx: (i: number) => void;
   finger: boolean; setFinger: (f: boolean) => void;
+  dock: Dock; setDock: (d: Dock) => void;
   selected: number; setSelected: (n: number) => void;
   /** what to pass to InkLayer */
   color: string; size: number;
@@ -69,59 +71,74 @@ export function useInkTools(): InkTools {
     sizeIdx: conf.i,
     setSizeIdx: (i) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], i } } })),
     finger: s.finger, setFinger: (finger) => up((p) => ({ ...p, finger })),
+    dock: s.dock, setDock: (dock) => up((p) => ({ ...p, dock })),
     color: conf.c,
     size: SIZES[inked][conf.i] ?? SIZES[inked][1],
   };
 }
 
-/* ---------- drawn pens (44 × 100, the bottom is hidden by the pill) ---------- */
-function PenArt({ t, color }: { t: Tool; color: string }) {
-  const barrel = (
+/* ---------- drawn pens (44 × 100; the end of the barrel is hidden by the bar) ---------- */
+function Barrel({ band }: { band?: React.ReactNode }) {
+  return (
     <>
-      <rect x="11" y="36" width="22" height="70" rx="3" fill="url(#kw-barrel)" />
+      <rect x="10" y="38" width="24" height="70" rx="2.5" fill="url(#kw-barrel)" />
+      <rect x="13.5" y="40" width="3" height="66" rx="1.5" fill="#fff" opacity=".85" />
+      {band}
     </>
   );
+}
+function PenArt({ t, color }: { t: Tool; color: string }) {
   switch (t) {
     case "fountain":
-      return (<>{barrel}
-        <path d="M13 37 L22 6 L31 37 Z" fill="url(#kw-metal)" />
-        <path d="M22 11 L22 27" stroke="#3a3f47" strokeWidth="1.1" />
-        <circle cx="22" cy="27" r="1.6" fill="#3a3f47" />
-        <rect x="11" y="44" width="22" height="4" fill={color} />
+      return (<>
+        <Barrel band={<><rect x="10" y="46" width="24" height="5" fill={color} /><rect x="10" y="51" width="24" height="1.2" fill="#000" opacity=".12" /></>} />
+        <path d="M11 39 C 12 30, 16 22, 22 4 C 28 22, 32 30, 33 39 Z" fill="url(#kw-metal)" />
+        <path d="M22 4 C 26 18, 29 27, 31 38" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="1" />
+        <path d="M22 9 L22 26" stroke="#2b3038" strokeWidth="1.1" strokeLinecap="round" />
+        <circle cx="22" cy="27.5" r="1.9" fill="#2b3038" />
+        <path d="M14 36 Q22 32 30 36" fill="none" stroke="#7d838c" strokeWidth=".8" />
       </>);
     case "ball":
-      return (<>{barrel}
-        <path d="M13 37 L22 12 L31 37 Z" fill="url(#kw-barrel)" stroke="#d5d8de" strokeWidth=".6" />
-        <path d="M19.5 18 L22 9 L24.5 18 Z" fill={color} />
-        <rect x="11" y="46" width="22" height="4" fill={color} />
+      return (<>
+        <Barrel band={<rect x="10" y="48" width="24" height="4" fill={color} />} />
+        <path d="M11 39 L19.6 12 L24.4 12 L33 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
+        <path d="M19.6 12 L22 6.5 L24.4 12 Z" fill="url(#kw-metal)" />
+        <circle cx="22" cy="6.8" r="1.4" fill={color} />
       </>);
     case "pencil":
-      return (<>{barrel}
-        <path d="M11 37 L22 10 L33 37 Z" fill="#f3dcb2" />
-        <path d="M18.3 19 L22 10 L25.7 19 Z" fill={color} />
-        <path d="M11 37 L14.5 35.5 L18 37 L21.5 35.5 L25 37 L28.5 35.5 L33 37" fill="none" stroke="#e2c48f" strokeWidth=".8" />
-        <rect x="11" y="44" width="22" height="2.5" fill={color} /><rect x="11" y="48" width="22" height="2.5" fill={color} />
+      return (<>
+        <Barrel band={<><rect x="10" y="45" width="24" height="2.4" fill={color} /><rect x="10" y="49" width="24" height="2.4" fill={color} /></>} />
+        <path d="M10 39 L22 9 L34 39 Z" fill="url(#kw-wood)" />
+        <path d="M10 39 L13 36.5 L16 39 L19 36.5 L22 39 L25 36.5 L28 39 L31 36.5 L34 39" fill="url(#kw-barrel)" />
+        <path d="M17.6 20 L22 9 L26.4 20 Q22 21.6 17.6 20 Z" fill={color} />
       </>);
     case "marker":
-      return (<>{barrel}
-        <rect x="17" y="18" width="10" height="20" rx="2" fill="url(#kw-barrel)" stroke="#d5d8de" strokeWidth=".6" />
-        <rect x="19.5" y="9" width="5" height="11" rx="2.4" fill={color} />
-        <path d="M11 45 h4 M17 45 h4 M23 45 h4 M29 45 h4" stroke={color} strokeWidth="3" />
+      return (<>
+        <Barrel band={<path d="M10 47 h4.5 M16.5 47 h4.5 M23 47 h4.5 M29.5 47 h4.5" stroke={color} strokeWidth="3.4" />} />
+        <path d="M13 39 L16 24 L28 24 L31 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
+        <rect x="18.6" y="9" width="6.8" height="16" rx="3.4" fill={color} />
+        <rect x="19.8" y="10.5" width="1.6" height="12" rx=".8" fill="#fff" opacity=".45" />
       </>);
     case "hl":
-      return (<>{barrel}
-        <path d="M13 37 L13 24 L31 15 L31 37 Z" fill="url(#kw-barrel)" stroke="#d5d8de" strokeWidth=".6" />
-        <path d="M16 24 L16 18 L28 12 L28 19 Z" fill={color} />
-        <rect x="11" y="44" width="22" height="7" fill={color} />
+      return (<>
+        <Barrel band={<rect x="10" y="45" width="24" height="8" fill={color} />} />
+        <path d="M12 39 L12 27 L32 17 L32 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
+        <path d="M15 26 L15 19 L29 11.5 L29 19.5 Z" fill={color} />
+        <path d="M15 19 L29 11.5" stroke="#fff" strokeOpacity=".6" strokeWidth=".9" />
       </>);
     case "erase":
-      return (<>{barrel}
-        <rect x="11" y="10" width="22" height="30" rx="7" fill="url(#kw-eraser)" />
+      return (<>
+        <Barrel />
+        <rect x="10" y="33" width="24" height="7" fill="url(#kw-metal)" />
+        <rect x="10" y="9" width="24" height="26" rx="8" fill="url(#kw-eraser)" />
+        <rect x="13.5" y="12" width="3" height="18" rx="1.5" fill="#fff" opacity=".5" />
       </>);
     case "lasso":
-      return (<>{barrel}
-        <ellipse cx="22" cy="19" rx="10" ry="8" fill="none" stroke="#2347d9" strokeWidth="2" strokeDasharray="3 2.5" />
-        <path d="M17 26 C 14 32, 18 34, 22 37" fill="none" stroke="#2347d9" strokeWidth="2" />
+      return (<>
+        <Barrel />
+        <path d="M14 39 L22 26 L30 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
+        <ellipse cx="22" cy="15" rx="11" ry="8.5" fill="none" stroke="#2347d9" strokeWidth="2.2" strokeDasharray="3.2 2.6" />
+        <path d="M16.5 22 C 14 27, 17 30, 21 28" fill="none" stroke="#2347d9" strokeWidth="2.2" strokeLinecap="round" />
       </>);
   }
 }
@@ -131,13 +148,16 @@ function Defs() {
     <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
       <defs>
         <linearGradient id="kw-barrel" x1="0" x2="1">
-          <stop offset="0" stopColor="#dfe2e7" /><stop offset=".35" stopColor="#ffffff" /><stop offset=".7" stopColor="#f4f5f7" /><stop offset="1" stopColor="#d6d9df" />
+          <stop offset="0" stopColor="#d3d7de" /><stop offset=".22" stopColor="#f7f8fa" /><stop offset=".5" stopColor="#ffffff" /><stop offset=".8" stopColor="#eceef2" /><stop offset="1" stopColor="#c9ced6" />
         </linearGradient>
         <linearGradient id="kw-metal" x1="0" x2="1">
-          <stop offset="0" stopColor="#8d939c" /><stop offset=".45" stopColor="#e6e8eb" /><stop offset="1" stopColor="#7d838c" />
+          <stop offset="0" stopColor="#6f757e" /><stop offset=".3" stopColor="#c9cdd3" /><stop offset=".48" stopColor="#f4f5f7" /><stop offset=".7" stopColor="#a9aeb6" /><stop offset="1" stopColor="#626872" />
+        </linearGradient>
+        <linearGradient id="kw-wood" x1="0" x2="1">
+          <stop offset="0" stopColor="#e2c08a" /><stop offset=".5" stopColor="#f6dfb6" /><stop offset="1" stopColor="#d9b47b" />
         </linearGradient>
         <linearGradient id="kw-eraser" x1="0" x2="1">
-          <stop offset="0" stopColor="#e88e8e" /><stop offset=".45" stopColor="#f7c1c1" /><stop offset="1" stopColor="#de7f7f" />
+          <stop offset="0" stopColor="#e07f84" /><stop offset=".4" stopColor="#f6b9bb" /><stop offset="1" stopColor="#d6747a" />
         </linearGradient>
       </defs>
     </svg>
@@ -148,14 +168,19 @@ const PEN_TOOLS: Tool[] = ["fountain", "ball", "pencil", "marker", "hl", "erase"
 
 export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<InkHandle | null>; onClear?: () => void }) {
   const [panel, setPanel] = useState(false);
+  const [drag, setDrag] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
   const isHl = t.inked === "hl";
   const palette = isHl ? HL_COLORS : PEN_COLORS;
   const quick = palette.slice(0, 3);
+  const vertical = t.dock === "left" || t.dock === "right";
 
   useEffect(() => {
-    document.body.classList.add("has-inkbar");
-    return () => document.body.classList.remove("has-inkbar");
-  }, []);
+    const b = document.body;
+    b.classList.add("has-inkbar");
+    b.dataset.inkdock = t.dock;
+    return () => { b.classList.remove("has-inkbar"); delete b.dataset.inkdock; };
+  }, [t.dock]);
 
   const pickTool = (x: Tool) => {
     if (x === t.tool && x !== "erase" && x !== "lasso") { setPanel((p) => !p); return; }
@@ -169,17 +194,50 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
     if (t.tool === "erase" || t.tool === "lasso") t.setTool(t.inked);
   };
 
+  /* drag the bar by its grip; on release it sticks to the nearest edge */
+  const grip = {
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+      setPanel(false);
+      dragRef.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
+      setDrag(dragRef.current);
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
+      const d = dragRef.current;
+      if (!d) return;
+      dragRef.current = { ...d, dx: e.clientX - d.x, dy: e.clientY - d.y };
+      setDrag(dragRef.current);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      const d = dragRef.current;
+      if (!d) return;
+      dragRef.current = null;
+      const moved = Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 6;
+      setDrag(null);
+      if (!moved) return;
+      const W = window.innerWidth, H = window.innerHeight, x = e.clientX, y = e.clientY;
+      const dist: [Dock, number][] = [["left", x], ["right", W - x], ["top", y], ["bottom", H - y]];
+      dist.sort((a, b) => a[1] - b[1]);
+      t.setDock(dist[0][0]);
+    },
+  };
+
+  const style = drag ? { translate: `${drag.dx}px ${drag.dy}px`, transition: "none" } : undefined;
+
   return (
     <>
       <Defs />
       {panel && (
-        <div className="inkpanel" role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
+        <div className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
           <div className="ip-row">
             <span className="ip-lab">{NAMES[t.inked]} · grosor</span>
             <div className="ip-sizes">
               {SIZES[t.inked].map((s, i) => (
                 <button key={i} type="button" aria-pressed={t.sizeIdx === i} aria-label={["Fino", "Medio", "Grueso"][i]} onClick={() => t.setSizeIdx(i)}>
-                  <span style={{ height: Math.max(2, isHl ? s / 2.2 : s * 1.5), background: t.color, opacity: isHl ? 0.6 : 1 }} />
+                  <svg viewBox="0 0 80 20" width="80" height="20" aria-hidden="true">
+                    <path d={`M6 13 C 22 ${13 - s * 1.2}, 40 ${7 + s}, 74 8`} fill="none" stroke={t.color} strokeOpacity={isHl ? 0.6 : 1} strokeWidth={isHl ? s / 2.4 : s * 1.5} strokeLinecap="round" />
+                  </svg>
                 </button>
               ))}
             </div>
@@ -202,9 +260,12 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
         </div>
       )}
       {t.tool === "lasso" && (
-        <div className="inkhint">{t.selected ? `${t.selected} trazos seleccionados: arrástralos o toca un color` : "Rodea trazos con el lápiz para seleccionarlos"}</div>
+        <div className={`inkhint dock-${t.dock}`}>{t.selected ? `${t.selected} trazos seleccionados: arrástralos o toca un color` : "Rodea trazos con el lápiz para seleccionarlos"}</div>
       )}
-      <div className="inkbar" role="toolbar" aria-label="Herramientas de escritura">
+      <div className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${drag ? " dragging" : ""}`} style={style} role="toolbar" aria-label="Herramientas de escritura">
+        <button type="button" className="ib-grip" aria-label="Mover la barra (arrástrala a cualquier borde)" title="Arrastra para mover" {...grip}>
+          <svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><g fill="#9aa1ad"><circle cx="3" cy="4" r="1.6" /><circle cx="9" cy="4" r="1.6" /><circle cx="3" cy="10" r="1.6" /><circle cx="9" cy="10" r="1.6" /><circle cx="3" cy="16" r="1.6" /><circle cx="9" cy="16" r="1.6" /></g></svg>
+        </button>
         <div className="ib-undo">
           <button type="button" onClick={() => ink.current?.undo()} aria-label="Deshacer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 010 12h-3" /></svg>
