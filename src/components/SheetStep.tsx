@@ -8,25 +8,12 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { markTyped, type RowNote } from "@/lib/check";
 import type { Sheet } from "@/lib/content";
 import ExamSheet from "./ExamSheet";
-import InkLayer, { type InkHandle, type Tool } from "./InkLayer";
+import InkLayer, { type InkHandle } from "./InkLayer";
+import { InkToolbar, useInkTools } from "./InkTools";
 
 type Awarded = (boolean | null)[][];
 
-const PENS = [
-  { c: "#16181d", n: "Negro" },
-  { c: "#1d4ed8", n: "Azul" },
-  { c: "#c81e1e", n: "Rojo" },
-];
-
 const KEYS = ["√(", "×", "×10ⁿ", "²", "³", "⁻¹", "π", "θ", "Δ", "λ", "ω", "μ", "ρ", "≈", "°", "→"];
-
-const Icon = {
-  pen: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4z" /><path d="M14 6l3 3" /></svg>,
-  hl: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4.5l5 5-8 8H6.5v-5z" /><path d="M4 21h7" stroke="#facc15" strokeWidth="3.2" /></svg>,
-  erase: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 19.5l-4-4a1.6 1.6 0 010-2.2l8.3-8.3a1.6 1.6 0 012.2 0l4.5 4.5a1.6 1.6 0 010 2.2l-7.8 7.8H8.5z" /><path d="M11 19.5h9" /></svg>,
-  undo: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 010 12h-3" /></svg>,
-  redo: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5" /><path d="M20 9H10a6 6 0 000 12h3" /></svg>,
-};
 
 export default function SheetStep({
   sheet, mode, typed, onTyped, awarded, onAwarded, marked, onMarked, onNext, nextLabel,
@@ -44,9 +31,8 @@ export default function SheetStep({
 }) {
   const ink = useRef<InkHandle>(null);
   const lastInput = useRef<HTMLInputElement | null>(null);
-  const [tool, setTool] = useState<Tool>("pen");
-  const [color, setColor] = useState(PENS[1].c);
-  const [finger, setFinger] = useState(false);
+  const tools = useInkTools();
+  const [showSol, setShowSol] = useState(false);
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
   const onStrokes = useCallback((n: number) => setStrokes(n), []);
@@ -96,25 +82,7 @@ export default function SheetStep({
   return (
     <div style={{ display: "grid", gap: 14 }}>
       {mode === "ipad" ? (
-        <div className="toolbar" role="toolbar" aria-label="Herramientas de escritura">
-          <button className="tool" type="button" aria-pressed={tool === "pen"} onClick={() => setTool("pen")} aria-label="Pluma">{Icon.pen}</button>
-          <button className="tool" type="button" aria-pressed={tool === "hl"} onClick={() => setTool("hl")} aria-label="Resaltador">{Icon.hl}</button>
-          <button className="tool" type="button" aria-pressed={tool === "erase"} onClick={() => setTool("erase")} aria-label="Borrador">{Icon.erase}</button>
-          <span className="sep" />
-          {PENS.map((p) => (
-            <button key={p.c} className="tool" type="button" aria-label={`Color ${p.n}`} aria-pressed={tool === "pen" && color === p.c} onClick={() => { setColor(p.c); setTool("pen"); }}>
-              <span className="dot" style={{ background: p.c }} />
-            </button>
-          ))}
-          <span className="sep" />
-          <button className="tool" type="button" onClick={() => ink.current?.undo()} aria-label="Deshacer">{Icon.undo}</button>
-          <button className="tool" type="button" onClick={() => ink.current?.redo()} aria-label="Rehacer">{Icon.redo}</button>
-          <span className="grow" />
-          <button className="btn sm ghost" type="button" aria-pressed={finger} onClick={() => setFinger((f) => !f)}>
-            {finger ? "Dedo: escribe" : "Dedo: desplaza"}
-          </button>
-          <button className="btn sm ghost" type="button" onClick={() => ink.current?.clear()}>Borrar hoja</button>
-        </div>
+        <InkToolbar t={tools} ink={ink} />
       ) : (
         <div className="toolbar" role="toolbar" aria-label="Símbolos">
           <span className="lab">Símbolos</span>
@@ -136,7 +104,7 @@ export default function SheetStep({
             onFocusInput={(el) => { lastInput.current = el; }}
             notes={notes}
             totals={totals}
-            overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tool} color={color} fingerDraws={finger} onStrokes={onStrokes} /> : null}
+            overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
           />
           {mode === "ipad" && marked && showSample && (
             <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
@@ -185,7 +153,17 @@ export default function SheetStep({
                 </div>
               ))}
               {mode === "computadora" && <p className="muted" style={{ fontSize: ".82rem" }}>¿No estás de acuerdo con una marca? Cámbiala con ✓ o ✗.</p>}
-              {mode === "ipad" && (
+              {sheet.parts.some((p) => p.solution) && (
+                <button className="btn sm" type="button" onClick={() => setShowSol((v) => !v)}>{showSol ? "Ocultar solución" : "Ver solución paso a paso"}</button>
+              )}
+              {showSol && (
+                <div className="solution">
+                  {sheet.parts.map((p) => p.solution && (
+                    <div key={p.label}><b>{p.label}</b>{p.solution.map((l, i) => <span key={i} className="sl">{l}</span>)}</div>
+                  ))}
+                </div>
+              )}
+              {mode === "ipad" && !sheet.parts.some((p) => p.solution) && (
                 <button className="btn sm" type="button" onClick={() => setShowSample((s) => !s)}>
                   {showSample ? "Ocultar ejemplo" : "Ver ejemplo de corrección con IA"}
                 </button>

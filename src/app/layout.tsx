@@ -32,7 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="topbar">
             <div className="wrap">
               <Link href="/" className="logo"><Mark />kwanta</Link>
-              <Link href="/diagnostico" className="btn primary sm">Diagnóstico gratis</Link>
+              <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Link href="/entrar" className="btn ghost sm">Entrar</Link>
+                <Link href="/diagnostico" className="btn primary sm">Diagnóstico gratis</Link>
+              </nav>
             </div>
           </header>
           <main>{children}</main>

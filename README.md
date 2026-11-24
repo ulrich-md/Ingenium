@@ -28,6 +28,24 @@ Corrección en el MVP:
 
 Todo el progreso se guarda en el navegador (`localStorage`). No hay cuentas ni base de datos todavía.
 
+## Cuenta demo
+
+- Entrar: `/entrar`
+- Correo: `demo@kwanta.app`
+- Contraseña: `Kwanta2027`
+
+Abre la app ya cargada con un diagnóstico de ejemplo y una nota de clase ("Clase 12 · Órbitas y escape"). En Inicio está "Restablecer datos de ejemplo". La cuenta solo protege la app dentro del navegador: no es seguridad real. Las cuentas de alumnos llegan con la base de datos.
+
+## Notas de clase y ejercicios
+
+- **Plantilla de clase** (Cornell adaptada a Física IB): preguntas y palabras clave, notas, ejemplo resuelto (cuadrícula) y resumen en 3 líneas. En iPad se escribe a mano y se pueden agregar páginas; en computadora se teclea; en teléfono se lee.
+- **¿Qué vieron hoy?** El alumno marca los subtemas de la clase. En computadora, Kwanta los detecta del texto de las notas.
+- **Ejercicios de lo que anotaron:** 4 hojas de examen originales sobre esos subtemas, con números nuevos cada vez, corrección por marcas y solución paso a paso. Hay 14 tipos de ejercicio en A.1, A.2, A.3, B.3 y D.1 (`src/lib/generators.ts`).
+
+## Escritura en iPad
+
+Pluma con presión en 8 colores y 3 grosores. Resaltador en 5 colores que siempre queda debajo de la tinta. Borrador. Lazo para seleccionar trazos y arrastrarlos, borrarlos, duplicarlos o cambiarles el color. Deshacer y rehacer. El dedo desplaza la hoja con el scroll nativo y la palma no raya.
+
 ## Correr el proyecto
 
 ```bash
@@ -55,10 +73,15 @@ Al terminar el diagnóstico, el alumno puede dejar nombre, correo, WhatsApp, col
 
 ```
 src/
-  app/                 páginas: inicio (/) y diagnóstico (/diagnostico)
+  app/                 páginas: inicio, diagnóstico, entrar, app (inicio, notas, práctica)
   components/
     ExamSheet.tsx      hoja con formato de examen (tinta, tecleada o ejemplo)
-    InkLayer.tsx       motor de tinta para Apple Pencil
+    InkLayer.tsx       motor de tinta para Apple Pencil (lazo, resaltador debajo)
+    InkTools.tsx       barra de herramientas: colores, grosores, lazo
+    NotesPage.tsx      notas de clase con plantilla
+    PracticePage.tsx   ejercicios generados y su corrección
+    Dashboard.tsx      inicio del alumno
+    AppShell.tsx       sesión demo y navegación
     SheetStep.tsx      una hoja del diagnóstico + barra de herramientas + corrección
     Diagnostico.tsx    flujo completo y resultados
     Device.tsx         detección de dispositivo y selector "Vista"
@@ -70,6 +93,10 @@ src/
     check.ts           corrección por renglón de respuestas tecleadas
     numbers.ts         lectura de números ("7,07 × 10⁶", "7.07e6", "7.07x10^6")
     scoring.ts         nota aproximada y plan de 12 semanas
+    generators.ts      generador de ejercicios con números nuevos
+    notes.ts           notas y conjuntos de práctica (en el navegador)
+    session.ts         cuenta demo y datos de ejemplo
+    diag.ts            estado y resultado del diagnóstico
 ```
 
 Las preguntas son originales. Kwanta no está afiliado con la Organización del Bachillerato Internacional.

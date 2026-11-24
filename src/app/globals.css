@@ -209,3 +209,53 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .lead .check { display: flex; gap: 10px; align-items: flex-start; font: 400 0.9rem var(--body); }
 .lead .check input { width: 20px; height: 20px; margin-top: 2px; flex: 0 0 auto; accent-color: var(--vec); }
 .prose-legal { display: grid; gap: 14px; max-width: 68ch; }
+
+/* ink toolbar v2 */
+.toolbar.ink { gap: 4px; }
+.toolbar .tgroup { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.toolbar .tool.sw { width: 36px; }
+.toolbar .tool .thick { display: block; border-radius: 4px; }
+.toolbar .tool:disabled { opacity: 0.3; cursor: default; }
+.toolbar .hint { flex-basis: 100%; font: 500 0.8rem var(--body); color: var(--vec); padding: 2px 4px 0; }
+.inklayer canvas:nth-child(2), .inklayer canvas:nth-child(3) { pointer-events: none; }
+.selbox { position: absolute; border: 1.5px dashed var(--vec); border-radius: 6px; background: rgba(35, 71, 217, 0.04); touch-action: none; cursor: move; }
+.selbar { position: absolute; left: 0; top: calc(100% + 6px); display: flex; gap: 2px; background: #16181d; border-radius: 10px; padding: 3px; box-shadow: 0 6px 18px rgba(20,30,60,0.25); }
+.selbar button { border: 0; background: transparent; color: #fff; font: 600 0.82rem var(--body); padding: 8px 11px; border-radius: 7px; cursor: pointer; min-height: 36px; }
+.selbar button:hover { background: rgba(255,255,255,0.14); }
+.solution { display: grid; gap: 10px; background: var(--ok-soft); border-radius: 12px; padding: 12px 14px; }
+.solution > div { display: grid; gap: 4px; }
+.solution .sl { font: 500 0.92rem var(--exam); color: #0b4a35; }
+
+/* app shell */
+.appnav { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.appnav .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.appnav .tabs a { text-decoration: none; color: var(--muted); font: 600 0.9rem var(--body); padding: 8px 12px; border-radius: 10px; }
+.appnav .tabs a.on { background: var(--vec-soft); color: var(--vec); }
+.appnav .who { display: flex; gap: 8px; align-items: center; font: 600 0.88rem var(--body); }
+.dash { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+.row-link, .row-card { display: grid; gap: 2px; text-decoration: none; color: var(--ink); padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface2); }
+.row-card { background: var(--surface); }
+.notecard { text-decoration: none; color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1.5px solid var(--line2); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 7px 12px; font: 600 0.84rem var(--body); cursor: pointer; min-height: 36px; }
+.chip.on { border-color: var(--vec); background: var(--vec-soft); color: var(--vec); }
+.chip .det { color: var(--sig); font-weight: 600; }
+.fld { display: grid; gap: 4px; font: 600 0.84rem var(--body); }
+.fld input, .fld select { font: 400 1rem var(--body); padding: 9px 11px; border: 1px solid var(--line2); border-radius: 10px; background: var(--surface); color: var(--ink); min-height: 42px; width: 100%; min-width: 0; }
+
+/* class notes template */
+.desk.notes { display: grid; gap: 18px; justify-items: stretch; }
+.paper.notepage { font: 400 14px/1.4 var(--body); padding: 22px 4% 26px; display: grid; gap: 10px; align-content: start; }
+.paper.notepage .nh { display: flex; justify-content: space-between; gap: 10px; font: 600 0.72rem var(--mono); letter-spacing: 0.06em; color: var(--muted); border-bottom: 2px solid var(--ink); padding-bottom: 6px; }
+.paper.notepage .nh2 { display: flex; gap: 24px; flex-wrap: wrap; font-size: 0.92rem; }
+.paper.notepage h6 { margin: 0 0 2px; font: 700 0.7rem var(--mono); letter-spacing: 0.07em; text-transform: uppercase; color: var(--vec); }
+.cornell { display: grid; grid-template-columns: 30% 1fr; border: 1.5px solid #5b6270; }
+.cornell section { padding: 8px 10px 4px; }
+.cornell .cue { border-right: 1.5px solid #5b6270; background: #fbfcfe; }
+.paper.notepage .blk { border: 1.5px solid #5b6270; padding: 8px 10px 4px; }
+.lined { position: relative; background-image: repeating-linear-gradient(transparent 0 33px, #d6dce8 33px 34px); }
+.lined.grid { background-image: linear-gradient(#e3e8f1 1px, transparent 1px), linear-gradient(90deg, #e3e8f1 1px, transparent 1px); background-size: 17px 17px; }
+.lined textarea { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; outline: none; resize: none; background: transparent; font: 500 16px/34px var(--exam); color: var(--pen); padding: 0 4px; overflow: auto; }
+.lined.grid textarea { line-height: 34px; }
+.lined textarea:focus { background: rgba(35, 71, 217, 0.03); }
+.desk.notes .paper { width: 100%; max-width: 900px; }

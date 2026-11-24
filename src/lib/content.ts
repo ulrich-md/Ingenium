@@ -26,6 +26,8 @@ export interface Part {
   rules: Rule[];
   /** Example of a handwritten answer and how the AI would mark it (demo). */
   sample: { rows: string[]; notes: SampleNote[] };
+  /** Worked solution, one step per line (shown after marking). */
+  solution?: string[];
 }
 
 export interface Sheet {
@@ -36,7 +38,7 @@ export interface Sheet {
   topic: string;
   paper: string;
   stem: string;
-  figure: "vt" | "gas" | "orbit";
+  figure?: "vt" | "gas" | "orbit";
   data?: string;
   parts: Part[];
 }

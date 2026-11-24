@@ -7,7 +7,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { LETTERS, MCQS, SHEETS, SHEET_MAX } from "@/lib/content";
-import { addTo, emptyTally, gradeFromShare, plan, share, UNIT_NAME, UNITS, type Unit } from "@/lib/scoring";
+import { share, UNIT_NAME, UNITS, type Unit } from "@/lib/scoring";
+import { DIAG_KEY, diagResult, freshDiag, type DiagState } from "@/lib/diag";
 import { store } from "@/lib/storage";
 import { MODE_LABEL } from "@/lib/device";
 import { useDevice } from "./Device";
@@ -15,24 +16,9 @@ import { EnergyLevels } from "./Brand";
 import SheetStep from "./SheetStep";
 import LeadForm from "./LeadForm";
 
-type Stage = "intro" | "mcq" | "sheets" | "sheet" | "results";
-
-interface State {
-  v: 1;
-  stage: Stage;
-  level: "NM" | "NS";
-  mcq: number;
-  answers: Record<string, number>;
-  checked: Record<string, boolean>;
-  sheet: number;
-  typed: Record<string, string[][]>;
-  awarded: Record<string, (boolean | null)[][]>;
-  marked: Record<string, boolean>;
-  done: Record<string, boolean>;
-}
-
-const KEY = "kw-diag-v1";
-const fresh = (): State => ({ v: 1, stage: "intro", level: "NS", mcq: 0, answers: {}, checked: {}, sheet: 0, typed: {}, awarded: {}, marked: {}, done: {} });
+type State = DiagState;
+const KEY = DIAG_KEY;
+const fresh = freshDiag;
 
 const UCOL: Record<Unit, string> = { A: "var(--uA)", B: "var(--uB)", C: "var(--uC)", D: "var(--uD)", E: "var(--uE)" };
 const PREVENTA = process.env.NEXT_PUBLIC_PREVENTA_URL;
@@ -228,20 +214,8 @@ export default function Diagnostico() {
   }
 
   /* ---------- results ---------- */
-  const tally = emptyTally();
   const wrong = MCQS.filter((q) => s.answers[q.id] !== undefined && s.answers[q.id] !== q.answer);
-  MCQS.forEach((q) => { if (s.answers[q.id] !== undefined) addTo(tally, q.unit, s.answers[q.id] === q.answer ? 1 : 0, 1); });
-  let sheetsDone = 0;
-  SHEETS.forEach((sh) => {
-    if (!s.done[sh.id]) return;
-    sheetsDone++;
-    const got = (s.awarded[sh.id] ?? []).flat().filter((x) => x === true).length;
-    addTo(tally, sh.unit, got, SHEET_MAX(sh));
-  });
-  const earned = UNITS.reduce((a, u) => a + tally[u].earned, 0);
-  const possible = UNITS.reduce((a, u) => a + tally[u].possible, 0);
-  const grade = gradeFromShare(possible ? earned / possible : 0);
-  const weeks = plan(tally);
+  const { tally, sheetsDone, earned, possible, grade, weeks } = diagResult(s);
 
   return (
     <div className="diag wrap res">

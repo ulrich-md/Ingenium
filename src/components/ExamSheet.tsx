@@ -40,7 +40,7 @@ export default function ExamSheet({ sheet, variant, typed, onType, onFocusInput,
       </div>
       <p className="stem">{sheet.stem}</p>
       {sheet.data && <p className="data">{sheet.data}</p>}
-      <Figure id={sheet.figure} />
+      {sheet.figure && <Figure id={sheet.figure} />}
 
       {sheet.parts.map((part, pi) => {
         const rows = variant === "sample" ? Math.max(part.rows, part.sample.rows.length) : part.rows;
