@@ -37,7 +37,19 @@ npm test           # pruebas de la corrección y la nota
 npm run build      # build de producción
 ```
 
-Variable opcional: `NEXT_PUBLIC_PREVENTA_URL`, el enlace de pago de la preventa (por ejemplo, un Payment Link de Stripe). Sin ella, el botón dice "Preventa: abre pronto".
+## Variables de entorno (Vercel)
+
+| Variable | Para qué | Si falta |
+|---|---|---|
+| `NEXT_PUBLIC_PREVENTA_URL` | Link de pago de Mercado Pago para apartar lugar de fundador | El botón dice "Preventa: abre pronto" |
+| `NEXT_PUBLIC_LEADS_URL` | URL `/exec` del Apps Script que guarda los registros en Google Sheets | El formulario de registro no aparece |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | Correo de contacto del aviso de privacidad | Dice "nuestro correo de contacto" |
+
+Son variables públicas: se leen al compilar, así que después de cambiarlas hay que volver a desplegar.
+
+## Registros en Google Sheets
+
+Al terminar el diagnóstico, el alumno puede dejar nombre, correo, WhatsApp, colegio y país. Cada envío agrega una fila a la hoja "Kwanta · Registros del diagnóstico", con su nota y su porcentaje por unidad. El script y los pasos de instalación están en `scripts/registros-apps-script.gs`.
 
 ## Estructura
 
@@ -50,6 +62,7 @@ src/
     SheetStep.tsx      una hoja del diagnóstico + barra de herramientas + corrección
     Diagnostico.tsx    flujo completo y resultados
     Device.tsx         detección de dispositivo y selector "Vista"
+    LeadForm.tsx       registro al final del diagnóstico (→ Google Sheets)
     Brand.tsx          logo y diagrama de niveles de energía
     Figures.tsx        figuras estilo examen (SVG)
   lib/

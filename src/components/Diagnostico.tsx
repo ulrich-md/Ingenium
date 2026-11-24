@@ -13,6 +13,7 @@ import { MODE_LABEL } from "@/lib/device";
 import { useDevice } from "./Device";
 import { EnergyLevels } from "./Brand";
 import SheetStep from "./SheetStep";
+import LeadForm from "./LeadForm";
 
 type Stage = "intro" | "mcq" | "sheets" | "sheet" | "results";
 
@@ -297,12 +298,26 @@ export default function Diagnostico() {
         </div>
       )}
 
+      <LeadForm result={{
+        nivel: s.level,
+        dispositivo: MODE_LABEL[mode],
+        nota: String(grade),
+        marcas: `${earned}/${possible}`,
+        porcentaje: `${Math.round((earned / Math.max(1, possible)) * 100)}%`,
+        A: tally.A.possible ? `${Math.round(share(tally.A) * 100)}%` : "",
+        B: tally.B.possible ? `${Math.round(share(tally.B) * 100)}%` : "",
+        C: tally.C.possible ? `${Math.round(share(tally.C) * 100)}%` : "",
+        D: tally.D.possible ? `${Math.round(share(tally.D) * 100)}%` : "",
+        E: tally.E.possible ? `${Math.round(share(tally.E) * 100)}%` : "",
+        hojas: `${sheetsDone}/${SHEETS.length}`,
+      }} />
+
       <div className="callout" style={{ borderLeftColor: "var(--vec)" }}>
         <b>Sprint al 7 · cohorte de febrero</b>
-        <span>12 semanas con hojas de examen corregidas, una clase semanal en vivo con un coach que sacó 7 y 4 mocks corregidos sobre tu hoja. Cupo de 25.</span>
+        <span>12 semanas con hojas de examen corregidas, una clase semanal en vivo con un coach que sacó 7 y 4 mocks corregidos sobre tu hoja. Cupo de 25. Los primeros lugares tienen precio de fundador.</span>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
           {PREVENTA ? (
-            <a className="btn sig" href={PREVENTA} target="_blank" rel="noopener">Apartar lugar de fundador</a>
+            <a className="btn sig" href={PREVENTA} target="_blank" rel="noopener">Apartar lugar de fundador · pagar con Mercado Pago</a>
           ) : (
             <button className="btn sig" type="button" disabled>Preventa: abre pronto</button>
           )}

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { EnergyLevels } from "@/components/Brand";
 
+const PREVENTA = process.env.NEXT_PUBLIC_PREVENTA_URL;
+
 export default function Home() {
   return (
     <>
@@ -74,13 +76,18 @@ export default function Home() {
             <h3>Sprint al 7</h3>
             <span className="price">$349 <small>USD · 12 semanas</small></span>
             <p className="muted">Todo el Pase, más una clase semanal en vivo con un coach que sacó 7 y 4 mocks corregidos sobre tu hoja. Garantía: si cumples el plan y no subes un nivel, te devolvemos el dinero.</p>
+            {PREVENTA ? (
+              <a className="btn sig" href={PREVENTA} target="_blank" rel="noopener">Apartar lugar · Mercado Pago</a>
+            ) : (
+              <Link className="btn" href="/diagnostico">Primero, haz el diagnóstico</Link>
+            )}
           </div>
         </div>
       </section>
 
       <footer className="wrap foot">
         <span>Kwanta · Física IB en español. Las preguntas son originales: Kwanta no está afiliado con la Organización del Bachillerato Internacional.</span>
-        <span>MVP: tu progreso se guarda solo en este navegador.</span>
+        <span>MVP: tu progreso se guarda solo en este navegador. <Link href="/privacidad">Aviso de privacidad</Link>.</span>
       </footer>
     </>
   );
