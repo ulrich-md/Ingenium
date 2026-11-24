@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { store } from "@/lib/storage";
 import type { InkHandle, Pen, Tool } from "./InkLayer";
+import { cameraCmd, Floating, useCameraZoom } from "./Camera";
 
 export const PEN_COLORS = [
   { c: "#121417", n: "Negro" }, { c: "#e5484d", n: "Rojo" }, { c: "#2f3fd8", n: "Azul" },
@@ -186,6 +187,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const palette = t.palette;
   const quick = palette.slice(0, 3);
   const vertical = t.dock === "left" || t.dock === "right";
+  const camZoom = useCameraZoom();
   const fix = useRef<HTMLDivElement>(null);
   const zoom = useRef(1);
 
@@ -271,6 +273,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const style = drag ? { translate: `${drag.dx}px ${drag.dy}px`, transition: "none" } : undefined;
 
   return (
+    <Floating>
     <div className="inkfix" ref={fix}>
       <Defs />
       {panel && (
@@ -295,6 +298,14 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
                   <span style={{ background: p.c }} />
                 </button>
               ))}
+            </div>
+          </div>
+          <div className="ip-row">
+            <span className="ip-lab">Zoom de la hoja · también con dos dedos</span>
+            <div className="ip-zoom">
+              <button type="button" className="btn sm ghost" aria-label="Alejar" onClick={() => cameraCmd("out")} disabled={camZoom <= 1.01}>−</button>
+              <button type="button" className="btn sm ghost" onClick={() => cameraCmd("reset")}>{Math.round(camZoom * 100)} %</button>
+              <button type="button" className="btn sm ghost" aria-label="Acercar" onClick={() => cameraCmd("in")} disabled={camZoom >= 3.99}>+</button>
             </div>
           </div>
           <div className="ip-row ip-actions">
@@ -338,5 +349,6 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
         </div>
       </div>
     </div>
+    </Floating>
   );
 }

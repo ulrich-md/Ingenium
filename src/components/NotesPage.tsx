@@ -15,6 +15,8 @@ import InkLayer, { type InkHandle } from "./InkLayer";
 import { InkToolbar, useInkTools } from "./InkTools";
 import SaveStatus from "./SaveStatus";
 import { useFocusMode } from "./Focus";
+import { Floating, useCamera, ZoomBadge } from "./Camera";
+import FitPage from "./FitPage";
 
 export default function NotesPage() {
   const id = useSearchParams().get("id");
@@ -57,6 +59,8 @@ function Lined({ rows, value, onChange, typed, label, grid }: { rows: number; va
   );
 }
 
+const NOTE_W = 900;
+
 function NoteEditor({ id }: { id: string }) {
   const router = useRouter();
   const { mode } = useDevice();
@@ -67,6 +71,7 @@ function NoteEditor({ id }: { id: string }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const [drawer, setDrawer] = useState(false);
   useFocusMode();
+  useCamera(mode === "ipad" && note != null);
 
   useEffect(() => {
     if (!drawer) return;
@@ -103,7 +108,9 @@ function NoteEditor({ id }: { id: string }) {
     router.push(`/app/practica?set=${s.id}`);
   };
 
-  const page = (p: number) => (
+  // on the iPad each page is a fixed-size sheet scaled to the screen, so ink stays aligned
+  const page = (p: number) => ink ? <FitPage key={p} width={NOTE_W}>{sheetPage(p)}</FitPage> : sheetPage(p);
+  const sheetPage = (p: number) => (
     <div key={p} className="paper notepage" onPointerDownCapture={() => { active.current = inks.current[p] ?? null; }}>
       {p === 0 ? (
         <>
@@ -161,6 +168,7 @@ function NoteEditor({ id }: { id: string }) {
           )}
         </div>
 
+        <Floating>
         {drawer && <div className="drawer-bg" onClick={() => setDrawer(false)} aria-hidden="true" />}
         <aside className={"drawer" + (drawer ? " open" : "")} role="dialog" aria-modal="true" aria-label="Detalles de la nota" hidden={!drawer}>
           <div className="drawer-h">
@@ -203,6 +211,8 @@ function NoteEditor({ id }: { id: string }) {
             <button className="btn sm ghost drawer-del danger" type="button" onClick={() => setConfirmDel(true)}>Borrar nota</button>
           )}
         </aside>
+        </Floating>
+        {ink && <ZoomBadge />}
       </div>
     </div>
   );

@@ -10,13 +10,15 @@
  * - On lift: the stroke becomes one vector SVG path (sharp at any zoom), first the fast
  *   outline, then, when the iPad is idle, the clean unioned outline (no pinholes).
  *
- * Layers, bottom to top: svgHL · liveHL · svgInk · live. Highlights stay under the ink.
- * Fingers scroll and zoom natively; Pencil touches and a resting palm do not.
+ * Layers: svgHL · svgInk in the sheet; the live canvases (liveHL · live) are fixed to the
+ * screen, outside the camera's moving content. Highlights stay under the ink.
+ * Fingers pan and zoom the sheet (Camera.tsx); Pencil touches and a resting palm do not.
  * Strokes are stored in units of 1/1000 of the sheet width.
  */
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { cleanPath, effectivePressure, kindOf, rawPath, type Pen } from "@/lib/inkGeom";
 import { store } from "@/lib/storage";
+import { Floating } from "./Camera";
 
 export type { Pen } from "@/lib/inkGeom";
 export type Tool = Pen | "hl" | "erase" | "lasso";
@@ -171,7 +173,10 @@ export default function InkLayer({
   /* ---------- live (screen) layers ---------- */
   const fitLive = () => {
     const cw = document.documentElement.clientWidth, ch = document.documentElement.clientHeight;
-    const zoom = Math.max(1, window.visualViewport?.scale ?? 1);
+    // the sheet's own camera (Camera.tsx) and, outside it, any browser zoom
+    const el = box.current;
+    const cam = el && el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1;
+    const zoom = Math.max(1, (window.visualViewport?.scale ?? 1) * cam);
     let d = Math.min(3, (window.devicePixelRatio || 1) * zoom);
     if (cw * ch * d * d > MAX_CANVAS_AREA) d = Math.sqrt(MAX_CANVAS_AREA / (cw * ch));
     const w = Math.round(cw * d), h = Math.round(ch * d);
@@ -284,11 +289,12 @@ export default function InkLayer({
     redraw();
     const el = box.current;
     if (!el) return;
+    // layout size, not the on-screen one: the sheet may be scaled (FitPage) or zoomed (Camera)
     const fit = () => {
-      const r = el.getBoundingClientRect();
-      if (!r.width) return;
-      setPx(r.width / U);
-      setVbH((r.height / r.width) * U);
+      const w = el.offsetWidth, h = el.offsetHeight;
+      if (!w) return;
+      setPx(w / U);
+      setVbH((h / w) * U);
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -588,10 +594,13 @@ export default function InkLayer({
       aria-label="Zona de escritura con Apple Pencil"
     >
       <svg ref={svgHL} className="inksvg" viewBox={vb} preserveAspectRatio="xMinYMin meet" aria-hidden="true"><g opacity={HL_ALPHA} /></svg>
-      <canvas ref={liveHL} className="vp" />
       <svg ref={svgInk} className="inksvg" viewBox={vb} preserveAspectRatio="xMinYMin meet" aria-hidden="true"><g /></svg>
-      <canvas ref={live} className="vp" />
-      {dbgOn && <div ref={debugEl} className="inkdebug" />}
+      {/* screen-sized live layers stay outside the camera's moving content */}
+      <Floating>
+        <canvas ref={liveHL} className="vp inklive hl" />
+        <canvas ref={live} className="vp inklive" />
+        {dbgOn && <div ref={debugEl} className="inkdebug" />}
+      </Floating>
       {selBox && (
         <div className="selbox" style={{ left: selBox[0] * px, top: selBox[1] * px, width: (selBox[2] - selBox[0]) * px, height: (selBox[3] - selBox[1]) * px }}>
           <div className="selbar" onPointerDown={(e) => e.stopPropagation()}>

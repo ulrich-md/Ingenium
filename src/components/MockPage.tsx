@@ -14,6 +14,7 @@ import { getMock, listMocks, mockSheets, newMock, saveMock, MOCK_SIZE, type Mock
 import { gradeFromShare } from "@/lib/scoring";
 import { useDevice } from "./Device";
 import SheetStep from "./SheetStep";
+import { Floating } from "./Camera";
 
 export default function MockPage() {
   const id = useSearchParams().get("id");
@@ -210,7 +211,7 @@ function Runner({ id }: { id: string }) {
         nextLabel={last ? "Entregar mock" : "Siguiente pregunta →"}
         onNext={() => (last ? setConfirm(true) : up((x) => ({ ...x, idx: x.idx + 1 })))}
       />
-      <div className={"clock" + (left < 5 * 60_000 ? " warn" : "")} role="timer" aria-live="off">⏱ {mmss(left)}</div>
+      <Floating><div className={"clock" + (left < 5 * 60_000 ? " warn" : "")} role="timer" aria-live="off">⏱ {mmss(left)}</div></Floating>
     </div>
   );
 }

@@ -32,6 +32,10 @@ Todo el progreso se guarda en el navegador (`localStorage`). No hay cuentas ni b
 - En Inicio hay **Copia de seguridad**: descarga un archivo `.json` con todo y lo restaura (`src/lib/storage.ts`).
 - El indicador de guardado dice la verdad: "Guardado ✓" o "No se pudo guardar".
 
+**Zoom propio de la hoja (iPad):** como en las apps de notas, la hoja tiene su propia cámara (`src/components/Camera.tsx`): un dedo desplaza (con inercia), dos dedos hacen zoom de 100 a 400 %, el Apple Pencil escribe y la palma se ignora mientras escribe. La barra de plumas, el reloj y los paneles quedan fuera de la cámara, así que nunca crecen. Con trackpad: desplazar y pellizcar. También hay botones de zoom en el panel de la pluma y "Ver toda la hoja" mientras hay zoom.
+
+**Hoja de tamaño fijo (iPad):** cada hoja tiene un ancho de diseño fijo (860 px los exámenes, 900 las notas) y se escala a la pantalla (`src/components/FitPage.tsx`). Así la tinta queda alineada con los recuadros en vertical, horizontal, al escribir y al corregir, y en horizontal hay más espacio para escribir. Los recuadros de respuesta ocupan casi todo el ancho.
+
 Mientras se escribe (hojas y notas) la app entra en **modo enfoque**: sin encabezado ni pestañas, la hoja a todo el ancho. En los mocks la barra solo tiene bolígrafo, lápiz y borrador, en negro o azul.
 
 ## Cuenta demo

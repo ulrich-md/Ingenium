@@ -420,3 +420,33 @@ body.has-inkbar[data-inkdock="bottom"] .clock { bottom: calc(114px + env(safe-ar
   .sheetwrap.marking .rule > span:first-child { display: flex !important; gap: 8px !important; }
   .sheetwrap.marking .rule button { width: 38px; height: 38px; }
 }
+
+/* ---------- the sheet's own camera (Camera.tsx) ---------- */
+body.camera { overflow: hidden; overscroll-behavior: none; }
+body.camera main { position: fixed; inset: 0; overflow: hidden; padding: 0 !important; touch-action: none; }
+body.camera main > * { padding-top: max(10px, env(safe-area-inset-top, 0px)); }
+body.camera[data-inkdock="left"] main > * { padding-left: 104px; }
+body.camera[data-inkdock="right"] main > * { padding-right: 104px; }
+body.camera[data-inkdock="top"] main > * { padding-top: calc(env(safe-area-inset-top, 0px) + 104px); }
+body.camera .inklayer { touch-action: none; }
+canvas.inklive { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 56; }
+canvas.inklive.hl { z-index: 55; }
+.zoombadge {
+  position: fixed; z-index: 61; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border-radius: 999px;
+  background: rgba(22, 24, 29, 0.86); color: #fff; font: 600 0.85rem var(--body); box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+}
+.zoombadge button { border: 0; border-radius: 999px; background: #fff; color: #16181d; font: 600 0.82rem var(--body); padding: 7px 12px; cursor: pointer; min-height: 34px; }
+body[data-inkdock="top"] .zoombadge { top: calc(env(safe-area-inset-top, 0px) + 108px); }
+.ip-zoom { display: flex; gap: 6px; }
+.ip-zoom .btn { min-width: 48px; }
+
+/* ---------- more room to write: the iPad sheet is a page scaled to the screen (FitPage) ---------- */
+/* min-width + contain: the fixed-width page inside must not widen its grid/flex parent */
+.fitpage { width: 100%; min-width: 0; contain: inline-size; overflow: visible; }
+.focuswrap { max-width: 1280px; }
+.fitpage .paper { max-width: none; min-width: 0; width: 100%; }
+.paper.ink .stem, .paper.ink .data { padding-left: 7%; padding-right: 4%; }
+.paper.ink .prt { grid-template-columns: 7% minmax(0, 1fr) 7%; }
+.paper.ink .abox { margin: 8px 4% 0 7%; }
+.paper.ink .abox .r { height: 46px; }

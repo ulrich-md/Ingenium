@@ -9,14 +9,22 @@ import { store } from "@/lib/storage";
 import { markTyped, type RowNote } from "@/lib/check";
 import type { Sheet } from "@/lib/content";
 import ExamSheet from "./ExamSheet";
+import FitPage from "./FitPage";
 import InkLayer, { type InkHandle } from "./InkLayer";
 import { useFocusMode } from "./Focus";
+import { useCamera, ZoomBadge } from "./Camera";
 import { InkToolbar, useInkTools } from "./InkTools";
 import SaveStatus from "./SaveStatus";
 
 type Awarded = (boolean | null)[][];
 
 const KEYS = ["√(", "×", "×10ⁿ", "²", "³", "⁻¹", "π", "θ", "Δ", "λ", "ω", "μ", "ρ", "≈", "°", "→"];
+
+/** On the iPad the exam sheet is a fixed-size page scaled to the screen (see FitPage). */
+function SheetFit({ ipad, children }: { ipad: boolean; children: React.ReactNode }) {
+  return ipad ? <FitPage width={SHEET_W}>{children}</FitPage> : <>{children}</>;
+}
+const SHEET_W = 860;
 
 export default function SheetStep({
   sheet, mode, typed, onTyped, awarded, onAwarded, marked, onMarked, onNext, nextLabel, exam,
@@ -39,6 +47,8 @@ export default function SheetStep({
   const tools = useInkTools({ exam: !!exam });
   const [sheetOpen, setSheetOpen] = useState(true);
   useFocusMode();
+  // writing on the iPad: the sheet has its own pan and zoom; marking scrolls normally
+  useCamera(mode === "ipad" && !marked);
   const [showSol, setShowSol] = useState(false);
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
@@ -95,7 +105,7 @@ export default function SheetStep({
     <div style={{ display: "grid", gap: 14 }}>
       {mode === "ipad" ? (
         // marking is reading, not writing: the pen bar steps aside
-        !marked && <InkToolbar t={tools} ink={ink} />
+        !marked && <><InkToolbar t={tools} ink={ink} /><ZoomBadge /></>
       ) : !marked && (
         <div className="toolbar" role="toolbar" aria-label="Símbolos">
           <span className="lab">Símbolos</span>
@@ -128,14 +138,16 @@ export default function SheetStep({
             </div>
           )}
           <div className="desk">
-            <ExamSheet
-              sheet={sheet}
-              variant={mode === "ipad" ? "ink" : "typed"}
-              typed={typed}
-              onType={setRow}
-              onFocusInput={(el) => { lastInput.current = el; }}
-              overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
-            />
+            <SheetFit ipad={mode === "ipad"}>
+              <ExamSheet
+                sheet={sheet}
+                variant={mode === "ipad" ? "ink" : "typed"}
+                typed={typed}
+                onType={setRow}
+                onFocusInput={(el) => { lastInput.current = el; }}
+                overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
+              />
+            </SheetFit>
           </div>
           {!exam && (
             <div className="sheetact">
@@ -151,20 +163,22 @@ export default function SheetStep({
       ) : (
       <div className={"sheetwrap marking" + (sheetOpen ? "" : " closed")}>
         <div className="desk">
-          <ExamSheet
-            sheet={sheet}
-            variant={mode === "ipad" ? "ink" : "typed"}
-            typed={typed}
-            onType={setRow}
-            onFocusInput={(el) => { lastInput.current = el; }}
-            notes={notes}
-            totals={totals}
-            overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
-          />
+          <SheetFit ipad={mode === "ipad"}>
+            <ExamSheet
+              sheet={sheet}
+              variant={mode === "ipad" ? "ink" : "typed"}
+              typed={typed}
+              onType={setRow}
+              onFocusInput={(el) => { lastInput.current = el; }}
+              notes={notes}
+              totals={totals}
+              overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
+            />
+          </SheetFit>
           {mode === "ipad" && marked && showSample && (
             <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
               <p className="eyebrow">Ejemplo · así corregirá la IA una hoja escrita a mano</p>
-              <ExamSheet sheet={sheet} variant="sample" />
+              <SheetFit ipad><ExamSheet sheet={sheet} variant="sample" /></SheetFit>
             </div>
           )}
         </div>
