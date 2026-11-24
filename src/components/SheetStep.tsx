@@ -15,6 +15,7 @@ import { useFocusMode } from "./Focus";
 import { useCamera, ZoomBadge } from "./Camera";
 import { InkToolbar, useInkTools } from "./InkTools";
 import SaveStatus from "./SaveStatus";
+import { FormulaColumn, FormulaDrawer, hasFormulas, useFormulasOpen, useWide } from "./FormulaPanel";
 
 type Awarded = (boolean | null)[][];
 
@@ -46,6 +47,10 @@ export default function SheetStep({
   const lastInput = useRef<HTMLInputElement | null>(null);
   const tools = useInkTools({ exam: !!exam });
   const [sheetOpen, setSheetOpen] = useState(true);
+  // the booklet formulas for this topic, beside the sheet (a panel on narrow screens)
+  const wide = useWide();
+  const [fOpen, setFOpen] = useFormulasOpen(wide);
+  const showF = !marked && hasFormulas(sheet.topic);
   useFocusMode();
   // writing on the iPad: the sheet has its own pan and zoom; marking scrolls normally
   useCamera(mode === "ipad" && !marked);
@@ -136,14 +141,18 @@ export default function SheetStep({
               <button type="button" className="tipx" aria-label="Entendido, ocultar" onClick={closeTip}>Entendido</button>
             </div>
           )}
-          {exam && (
-            // in an exam you move between questions, so the arrows sit above the sheet,
-            // clear of the pen bar and the clock at the bottom
-            <div className="sheetact">
-              {exam.onPrev ? <button className="btn sm" type="button" onClick={exam.onPrev}>← Anterior</button> : <SaveStatus />}
-              <button className="btn primary sm" type="button" onClick={onNext}>{nextLabel}</button>
+          {(exam || showF) && (
+            // above the sheet: in an exam the arrows (clear of the pen bar and the clock), and the formulas
+            <div className="sheettop">
+              {exam?.onPrev ? <button className="btn sm" type="button" onClick={exam.onPrev}>← Anterior</button> : exam ? <SaveStatus /> : null}
+              <span className="st-right">
+                {showF && <button className="btn sm fbtn" type="button" aria-pressed={fOpen} onClick={() => setFOpen(!fOpen)}>Fórmulas</button>}
+                {exam && <button className="btn primary sm" type="button" onClick={onNext}>{nextLabel}</button>}
+              </span>
             </div>
           )}
+          {showF && fOpen && !wide && <FormulaDrawer topic={sheet.topic} onClose={() => setFOpen(false)} />}
+          <div className={"sheetgrid" + (showF && fOpen && wide ? " withf" : "")}>
           <div className="desk">
             <SheetFit ipad={mode === "ipad"}>
               <ExamSheet
@@ -155,6 +164,8 @@ export default function SheetStep({
                 overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
               />
             </SheetFit>
+          </div>
+          {showF && fOpen && wide && <FormulaColumn topic={sheet.topic} onClose={() => setFOpen(false)} />}
           </div>
           {!exam && (
             <div className="sheetact">

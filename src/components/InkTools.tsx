@@ -21,10 +21,10 @@ export const HL_COLORS = [
   { c: "#fde047", n: "Amarillo" }, { c: "#86efac", n: "Verde" }, { c: "#f9a8d4", n: "Rosa" }, { c: "#93c5fd", n: "Azul" }, { c: "#fdba74", n: "Naranja" },
 ];
 const SIZES: Record<Pen | "hl", number[]> = {
-  fountain: [1.8, 2.8, 4.2],
-  ball: [1.5, 2.2, 3.2],
-  pencil: [1.7, 2.5, 3.8],
-  marker: [2.6, 3.8, 5.6],
+  fountain: [2, 3, 4.4],
+  ball: [1.1, 1.6, 2.3],
+  pencil: [1.6, 2.4, 3.6],
+  marker: [4.5, 6.5, 9],
   hl: [12, 18, 26],
 };
 type Inked = Pen | "hl";
@@ -33,9 +33,9 @@ const NAMES: Record<Tool, string> = {
 };
 
 export type Dock = "bottom" | "top" | "left" | "right";
-interface Saved { tool: Tool; last: Inked; finger: boolean; dock: Dock; set: Record<Inked, { c: string; i: number }> }
+interface Saved { tool: Tool; last: Inked; finger: boolean; dock: Dock; mini: boolean; set: Record<Inked, { c: string; i: number }> }
 const DEFAULTS: Saved = {
-  tool: "fountain", last: "fountain", finger: false, dock: "bottom",
+  tool: "fountain", last: "fountain", finger: false, dock: "bottom", mini: false,
   set: {
     fountain: { c: "#2f3fd8", i: 1 }, ball: { c: "#121417", i: 1 }, pencil: { c: "#121417", i: 1 },
     marker: { c: "#e5484d", i: 1 }, hl: { c: "#fde047", i: 1 },
@@ -50,6 +50,8 @@ export interface InkTools {
   sizeIdx: number; setSizeIdx: (i: number) => void;
   finger: boolean; setFinger: (f: boolean) => void;
   dock: Dock; setDock: (d: Dock) => void;
+  /** collapsed bar: only undo, the pen in use and its color */
+  mini: boolean; setMini: (m: boolean) => void;
   selected: number; setSelected: (n: number) => void;
   /** what to pass to InkLayer */
   color: string; size: number;
@@ -88,6 +90,7 @@ export function useInkTools({ exam = false }: { exam?: boolean } = {}): InkTools
     setSizeIdx: (i) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], i } } })),
     finger: s.finger, setFinger: (finger) => up((p) => ({ ...p, finger })),
     dock: s.dock, setDock: (dock) => up((p) => ({ ...p, dock })),
+    mini: s.mini, setMini: (mini) => up((p) => ({ ...p, mini })),
     color,
     size: SIZES[inked][conf.i] ?? SIZES[inked][1],
   };
@@ -123,7 +126,8 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const quick = palette.slice(0, 3);
   const vertical = t.dock === "left" || t.dock === "right";
   const camZoom = useCameraZoom();
-  const fix = useRef<HTMLDivElement>(null);
+  // a state ref: the layer mounts a render later, inside a portal (Floating)
+  const [fix, setFix] = useState<HTMLDivElement | null>(null);
   const zoom = useRef(1);
 
   /* Pinch-zoom (the sheet uses the browser's native zoom) magnifies everything that is
@@ -131,7 +135,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
      so this layer follows the visual viewport and undoes its scale. */
   useEffect(() => {
     const vv = window.visualViewport;
-    const el = fix.current;
+    const el = fix;
     if (!vv || !el) return;
     let raf = 0;
     const apply = () => {
@@ -151,7 +155,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
     vv.addEventListener("resize", sched);
     vv.addEventListener("scroll", sched);
     return () => { vv.removeEventListener("resize", sched); vv.removeEventListener("scroll", sched); if (raf) cancelAnimationFrame(raf); };
-  }, []);
+  }, [fix]);
 
   useEffect(() => {
     const b = document.body;
@@ -209,7 +213,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
 
   return (
     <Floating>
-    <div className="inkfix" ref={fix}>
+    <div className="inkfix" ref={setFix}>
       {panel && (
         <div className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
           <div className="ip-row">
@@ -252,7 +256,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
       {t.tool === "lasso" && (
         <div className={`inkhint dock-${t.dock}`}>{t.selected ? `${t.selected} trazos seleccionados: arrástralos o toca un color` : "Rodea trazos con el lápiz para seleccionarlos"}</div>
       )}
-      <div className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${drag ? " dragging" : ""}`} style={style} role="toolbar" aria-label="Herramientas de escritura">
+      <div className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${drag ? " dragging" : ""}${t.mini ? " mini" : ""}`} style={style} role="toolbar" aria-label="Herramientas de escritura">
         <button type="button" className="ib-grip" aria-label="Mover la barra (arrástrala a cualquier borde)" title="Arrastra para mover" {...grip}>
           <Icon name="grip" size={18} />
         </button>
@@ -261,6 +265,21 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
           <button type="button" onClick={() => ink.current?.redo()} aria-label="Rehacer" title="Rehacer"><Icon name="redo" size={24} /></button>
         </div>
         <i className="ib-sep" aria-hidden="true" />
+        {t.mini ? (
+          <>
+            {/* collapsed: the pen in use (tap to open the bar again) and its color */}
+            <button type="button" className="ib-pen" aria-pressed="true" aria-label={`${NAMES[t.tool]}: abrir la barra`} title="Abrir la barra" onClick={() => t.setMini(false)}>
+              <Icon name={t.tool} color={iconInk(TOOL_COLOR[t.tool] ?? t.color)} />
+            </button>
+            {t.tool !== "erase" && t.tool !== "lasso" && (
+              <button type="button" className="ib-dot" aria-label="Más colores y grosor" aria-expanded={panel} onClick={() => setPanel((v) => !v)}>
+                <span style={{ background: t.color }} />
+              </button>
+            )}
+            <button type="button" className="ib-fold" aria-label="Abrir la barra" title="Abrir la barra" onClick={() => t.setMini(false)}><Icon name="expand" size={18} /></button>
+          </>
+        ) : (
+          <>
         <div className="ib-pens">
           {t.pens.map((x) => (
             <button key={x} type="button" className="ib-pen" aria-pressed={t.tool === x} aria-label={NAMES[x]} title={NAMES[x]} onClick={() => pickTool(x)}>
@@ -279,6 +298,9 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
             <span />
           </button>
         </div>
+        <button type="button" className="ib-fold" aria-label="Hacer la barra más pequeña" title="Hacer la barra más pequeña" onClick={() => { setPanel(false); t.setMini(true); }}><Icon name="collapse" size={18} /></button>
+          </>
+        )}
       </div>
     </div>
     </Floating>

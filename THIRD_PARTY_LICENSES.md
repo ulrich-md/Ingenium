@@ -27,3 +27,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## KaTeX
+
+Fórmulas del panel de fórmulas (`src/components/FormulaPanel.tsx`), con [KaTeX](https://katex.org) 0.16.22, licencia MIT, Copyright (c) 2013-2020 Khan Academy and other contributors. El aviso completo viene en `node_modules/katex/LICENSE` y en sus archivos distribuidos.

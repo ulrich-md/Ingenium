@@ -36,6 +36,10 @@ Todo el progreso se guarda en el navegador (`localStorage`). No hay cuentas ni b
 
 **Hoja de tamaño fijo (iPad):** cada hoja tiene un ancho de diseño fijo (860 px los exámenes, 900 las notas) y se escala a la pantalla (`src/components/FitPage.tsx`). Así la tinta queda alineada con los recuadros en vertical, horizontal, al escribir y al corregir, y en horizontal hay más espacio para escribir. Los recuadros de respuesta ocupan casi todo el ancho.
 
+**Fórmulas al lado de los ejercicios:** cada hoja muestra las fórmulas del cuadernillo de datos de su tema (`src/lib/formulas.ts`), en LaTeX con KaTeX, con las de ese tipo de ejercicio primero. En pantallas anchas van en una columna; en el iPad vertical, en un panel que se abre con "Fórmulas".
+
+**Motor de tinta:** el trazo en vivo se dibuja por tramos (lo ya escrito se fija y cada fotograma solo se recalcula la punta), una vez por fotograma, y la limpieza del contorno corre en un Web Worker (`src/lib/inkWorker.ts`). Cada pluma se siente distinta: pluma caligráfica (el grosor sigue la dirección), bolígrafo parejo, lápiz de grafito y plumón grueso. La barra se puede plegar.
+
 Mientras se escribe (hojas y notas) la app entra en **modo enfoque**: sin encabezado ni pestañas, la hoja a todo el ancho. En los mocks la barra solo tiene bolígrafo, lápiz y borrador, en negro o azul.
 
 ## Cuenta demo

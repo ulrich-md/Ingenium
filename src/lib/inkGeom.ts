@@ -21,13 +21,25 @@ export interface StrokeLike {
 
 export const kindOf = (st: StrokeLike): Kind => (st.hl ? "hl" : st.k ?? "fountain");
 
+/**
+ * Each pen should feel different in the hand:
+ * - fountain: calligraphic, thick or thin with the direction of the stroke and with pressure;
+ * - ball: an even, thin line whatever you do;
+ * - pencil: graphite: very pressure-sensitive, lighter, slightly rough edges;
+ * - marker: broad and even.
+ */
 export const PENS: Record<Kind, { thinning: number; smoothing: number; streamline: number }> = {
-  fountain: { thinning: 0.68, smoothing: 0.6, streamline: 0.32 },
-  ball: { thinning: 0.18, smoothing: 0.55, streamline: 0.35 },
-  pencil: { thinning: 0.42, smoothing: 0.55, streamline: 0.32 },
-  marker: { thinning: 0, smoothing: 0.6, streamline: 0.4 },
+  fountain: { thinning: 0.8, smoothing: 0.62, streamline: 0.32 },
+  ball: { thinning: 0.08, smoothing: 0.5, streamline: 0.38 },
+  pencil: { thinning: 0.6, smoothing: 0.45, streamline: 0.28 },
+  marker: { thinning: 0, smoothing: 0.65, streamline: 0.42 },
   hl: { thinning: 0, smoothing: 0.55, streamline: 0.5 },
 };
+
+/** Fountain nib held at 45°: strokes along the nib edge are thin, across it thick (0.3–1). */
+const NIB_ANGLE = -Math.PI / 4;
+export const nibFactor = (dir: number) => 0.3 + 0.7 * Math.abs(Math.sin(dir - NIB_ANGLE));
+export const NIB_START = 0.65;
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 
@@ -35,15 +47,21 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
  * Pressure stored with each point. `speed` is in sheet units per millisecond
  * (normal handwriting is about 0.2–1.5).
  */
-export function effectivePressure(kind: Kind, pressure: number, speed: number): number {
+export function effectivePressure(kind: Kind, pressure: number, speed: number, nib = NIB_START): number {
   const s = clamp(speed / 1.8, 0, 1);
   switch (kind) {
-    case "fountain": return clamp(0.12 + Math.pow(pressure, 0.75) * 0.95 - s * 0.3, 0.05, 1);
-    case "ball": return clamp(0.5 + (pressure - 0.5) * 0.25 - s * 0.05, 0.3, 0.7);
-    case "pencil": return clamp(0.08 + Math.pow(pressure, 0.9) * 0.95 - s * 0.12, 0.05, 1);
+    case "fountain": return clamp((0.1 + Math.pow(pressure, 0.75) * 0.95 - s * 0.25) * (0.45 + 0.75 * nib), 0.04, 1);
+    case "ball": return clamp(0.5 + (pressure - 0.5) * 0.1 - s * 0.03, 0.42, 0.58);
+    case "pencil": return clamp(0.03 + Math.pow(pressure, 1.15) * 1.05 - s * 0.1, 0.04, 1);
     default: return 0.5;
   }
 }
+
+/** Deterministic noise in [-1, 1] from a position (the same stroke always looks the same). */
+const noise = (x: number, y: number) => {
+  const h = Math.sin(Math.round(x * 3) * 12.9898 + Math.round(y * 3) * 78.233) * 43758.5453;
+  return (h - Math.floor(h)) * 2 - 1;
+};
 
 /** Raw (possibly self-crossing) outline of a stroke, in stroke units. */
 export function outline(st: StrokeLike, extra: number[][] = [], last = true): number[][] {
@@ -51,12 +69,17 @@ export function outline(st: StrokeLike, extra: number[][] = [], last = true): nu
   const pts: number[][] = [];
   for (let i = 0; i < st.p.length; i += 3) pts.push([st.p[i], st.p[i + 1], st.p[i + 2]]);
   for (const e of extra) pts.push(e);
-  const hl = kindOf(st) === "hl";
-  return getStroke(pts, {
+  const kind = kindOf(st);
+  const hl = kind === "hl";
+  const ring = getStroke(pts, {
     size: st.s, thinning: o.thinning, smoothing: o.smoothing, streamline: o.streamline,
     simulatePressure: false, last,
-    start: { cap: !hl, taper: 0 }, end: { cap: !hl, taper: 0 },
+    start: { cap: !hl, taper: kind === "pencil" ? st.s * 2 : 0 }, end: { cap: !hl, taper: kind === "pencil" ? st.s * 2 : 0 },
   });
+  if (kind !== "pencil") return ring;
+  // graphite: slightly rough edges
+  const a = st.s * 0.14;
+  return ring.map(([x, y]) => [x + noise(x, y) * a, y + noise(y, x) * a]);
 }
 
 const f = (v: number) => (Math.round(v * 100) / 100).toString();

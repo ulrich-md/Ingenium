@@ -19,6 +19,8 @@ export type CameraCmd = "in" | "out" | "reset";
 
 const ZMIN = 1, ZMAX = 4;
 const SLOP = 8; // px a finger may wander before it counts as a pan (taps stay taps)
+const PALM_MS = 500; // touches this soon after the Pencil lifts are the resting hand
+const PALM_SIZE = 44; // contact larger than this (px) is a palm, where Safari reports it
 
 export const cameraCmd = (op: CameraCmd) => window.dispatchEvent(new CustomEvent<CameraCmd>(CAMERA_CMD, { detail: op }));
 
@@ -36,6 +38,8 @@ export function useCamera(active: boolean) {
     let x = 0, y = 0, z = 1;
     let raf = 0, glide = 0;
     let penDown = false;
+    let penUpAt = -1e9;
+    let panOrigin: { x: number; y: number; t: number } | null = null;
     const touches = new Map<number, { x: number; y: number }>();
     let pan: { x: number; y: number; moved: boolean } | null = null;
     let pinch: { d: number; mx: number; my: number; x: number; y: number; z: number } | null = null;
@@ -78,16 +82,20 @@ export function useCamera(active: boolean) {
     const onDown = (e: PointerEvent) => {
       if (e.pointerType === "pen") {
         penDown = true;
-        // the palm often lands just before the Pencil: drop whatever it started
-        touches.clear(); pan = null; pinch = null; stopGlide();
+        // the palm often lands just before the Pencil: drop the pan it started and put the sheet back
+        if (pan && panOrigin && e.timeStamp - panOrigin.t < 600) { x = panOrigin.x; y = panOrigin.y; apply(); }
+        touches.clear(); pan = null; pinch = null; panOrigin = null; stopGlide();
         return;
       }
       if (e.pointerType !== "touch" || penDown) return;
+      // palm: lands right after the Pencil lifts between words, or is a big contact
+      if (e.timeStamp - penUpAt < PALM_MS) return;
+      if (e.width > PALM_SIZE || e.height > PALM_SIZE) return;
       if (e.defaultPrevented) return; // the ink took it (finger drawing, dragging a selection)
       if (!main.contains(e.target as Node)) return; // floating UI (pen bar, panels)
       stopGlide();
       touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (touches.size === 1) { pan = { x: e.clientX, y: e.clientY, moved: false }; samples = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }]; }
+      if (touches.size === 1) { panOrigin = { x, y, t: e.timeStamp }; pan = { x: e.clientX, y: e.clientY, moved: false }; samples = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }]; }
       else if (touches.size === 2) startPinch();
     };
     const onMove = (e: PointerEvent) => {
@@ -117,7 +125,7 @@ export function useCamera(active: boolean) {
       }
     };
     const onUp = (e: PointerEvent) => {
-      if (e.pointerType === "pen") { penDown = false; return; }
+      if (e.pointerType === "pen") { penDown = false; penUpAt = e.timeStamp; return; }
       if (!touches.has(e.pointerId)) return;
       touches.delete(e.pointerId);
       if (pinch && touches.size < 2) {
@@ -153,7 +161,8 @@ export function useCamera(active: boolean) {
     };
     // a pan or pinch that ends on a button must not press it
     const onClick = (e: MouseEvent) => {
-      if (swallowClick && e.timeStamp - swallowClick < 350) { e.preventDefault(); e.stopPropagation(); }
+      // only on the sheet: a tap on the pen bar or a panel always goes through
+      if (swallowClick && e.timeStamp - swallowClick < 350 && main.contains(e.target as Node)) { e.preventDefault(); e.stopPropagation(); }
       swallowClick = 0;
     };
     const onWheel = (e: WheelEvent) => {

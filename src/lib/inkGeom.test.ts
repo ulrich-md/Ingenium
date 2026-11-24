@@ -33,3 +33,14 @@ test("a tap is a dot, and the fast path always returns something", () => {
   assert.ok(cleanPath(dot).includes("a"));
   assert.ok(rawPath(loopy()).length > 100);
 });
+
+test("pens feel different: the fountain pen follows the stroke direction, the ballpoint does not", async () => {
+  const { nibFactor } = await import("./inkGeom.ts");
+  const across = nibFactor(Math.PI / 4); // down-right, across a 45° nib
+  const along = nibFactor(-Math.PI / 4); // up-right, along the nib
+  assert.ok(effectivePressure("fountain", 0.5, 0.4, across) > effectivePressure("fountain", 0.5, 0.4, along) * 1.5);
+  assert.equal(effectivePressure("ball", 0.5, 0.4, across), effectivePressure("ball", 0.5, 0.4, along));
+  // the pencil is the most pressure-sensitive
+  const range = (k: "pencil" | "ball") => effectivePressure(k, 0.95, 0.4) - effectivePressure(k, 0.15, 0.4);
+  assert.ok(range("pencil") > 0.6 && range("ball") < 0.1);
+});
