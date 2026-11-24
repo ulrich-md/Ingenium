@@ -49,6 +49,13 @@ export default function SheetStep({
   useFocusMode();
   // writing on the iPad: the sheet has its own pan and zoom; marking scrolls normally
   useCamera(mode === "ipad" && !marked);
+  // on narrow screens the markscheme panel and the pen bar share the bottom edge:
+  // while the panel is open the bar steps aside (globals.css, body.marksheet)
+  useEffect(() => {
+    if (!marked || !sheetOpen) return;
+    document.body.classList.add("marksheet");
+    return () => document.body.classList.remove("marksheet");
+  }, [marked, sheetOpen]);
   const [showSol, setShowSol] = useState(false);
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
@@ -104,8 +111,8 @@ export default function SheetStep({
   return (
     <div style={{ display: "grid", gap: 14 }}>
       {mode === "ipad" ? (
-        // marking is reading, not writing: the pen bar steps aside
-        !marked && <><InkToolbar t={tools} ink={ink} /><ZoomBadge /></>
+        // the pen bar stays while marking too (to correct in red); only the zoom badge is for writing
+        <><InkToolbar t={tools} ink={ink} />{!marked && <ZoomBadge />}</>
       ) : !marked && (
         <div className="toolbar" role="toolbar" aria-label="Símbolos">
           <span className="lab">Símbolos</span>

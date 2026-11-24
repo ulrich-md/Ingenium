@@ -445,3 +445,12 @@ body[data-inkdock="top"] .zoombadge { top: calc(env(safe-area-inset-top, 0px) + 
 .paper.ink .prt { grid-template-columns: 7% minmax(0, 1fr) 7%; }
 .paper.ink .abox { margin: 8px 4% 0 7%; }
 .paper.ink .abox .r { height: 46px; }
+@media (max-width: 980px) { body.marksheet .inkfix { display: none; } }
+/* the sticky markscheme column ends above the pen bar, so its last button is never under it */
+@media (min-width: 981px) {
+  body.has-inkbar[data-inkdock="bottom"] .sheetwrap.marking .side { max-height: calc(100vh - 130px - 96px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+}
+body.focus .side { top: calc(env(safe-area-inset-top, 0px) + 16px); }
+@media (min-width: 981px) {
+  body.focus.has-inkbar[data-inkdock="bottom"] .sheetwrap.marking .side { max-height: calc(100vh - 16px - 96px - env(safe-area-inset-bottom, 0px)); }
+}
