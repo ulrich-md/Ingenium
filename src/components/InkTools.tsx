@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { store } from "@/lib/storage";
 import type { InkHandle, Pen, Tool } from "./InkLayer";
 import { cameraCmd, Floating, useCameraZoom } from "./Camera";
+import { ICONS } from "./toolIcons";
 
 export const PEN_COLORS = [
   { c: "#121417", n: "Negro" }, { c: "#e5484d", n: "Rojo" }, { c: "#2f3fd8", n: "Azul" },
@@ -92,92 +93,26 @@ export function useInkTools({ exam = false }: { exam?: boolean } = {}): InkTools
   };
 }
 
-/* ---------- drawn pens (44 × 100; the end of the barrel is hidden by the bar) ---------- */
-function Barrel({ band }: { band?: React.ReactNode }) {
+/* ---------- tool icons (Phosphor, duotone, drawn in each tool's ink color) ---------- */
+function Icon({ name, color, size = 28 }: { name: keyof typeof ICONS; color?: string; size?: number }) {
   return (
-    <>
-      <rect x="10" y="38" width="24" height="70" rx="2.5" fill="url(#kw-barrel)" />
-      <rect x="13.5" y="40" width="3" height="66" rx="1.5" fill="#fff" opacity=".85" />
-      {band}
-    </>
-  );
-}
-function PenArt({ t, color }: { t: Tool; color: string }) {
-  switch (t) {
-    case "fountain":
-      return (<>
-        <Barrel band={<><rect x="10" y="46" width="24" height="5" fill={color} /><rect x="10" y="51" width="24" height="1.2" fill="#000" opacity=".12" /></>} />
-        <path d="M11 39 C 12 30, 16 22, 22 4 C 28 22, 32 30, 33 39 Z" fill="url(#kw-metal)" />
-        <path d="M22 4 C 26 18, 29 27, 31 38" fill="none" stroke="#fff" strokeOpacity=".55" strokeWidth="1" />
-        <path d="M22 9 L22 26" stroke="#2b3038" strokeWidth="1.1" strokeLinecap="round" />
-        <circle cx="22" cy="27.5" r="1.9" fill="#2b3038" />
-        <path d="M14 36 Q22 32 30 36" fill="none" stroke="#7d838c" strokeWidth=".8" />
-      </>);
-    case "ball":
-      return (<>
-        <Barrel band={<rect x="10" y="48" width="24" height="4" fill={color} />} />
-        <path d="M11 39 L19.6 12 L24.4 12 L33 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
-        <path d="M19.6 12 L22 6.5 L24.4 12 Z" fill="url(#kw-metal)" />
-        <circle cx="22" cy="6.8" r="1.4" fill={color} />
-      </>);
-    case "pencil":
-      return (<>
-        <Barrel band={<><rect x="10" y="45" width="24" height="2.4" fill={color} /><rect x="10" y="49" width="24" height="2.4" fill={color} /></>} />
-        <path d="M10 39 L22 9 L34 39 Z" fill="url(#kw-wood)" />
-        <path d="M10 39 L13 36.5 L16 39 L19 36.5 L22 39 L25 36.5 L28 39 L31 36.5 L34 39" fill="url(#kw-barrel)" />
-        <path d="M17.6 20 L22 9 L26.4 20 Q22 21.6 17.6 20 Z" fill={color} />
-      </>);
-    case "marker":
-      return (<>
-        <Barrel band={<path d="M10 47 h4.5 M16.5 47 h4.5 M23 47 h4.5 M29.5 47 h4.5" stroke={color} strokeWidth="3.4" />} />
-        <path d="M13 39 L16 24 L28 24 L31 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
-        <rect x="18.6" y="9" width="6.8" height="16" rx="3.4" fill={color} />
-        <rect x="19.8" y="10.5" width="1.6" height="12" rx=".8" fill="#fff" opacity=".45" />
-      </>);
-    case "hl":
-      return (<>
-        <Barrel band={<rect x="10" y="45" width="24" height="8" fill={color} />} />
-        <path d="M12 39 L12 27 L32 17 L32 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
-        <path d="M15 26 L15 19 L29 11.5 L29 19.5 Z" fill={color} />
-        <path d="M15 19 L29 11.5" stroke="#fff" strokeOpacity=".6" strokeWidth=".9" />
-      </>);
-    case "erase":
-      return (<>
-        <Barrel />
-        <rect x="10" y="33" width="24" height="7" fill="url(#kw-metal)" />
-        <rect x="10" y="9" width="24" height="26" rx="8" fill="url(#kw-eraser)" />
-        <rect x="13.5" y="12" width="3" height="18" rx="1.5" fill="#fff" opacity=".5" />
-      </>);
-    case "lasso":
-      return (<>
-        <Barrel />
-        <path d="M14 39 L22 26 L30 39 Z" fill="url(#kw-barrel)" stroke="#cdd1d8" strokeWidth=".6" />
-        <ellipse cx="22" cy="15" rx="11" ry="8.5" fill="none" stroke="#2347d9" strokeWidth="2.2" strokeDasharray="3.2 2.6" />
-        <path d="M16.5 22 C 14 27, 17 30, 21 28" fill="none" stroke="#2347d9" strokeWidth="2.2" strokeLinecap="round" />
-      </>);
-  }
-}
-
-function Defs() {
-  return (
-    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-      <defs>
-        <linearGradient id="kw-barrel" x1="0" x2="1">
-          <stop offset="0" stopColor="#d3d7de" /><stop offset=".22" stopColor="#f7f8fa" /><stop offset=".5" stopColor="#ffffff" /><stop offset=".8" stopColor="#eceef2" /><stop offset="1" stopColor="#c9ced6" />
-        </linearGradient>
-        <linearGradient id="kw-metal" x1="0" x2="1">
-          <stop offset="0" stopColor="#6f757e" /><stop offset=".3" stopColor="#c9cdd3" /><stop offset=".48" stopColor="#f4f5f7" /><stop offset=".7" stopColor="#a9aeb6" /><stop offset="1" stopColor="#626872" />
-        </linearGradient>
-        <linearGradient id="kw-wood" x1="0" x2="1">
-          <stop offset="0" stopColor="#e2c08a" /><stop offset=".5" stopColor="#f6dfb6" /><stop offset="1" stopColor="#d9b47b" />
-        </linearGradient>
-        <linearGradient id="kw-eraser" x1="0" x2="1">
-          <stop offset="0" stopColor="#e07f84" /><stop offset=".4" stopColor="#f6b9bb" /><stop offset="1" stopColor="#d6747a" />
-        </linearGradient>
-      </defs>
+    <svg viewBox="0 0 256 256" width={size} height={size} fill="currentColor" style={color ? { color } : undefined} aria-hidden="true">
+      {ICONS[name].map((p, i) => <path key={i} d={p.d} opacity={p.o} />)}
     </svg>
   );
 }
+
+/** Light inks (yellow highlighter) need a deeper shade to read as an icon on white. */
+function iconInk(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  if (lum < 0.62) return hex;
+  const k = 0.62 / lum; // darken until it has enough contrast
+  const h = (v: number) => Math.round(v * k).toString(16).padStart(2, "0");
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+const TOOL_COLOR: Partial<Record<Tool, string>> = { erase: "#7b8494", lasso: "#2347d9" };
 
 export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<InkHandle | null>; onClear?: () => void }) {
   const [panel, setPanel] = useState(false);
@@ -275,7 +210,6 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   return (
     <Floating>
     <div className="inkfix" ref={fix}>
-      <Defs />
       {panel && (
         <div className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
           <div className="ip-row">
@@ -320,23 +254,21 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
       )}
       <div className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${drag ? " dragging" : ""}`} style={style} role="toolbar" aria-label="Herramientas de escritura">
         <button type="button" className="ib-grip" aria-label="Mover la barra (arrástrala a cualquier borde)" title="Arrastra para mover" {...grip}>
-          <svg viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><g fill="#9aa1ad"><circle cx="3" cy="4" r="1.6" /><circle cx="9" cy="4" r="1.6" /><circle cx="3" cy="10" r="1.6" /><circle cx="9" cy="10" r="1.6" /><circle cx="3" cy="16" r="1.6" /><circle cx="9" cy="16" r="1.6" /></g></svg>
+          <Icon name="grip" size={18} />
         </button>
         <div className="ib-undo">
-          <button type="button" onClick={() => ink.current?.undo()} aria-label="Deshacer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 010 12h-3" /></svg>
-          </button>
-          <button type="button" onClick={() => ink.current?.redo()} aria-label="Rehacer">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5" /><path d="M20 9H10a6 6 0 000 12h3" /></svg>
-          </button>
+          <button type="button" onClick={() => ink.current?.undo()} aria-label="Deshacer" title="Deshacer"><Icon name="undo" size={24} /></button>
+          <button type="button" onClick={() => ink.current?.redo()} aria-label="Rehacer" title="Rehacer"><Icon name="redo" size={24} /></button>
         </div>
+        <i className="ib-sep" aria-hidden="true" />
         <div className="ib-pens">
           {t.pens.map((x) => (
             <button key={x} type="button" className="ib-pen" aria-pressed={t.tool === x} aria-label={NAMES[x]} title={NAMES[x]} onClick={() => pickTool(x)}>
-              <svg viewBox="0 0 44 100" width="44" height="100"><PenArt t={x} color={x === "erase" || x === "lasso" ? "#000" : t.colorOf(x as Inked)} /></svg>
+              <Icon name={x} color={iconInk(TOOL_COLOR[x] ?? t.colorOf(x as Inked))} />
             </button>
           ))}
         </div>
+        <i className="ib-sep" aria-hidden="true" />
         <div className="ib-colors">
           {quick.map((p) => (
             <button key={p.c} type="button" className="ib-dot" aria-label={`Color ${p.n}`} aria-pressed={t.color === p.c && t.tool !== "erase" && t.tool !== "lasso"} onClick={() => pickColor(p.c)}>
