@@ -174,6 +174,35 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const palette = isHl ? HL_COLORS : PEN_COLORS;
   const quick = palette.slice(0, 3);
   const vertical = t.dock === "left" || t.dock === "right";
+  const fix = useRef<HTMLDivElement>(null);
+  const zoom = useRef(1);
+
+  /* Pinch-zoom (the sheet uses the browser's native zoom) magnifies everything that is
+     position: fixed. Like the notes apps, the bar must keep its size and stay on screen,
+     so this layer follows the visual viewport and undoes its scale. */
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = fix.current;
+    if (!vv || !el) return;
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
+      const s = vv.scale || 1;
+      zoom.current = s;
+      if (Math.abs(s - 1) < 0.01 && Math.abs(vv.offsetLeft) < 1 && Math.abs(vv.offsetTop) < 1) {
+        el.style.transform = ""; el.style.width = ""; el.style.height = "";
+        return;
+      }
+      el.style.width = `${vv.width * s}px`;
+      el.style.height = `${vv.height * s}px`;
+      el.style.transform = `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / s})`;
+    };
+    const sched = () => { if (!raf) raf = requestAnimationFrame(apply); };
+    apply();
+    vv.addEventListener("resize", sched);
+    vv.addEventListener("scroll", sched);
+    return () => { vv.removeEventListener("resize", sched); vv.removeEventListener("scroll", sched); if (raf) cancelAnimationFrame(raf); };
+  }, []);
 
   useEffect(() => {
     const b = document.body;
@@ -206,7 +235,8 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
     onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
       const d = dragRef.current;
       if (!d) return;
-      dragRef.current = { ...d, dx: e.clientX - d.x, dy: e.clientY - d.y };
+      // the bar lives in the un-zoomed layer, so page pixels count `zoom` times more
+      dragRef.current = { ...d, dx: (e.clientX - d.x) * zoom.current, dy: (e.clientY - d.y) * zoom.current };
       setDrag(dragRef.current);
     },
     onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -216,7 +246,10 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
       const moved = Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 6;
       setDrag(null);
       if (!moved) return;
-      const W = window.innerWidth, H = window.innerHeight, x = e.clientX, y = e.clientY;
+      // nearest edge of what is on screen (the visual viewport), also while zoomed in
+      const vv = window.visualViewport;
+      const W = vv ? vv.width : window.innerWidth, H = vv ? vv.height : window.innerHeight;
+      const x = e.clientX - (vv?.offsetLeft ?? 0), y = e.clientY - (vv?.offsetTop ?? 0);
       const dist: [Dock, number][] = [["left", x], ["right", W - x], ["top", y], ["bottom", H - y]];
       dist.sort((a, b) => a[1] - b[1]);
       t.setDock(dist[0][0]);
@@ -226,7 +259,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const style = drag ? { translate: `${drag.dx}px ${drag.dy}px`, transition: "none" } : undefined;
 
   return (
-    <>
+    <div className="inkfix" ref={fix}>
       <Defs />
       {panel && (
         <div className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
@@ -292,6 +325,6 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

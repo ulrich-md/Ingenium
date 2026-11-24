@@ -349,3 +349,6 @@ body.has-inkbar[data-inkdock="top"] main { padding-top: 104px; }
 .inkhint.dock-bottom, .inkhint.dock-left, .inkhint.dock-right { bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
 .inkhint.dock-left, .inkhint.dock-right { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
 .inkhint.dock-top { top: calc(env(safe-area-inset-top, 0px) + 164px); }
+/* the bar's layer follows the visual viewport so pinch-zoom does not enlarge it (InkTools) */
+.inkfix { position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; transform-origin: 0 0; }
+.inkfix > * { pointer-events: auto; }
