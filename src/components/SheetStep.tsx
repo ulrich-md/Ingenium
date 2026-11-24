@@ -4,7 +4,8 @@
  * iPad writes with the Pencil (self-marked in this demo, with an example of AI marking),
  * the computer types line by line (marked automatically by the rule checker).
  */
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { store } from "@/lib/storage";
 import { markTyped, type RowNote } from "@/lib/check";
 import type { Sheet } from "@/lib/content";
 import ExamSheet from "./ExamSheet";
@@ -38,6 +39,11 @@ export default function SheetStep({
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
   const onStrokes = useCallback((n: number) => setStrokes(n), []);
+  // the how-to line shows until the student closes it (once per device type)
+  const tipKey = `kw-tip-sheet-${exam ? "exam" : mode}`;
+  const [tip, setTip] = useState(false);
+  useEffect(() => setTip(!store.get<boolean>(tipKey, false)), [tipKey]);
+  const closeTip = () => { store.set(tipKey, true); setTip(false); };
 
   const setRow = (p: number, r: number, v: string) => {
     const next = sheet.parts.map((part, i) => Array.from({ length: part.rows }, (_, j) => typed[i]?.[j] ?? ""));
@@ -96,6 +102,47 @@ export default function SheetStep({
         </div>
       )}
 
+      {!marked ? (
+        <div className="focuswrap">
+          {tip && (
+            <div className="tipline" role="note">
+              <span>
+                {exam ? exam.info : mode === "ipad"
+                  ? "Escribe en los recuadros con el Apple Pencil. Con el dedo desplazas la hoja, así puedes apoyar la mano."
+                  : <>Un paso por renglón. Escribe <span className="mono">10^6</span> o <span className="mono">sqrt(</span> y se convierten solos.</>}
+              </span>
+              <button type="button" className="tipx" aria-label="Entendido, ocultar" onClick={closeTip}>Entendido</button>
+            </div>
+          )}
+          {exam && (
+            // in an exam you move between questions, so the arrows sit above the sheet,
+            // clear of the pen bar and the clock at the bottom
+            <div className="sheetact">
+              {exam.onPrev ? <button className="btn sm" type="button" onClick={exam.onPrev}>← Anterior</button> : <span />}
+              <button className="btn primary sm" type="button" onClick={onNext}>{nextLabel}</button>
+            </div>
+          )}
+          <div className="desk">
+            <ExamSheet
+              sheet={sheet}
+              variant={mode === "ipad" ? "ink" : "typed"}
+              typed={typed}
+              onType={setRow}
+              onFocusInput={(el) => { lastInput.current = el; }}
+              overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
+            />
+          </div>
+          {!exam && (
+            <div className="sheetact">
+              <button className="btn ghost" type="button" onClick={onNext}>Saltar esta pregunta</button>
+              <span className="sa-main">
+                {!wrote && <span className="muted sa-hint">Escribe al menos un renglón para corregir</span>}
+                <button className="btn primary" type="button" onClick={doMark} disabled={!wrote}>Terminar y corregir</button>
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="sheetwrap">
         <div className="desk">
           <ExamSheet
@@ -117,32 +164,7 @@ export default function SheetStep({
         </div>
 
         <aside className="side">
-          {!marked ? (
-            <>
-              <span className="h">{sheet.paper} · {sheet.topic}</span>
-              {mode === "ipad" ? (
-                <p className="muted" style={{ fontSize: ".92rem" }}>Escribe dentro de los recuadros con el Apple Pencil, como en el examen. Con el dedo desplazas la hoja, así puedes apoyar la mano. Si te equivocas, tacha o usa el borrador.</p>
-              ) : (
-                <p className="muted" style={{ fontSize: ".92rem" }}>Escribe un paso por renglón, como en el examen. Usa la barra de símbolos o escribe <span className="mono">10^6</span>, <span className="mono">sqrt(</span>: se convierten solos al pasar de renglón.</p>
-              )}
-              {exam ? (
-                <>
-                  <p className="muted" style={{ fontSize: ".86rem" }}>{exam.info}</p>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {exam.onPrev && <button className="btn" type="button" onClick={exam.onPrev}>← Anterior</button>}
-                    <button className="btn primary" type="button" onClick={onNext}>{nextLabel}</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button className="btn primary" type="button" onClick={doMark} disabled={!wrote}>Terminar y corregir</button>
-                  {!wrote && <p className="muted" style={{ fontSize: ".82rem" }}>Escribe al menos un renglón para corregir.</p>}
-                  <button className="btn ghost sm" type="button" onClick={onNext}>Saltar esta pregunta</button>
-                </>
-              )}
-            </>
-          ) : (
-            <>
+          <>
               <span className="h">Corrección · {mode === "ipad" ? "márcate con el esquema" : "automática por renglón"}</span>
               {mode === "ipad" && (
                 <p className="muted" style={{ fontSize: ".86rem" }}>En la versión final, la IA lee tu tinta y escribe las marcas en el margen. En esta demo, marca tú cada punto del esquema: ✓ si lo escribiste, ✗ si no.</p>
@@ -184,10 +206,10 @@ export default function SheetStep({
               )}
               <button className="btn primary" type="button" onClick={onNext} disabled={mode === "ipad" && !allSet}>{nextLabel}</button>
               {mode === "ipad" && !allSet && <p className="muted" style={{ fontSize: ".82rem" }}>Marca todos los puntos para continuar.</p>}
-            </>
-          )}
+          </>
         </aside>
       </div>
+      )}
     </div>
   );
 }

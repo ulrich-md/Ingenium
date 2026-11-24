@@ -120,6 +120,7 @@ function Runner({ id }: { id: string }) {
         <div style={{ display: "flex", gap: 6 }}>
           {set.idx > 0 && <button className="btn ghost sm" type="button" onClick={() => up({ idx: set.idx - 1 })}>Anterior</button>}
           {set.noteId && <Link className="btn ghost sm" href={`/app/notas?id=${set.noteId}`}>Ver mi nota</Link>}
+          <Link className="btn ghost sm" href="/app/practica">Salir</Link>
         </div>
       </div>
       <div className="progress" aria-hidden="true">

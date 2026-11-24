@@ -352,3 +352,25 @@ body.has-inkbar[data-inkdock="top"] main { padding-top: 104px; }
 /* the bar's layer follows the visual viewport so pinch-zoom does not enlarge it (InkTools) */
 .inkfix { position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: 60; pointer-events: none; transform-origin: 0 0; }
 .inkfix > * { pointer-events: auto; }
+
+/* focus mode: while writing, the sheet is the only thing on screen (SheetStep, NotesPage) */
+body.has-inkbar .appnav { display: none; }
+.focuswrap { display: grid; gap: 14px; width: 100%; max-width: 980px; margin-inline: auto; }
+.focuswrap .desk.notes .paper { max-width: none; }
+.tipline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--muted); font: 500 0.9rem var(--body); }
+.tipx { border: 0; background: transparent; color: var(--vec); font: 600 0.88rem var(--body); padding: 8px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; min-height: 40px; }
+.sheetact { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sa-main { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-left: auto; }
+.sa-hint { font-size: 0.84rem; }
+.notehead .nh-save { margin-left: auto; font-size: 0.85rem; }
+.drawer-bg { position: fixed; inset: 0; z-index: 79; background: rgba(14, 26, 51, 0.28); }
+.drawer { position: fixed; z-index: 80; top: 0; right: 0; bottom: 0; width: min(380px, 92vw); overflow-y: auto; background: var(--surface); box-shadow: -12px 0 40px rgba(14, 26, 51, 0.18); padding: calc(env(safe-area-inset-top, 0px) + 16px) 18px calc(env(safe-area-inset-bottom, 0px) + 18px); display: grid; gap: 14px; align-content: start; }
+.drawer[hidden] { display: none; }
+.drawer .h { font: 600 0.7rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.drawer-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+/* the destructive action sits apart from "Crear ejercicios" */
+.drawer-del { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+button.drawer-del { border-top: 0; justify-self: start; }
+.drawer-del.danger { color: var(--bad); }
+/* the exam clock sits above the pen bar instead of under it (narrow iPad in portrait) */
+body.has-inkbar[data-inkdock="bottom"] .clock { bottom: calc(114px + env(safe-area-inset-bottom, 0px)); }

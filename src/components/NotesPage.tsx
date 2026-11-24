@@ -63,6 +63,14 @@ function NoteEditor({ id }: { id: string }) {
   const inks = useRef<(InkHandle | null)[]>([]);
   const active = useRef<InkHandle | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [drawer, setDrawer] = useState(false);
+
+  useEffect(() => {
+    if (!drawer) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawer(false); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [drawer]);
 
   useEffect(() => setNote(getNote(id)), [id]);
 
@@ -123,12 +131,15 @@ function NoteEditor({ id }: { id: string }) {
 
   return (
     <div className="wrap diag">
-      <div className="step-head">
+      <div className="step-head notehead">
         <Link href="/app/notas" className="btn ghost sm">← Notas</Link>
-        <span className="muted" style={{ fontSize: ".85rem" }}>Se guarda solo</span>
+        <span className="muted nh-save">Se guarda solo</span>
+        <button className="btn sm" type="button" aria-expanded={drawer} onClick={() => setDrawer(true)}>
+          {!note.title ? "Ponle título y tema" : note.concepts.length ? `Crear ejercicios (${note.concepts.length} temas)` : "Tema y ejercicios"}
+        </button>
       </div>
       {ink && <InkToolbar t={tools} ink={active} />}
-      <div className="sheetwrap">
+      <div className="focuswrap">
         <div className="desk notes">
           {mode === "telefono" ? (
             <div className="card">
@@ -147,7 +158,12 @@ function NoteEditor({ id }: { id: string }) {
           )}
         </div>
 
-        <aside className="side">
+        {drawer && <div className="drawer-bg" onClick={() => setDrawer(false)} aria-hidden="true" />}
+        <aside className={"drawer" + (drawer ? " open" : "")} role="dialog" aria-modal="true" aria-label="Detalles de la nota" hidden={!drawer}>
+          <div className="drawer-h">
+            <b>Detalles de la nota</b>
+            <button type="button" className="btn sm ghost" onClick={() => setDrawer(false)}>Cerrar</button>
+          </div>
           <label className="fld">Título de la clase
             <input id="note-title" value={note.title} placeholder="Ej. Clase 12 · Órbitas" onChange={(e) => update({ title: e.target.value })} />
           </label>
@@ -176,12 +192,12 @@ function NoteEditor({ id }: { id: string }) {
           {!note.concepts.length && <p className="muted" style={{ fontSize: ".82rem" }}>Marca al menos un tema para crear ejercicios.</p>}
           {mode === "telefono" && <p className="muted" style={{ fontSize: ".82rem" }}>Los ejercicios se resuelven en iPad o computadora.</p>}
           {confirmDel ? (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div className="drawer-del" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <button className="btn sm" type="button" style={{ borderColor: "var(--bad)", color: "var(--bad)" }} onClick={() => { deleteNote(note.id); router.push("/app/notas"); }}>Sí, borrar nota</button>
               <button className="btn sm ghost" type="button" onClick={() => setConfirmDel(false)}>Cancelar</button>
             </div>
           ) : (
-            <button className="btn sm ghost" type="button" onClick={() => setConfirmDel(true)}>Borrar nota</button>
+            <button className="btn sm ghost drawer-del danger" type="button" onClick={() => setConfirmDel(true)}>Borrar nota</button>
           )}
         </aside>
       </div>
