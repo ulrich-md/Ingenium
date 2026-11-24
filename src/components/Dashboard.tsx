@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DIAG_KEY, diagResult, type DiagState } from "@/lib/diag";
-import { MODE_LABEL } from "@/lib/device";
 import { topicById } from "@/lib/generators";
 import { fmtDate, listNotes, listSets, newNote, newSet, type Note, type PracticeSet } from "@/lib/notes";
 import { UNIT_NAME } from "@/lib/scoring";
@@ -11,7 +10,7 @@ import { getSession, seedDemo, type Session } from "@/lib/session";
 import { listMocks, type Mock } from "@/lib/mocks";
 import { store } from "@/lib/storage";
 import { EnergyLevels } from "./Brand";
-import { useDevice } from "./Device";
+import { BackupCard, InstallCard } from "./KeepData";
 
 export function setScore(s: PracticeSet) {
   let got = 0, max = 0;
@@ -21,7 +20,6 @@ export function setScore(s: PracticeSet) {
 
 export default function Dashboard() {
   const router = useRouter();
-  const { mode } = useDevice();
   const [d, setD] = useState<{ s: Session | null; diag: DiagState | null; notes: Note[]; sets: PracticeSet[]; mocks: Mock[] } | null>(null);
 
   const load = () => setD({ s: getSession(), diag: store.get<DiagState | null>(DIAG_KEY, null), notes: listNotes(), sets: listSets(), mocks: listMocks() });
@@ -34,8 +32,9 @@ export default function Dashboard() {
     <div className="wrap diag">
       <div className="step-head">
         <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.6rem)" }}>Hola, {d.s?.name.split(" ")[0] ?? "alumno"}</h1>
-        {mode && <span className="pill">{MODE_LABEL[mode]}</span>}
       </div>
+
+      <InstallCard />
 
       <NextStep d={d} res={!!res} onNote={() => { const n = newNote(); router.push(`/app/notas?id=${n.id}`); }}
         onPractice={() => {
@@ -100,6 +99,8 @@ export default function Dashboard() {
           <Link className="btn" href="/app/practica">Practicar un tema</Link>
         </div>
       </div>
+
+      <BackupCard />
 
       {d.s?.demo && (
         <div className="callout">

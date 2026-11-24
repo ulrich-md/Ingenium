@@ -26,7 +26,13 @@ Corrección en el MVP:
 - **Computadora:** corrección real por reglas. Lee números en notación científica y revisa cada punto del esquema (M1, A1).
 - **iPad:** el alumno se autocorrige con el esquema y puede ver un **ejemplo de cómo corregirá la IA** (corrección simulada). La corrección con IA de la tinta es el siguiente paso.
 
-Todo el progreso se guarda en el navegador (`localStorage`). No hay cuentas ni base de datos todavía.
+Todo el progreso se guarda en el navegador (`localStorage`). No hay cuentas ni base de datos todavía. Como Safari borra los datos de los sitios que no se abren en 7 días:
+- Kwanta se puede **instalar en la pantalla de inicio** (manifest en `src/app/manifest.ts`); instalada, Safari no borra sus datos. Inicio muestra cómo hacerlo en el iPad.
+- Al entrar pide al navegador **almacenamiento persistente** (`navigator.storage.persist()`).
+- En Inicio hay **Copia de seguridad**: descarga un archivo `.json` con todo y lo restaura (`src/lib/storage.ts`).
+- El indicador de guardado dice la verdad: "Guardado ✓" o "No se pudo guardar".
+
+Mientras se escribe (hojas y notas) la app entra en **modo enfoque**: sin encabezado ni pestañas, la hoja a todo el ancho. En los mocks la barra solo tiene bolígrafo, lápiz y borrador, en negro o azul.
 
 ## Cuenta demo
 

@@ -13,6 +13,8 @@ import { deleteNote, fmtDate, getNote, listNotes, newNote, newSet, saveNote, typ
 import { useDevice } from "./Device";
 import InkLayer, { type InkHandle } from "./InkLayer";
 import { InkToolbar, useInkTools } from "./InkTools";
+import SaveStatus from "./SaveStatus";
+import { useFocusMode } from "./Focus";
 
 export default function NotesPage() {
   const id = useSearchParams().get("id");
@@ -64,6 +66,7 @@ function NoteEditor({ id }: { id: string }) {
   const active = useRef<InkHandle | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  useFocusMode();
 
   useEffect(() => {
     if (!drawer) return;
@@ -133,7 +136,7 @@ function NoteEditor({ id }: { id: string }) {
     <div className="wrap diag">
       <div className="step-head notehead">
         <Link href="/app/notas" className="btn ghost sm">← Notas</Link>
-        <span className="muted nh-save">Se guarda solo</span>
+        <span className="nh-save"><SaveStatus /></span>
         <button className="btn sm" type="button" aria-expanded={drawer} onClick={() => setDrawer(true)}>
           {!note.title ? "Ponle título y tema" : note.concepts.length ? `Crear ejercicios (${note.concepts.length} temas)` : "Tema y ejercicios"}
         </button>

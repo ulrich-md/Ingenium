@@ -8,6 +8,8 @@ import TopbarActions from "@/components/TopbarActions";
 export const metadata: Metadata = {
   title: "Kwanta · Física IB en español",
   description: "Hojas de examen de Física IB que escribes a mano en el iPad y se corrigen paso a paso. Diagnóstico gratis.",
+  applicationName: "Kwanta",
+  appleWebApp: { capable: true, title: "Kwanta", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

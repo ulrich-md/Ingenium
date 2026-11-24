@@ -51,9 +51,17 @@ export interface InkTools {
   selected: number; setSelected: (n: number) => void;
   /** what to pass to InkLayer */
   color: string; size: number;
+  /** pens on the bar and the colors offered (fewer in exam mode) */
+  pens: Tool[]; palette: { c: string; n: string }[];
 }
 
-export function useInkTools(): InkTools {
+const PEN_TOOLS: Tool[] = ["fountain", "ball", "pencil", "marker", "hl", "erase", "lasso"];
+
+/* In an IB exam you write in black or blue ink and draw with pencil: nothing else to choose. */
+const EXAM_PENS: Tool[] = ["ball", "pencil", "erase"];
+const EXAM_COLORS = [{ c: "#121417", n: "Negro" }, { c: "#2f3fd8", n: "Azul" }];
+
+export function useInkTools({ exam = false }: { exam?: boolean } = {}): InkTools {
   const [s, set] = useState<Saved>(DEFAULTS);
   const [selected, setSelected] = useState(0);
   useEffect(() => {
@@ -61,18 +69,24 @@ export function useInkTools(): InkTools {
     set((p) => ({ ...p, ...saved, set: { ...p.set, ...(saved.set ?? {}) } }));
   }, []);
   const up = (f: (p: Saved) => Saved) => set((p) => { const n = f(p); store.set("kw-ink-tools-v2", n); return n; });
-  const inked: Inked = s.tool === "erase" || s.tool === "lasso" ? s.last : s.tool;
+  // exam mode only narrows what is shown and used; the saved choices stay for the notes
+  const tool: Tool = !exam || EXAM_PENS.includes(s.tool) ? s.tool : "ball";
+  const last: Inked = !exam || s.last === "ball" || s.last === "pencil" ? s.last : "ball";
+  const inked: Inked = tool === "erase" || tool === "lasso" ? last : (tool as Inked);
   const conf = s.set[inked];
+  const isHl = inked === "hl";
+  const palette = exam ? EXAM_COLORS : isHl ? HL_COLORS : PEN_COLORS;
+  const color = exam && !EXAM_COLORS.some((x) => x.c === conf.c) ? EXAM_COLORS[0].c : conf.c;
   return {
-    tool: s.tool, inked, selected, setSelected,
+    tool, inked, selected, setSelected, pens: exam ? EXAM_PENS : PEN_TOOLS, palette,
     setTool: (tool) => up((p) => ({ ...p, tool, last: tool === "erase" || tool === "lasso" ? p.last : tool })),
-    colorOf: (t) => s.set[t].c,
+    colorOf: (t) => (exam && !EXAM_COLORS.some((x) => x.c === s.set[t].c) ? EXAM_COLORS[0].c : s.set[t].c),
     setColor: (c) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], c } } })),
     sizeIdx: conf.i,
     setSizeIdx: (i) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], i } } })),
     finger: s.finger, setFinger: (finger) => up((p) => ({ ...p, finger })),
     dock: s.dock, setDock: (dock) => up((p) => ({ ...p, dock })),
-    color: conf.c,
+    color,
     size: SIZES[inked][conf.i] ?? SIZES[inked][1],
   };
 }
@@ -164,14 +178,12 @@ function Defs() {
   );
 }
 
-const PEN_TOOLS: Tool[] = ["fountain", "ball", "pencil", "marker", "hl", "erase", "lasso"];
-
 export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<InkHandle | null>; onClear?: () => void }) {
   const [panel, setPanel] = useState(false);
   const [drag, setDrag] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
   const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
   const isHl = t.inked === "hl";
-  const palette = isHl ? HL_COLORS : PEN_COLORS;
+  const palette = t.palette;
   const quick = palette.slice(0, 3);
   const vertical = t.dock === "left" || t.dock === "right";
   const fix = useRef<HTMLDivElement>(null);
@@ -308,7 +320,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
           </button>
         </div>
         <div className="ib-pens">
-          {PEN_TOOLS.map((x) => (
+          {t.pens.map((x) => (
             <button key={x} type="button" className="ib-pen" aria-pressed={t.tool === x} aria-label={NAMES[x]} title={NAMES[x]} onClick={() => pickTool(x)}>
               <svg viewBox="0 0 44 100" width="44" height="100"><PenArt t={x} color={x === "erase" || x === "lasso" ? "#000" : t.colorOf(x as Inked)} /></svg>
             </button>

@@ -10,7 +10,9 @@ import { markTyped, type RowNote } from "@/lib/check";
 import type { Sheet } from "@/lib/content";
 import ExamSheet from "./ExamSheet";
 import InkLayer, { type InkHandle } from "./InkLayer";
+import { useFocusMode } from "./Focus";
 import { InkToolbar, useInkTools } from "./InkTools";
+import SaveStatus from "./SaveStatus";
 
 type Awarded = (boolean | null)[][];
 
@@ -34,7 +36,9 @@ export default function SheetStep({
 }) {
   const ink = useRef<InkHandle>(null);
   const lastInput = useRef<HTMLInputElement | null>(null);
-  const tools = useInkTools();
+  const tools = useInkTools({ exam: !!exam });
+  const [sheetOpen, setSheetOpen] = useState(true);
+  useFocusMode();
   const [showSol, setShowSol] = useState(false);
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
@@ -90,8 +94,9 @@ export default function SheetStep({
   return (
     <div style={{ display: "grid", gap: 14 }}>
       {mode === "ipad" ? (
-        <InkToolbar t={tools} ink={ink} />
-      ) : (
+        // marking is reading, not writing: the pen bar steps aside
+        !marked && <InkToolbar t={tools} ink={ink} />
+      ) : !marked && (
         <div className="toolbar" role="toolbar" aria-label="Símbolos">
           <span className="lab">Símbolos</span>
           {KEYS.map((k) => (
@@ -118,7 +123,7 @@ export default function SheetStep({
             // in an exam you move between questions, so the arrows sit above the sheet,
             // clear of the pen bar and the clock at the bottom
             <div className="sheetact">
-              {exam.onPrev ? <button className="btn sm" type="button" onClick={exam.onPrev}>← Anterior</button> : <span />}
+              {exam.onPrev ? <button className="btn sm" type="button" onClick={exam.onPrev}>← Anterior</button> : <SaveStatus />}
               <button className="btn primary sm" type="button" onClick={onNext}>{nextLabel}</button>
             </div>
           )}
@@ -136,6 +141,7 @@ export default function SheetStep({
             <div className="sheetact">
               <button className="btn ghost" type="button" onClick={onNext}>Saltar esta pregunta</button>
               <span className="sa-main">
+                <SaveStatus />
                 {!wrote && <span className="muted sa-hint">Escribe al menos un renglón para corregir</span>}
                 <button className="btn primary" type="button" onClick={doMark} disabled={!wrote}>Terminar y corregir</button>
               </span>
@@ -143,7 +149,7 @@ export default function SheetStep({
           )}
         </div>
       ) : (
-      <div className="sheetwrap">
+      <div className={"sheetwrap marking" + (sheetOpen ? "" : " closed")}>
         <div className="desk">
           <ExamSheet
             sheet={sheet}
@@ -163,8 +169,12 @@ export default function SheetStep({
           )}
         </div>
 
-        <aside className="side">
+        <aside className="side" aria-label="Esquema de marcas">
           <>
+              <button type="button" className="sheet-toggle" aria-expanded={sheetOpen} onClick={() => setSheetOpen((v) => !v)}>
+                <span className="grab" aria-hidden="true" />
+                {sheetOpen ? "Ocultar esquema para ver tu hoja" : "Mostrar esquema de marcas"}
+              </button>
               <span className="h">Corrección · {mode === "ipad" ? "márcate con el esquema" : "automática por renglón"}</span>
               {mode === "ipad" && (
                 <p className="muted" style={{ fontSize: ".86rem" }}>En la versión final, la IA lee tu tinta y escribe las marcas en el margen. En esta demo, marca tú cada punto del esquema: ✓ si lo escribiste, ✗ si no.</p>

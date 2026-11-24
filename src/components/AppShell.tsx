@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { getSession, logout, type Session } from "@/lib/session";
+import { requestPersist } from "@/lib/storage";
 
 const TABS = [
   { href: "/app", label: "Inicio" },
@@ -23,6 +24,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     if (!ss) router.replace(`/entrar?next=${encodeURIComponent(location.pathname + location.search)}`);
     else setS(ss);
   }, [router]);
+  // ask Safari to keep the student's work (granted more easily once installed)
+  useEffect(() => { requestPersist(); }, []);
 
   if (!s) return <div className="wrap diag"><p className="muted">Cargando…</p></div>;
 
