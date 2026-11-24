@@ -259,3 +259,24 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .lined.grid textarea { line-height: 34px; }
 .lined textarea:focus { background: rgba(35, 71, 217, 0.03); }
 .desk.notes .paper { width: 100%; max-width: 900px; }
+
+/* ink v3: sheet-sized base layers + viewport-sized live layers (low latency) */
+.inklayer canvas.vp { position: fixed; left: 0; top: 0; inset: auto; pointer-events: none; }
+.inklayer canvas.base { pointer-events: none; }
+
+/* next step + stepper */
+.nextstep { background: var(--surface); border: 2px solid var(--vec); border-radius: 18px; padding: 18px 20px; display: grid; gap: 16px; }
+.stepper { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; counter-reset: s; }
+.stepper li { display: flex; align-items: center; gap: 8px; font: 600 0.86rem var(--body); color: var(--muted); min-width: 0; }
+.stepper li span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stepper .dotn { flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--line2); font: 700 0.8rem var(--mono); background: var(--surface); }
+.stepper li.ok { color: var(--ok); }
+.stepper li.ok .dotn { border-color: var(--ok); background: var(--ok); color: #fff; }
+.stepper li.cur { color: var(--vec); }
+.stepper li.cur .dotn { border-color: var(--vec); background: var(--vec); color: #fff; }
+@media (max-width: 560px) { .stepper li span:last-child { display: none; } .stepper li.cur span:last-child { display: inline; } }
+.ns-body { display: grid; gap: 8px; justify-items: start; }
+.ns-body h2 { font-size: clamp(1.3rem, 3.4vw, 1.8rem); }
+/* mock clock */
+.clock { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 55; background: #16181d; color: #fff; font: 700 1.15rem var(--mono); font-variant-numeric: tabular-nums; padding: 10px 16px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+.clock.warn { background: var(--bad); }

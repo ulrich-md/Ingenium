@@ -381,3 +381,17 @@ export function detectConcepts(topicId: string, text: string): string[] {
   if (!topic || !text.trim()) return [];
   return topic.concepts.filter((c) => c.keywords.some((k) => hasAny(text, k))).map((c) => c.id);
 }
+
+/** A short Paper 2 mock: one sheet per topic in turn, a random concept each, renumbered 1..n. */
+export function generateMock(seed: number, n: number, idPrefix: string): Sheet[] {
+  const r = rng(seed);
+  return Array.from({ length: n }, (_, i) => {
+    const topic = TOPICS[i % TOPICS.length];
+    const concept = pick(r, topic.concepts);
+    const [sh] = generateSet(topic.id, [concept.id], seed + i * 7919, 1, `${idPrefix}-${i}`);
+    return { ...sh, num: i + 1, paper: "Prueba 2" };
+  });
+}
+
+/** IB Paper 2 runs at roughly 1.8 minutes per mark (90 min for 50 marks at SL). */
+export const minutesFor = (sheets: Sheet[]) => Math.round(sheets.reduce((a, s) => a + s.parts.reduce((b, p) => b + p.marks, 0), 0) * 1.8);

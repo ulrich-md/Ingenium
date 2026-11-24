@@ -56,3 +56,14 @@ test("concepts are detected from typed notes", () => {
   assert.deepEqual(detectConcepts("A1", "caída libre: se deja caer, g = 9.8"), ["caida"]);
   assert.deepEqual(detectConcepts("A1", ""), []);
 });
+
+import { generateMock, minutesFor } from "./generators.ts";
+test("mocks cover every topic and time at about 1.8 min per mark", () => {
+  const m = generateMock(5, 8, "mk");
+  assert.equal(m.length, 8);
+  assert.deepEqual(m.map((s) => s.num), [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(new Set(m.map((s) => s.code.split(".")[2])).size, 5);
+  const marks = m.reduce((a, s) => a + s.parts.reduce((b, p) => b + p.marks, 0), 0);
+  assert.equal(minutesFor(m), Math.round(marks * 1.8));
+  assert.equal(new Set(m.map((s) => s.id)).size, 8);
+});

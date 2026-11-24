@@ -1,14 +1,22 @@
 "use client";
 /**
- * Apple Pencil ink over a sheet (iPad only).
- * - Pencil (and mouse/trackpad) writes; fingers scroll natively. Only Pencil touches
- *   ("stylus" in Safari's Touch.touchType) and touches during a stroke (a resting
- *   palm) are kept from scrolling. "Dedo escribe" lets the finger write.
- * - Highlighter always sits under the ink: three canvases, bottom to top:
- *   live highlighter · committed ink (highlights first, then pen) · live pen/lasso.
- * - Lasso: circle strokes to select them, then drag to move, or delete, duplicate,
- *   recolor from the toolbar.
- * - Strokes are stored in units of 1/1000 of the sheet width.
+ * Apple Pencil ink over a sheet (iPad only), tuned for low latency.
+ *
+ * Layers, bottom to top:
+ *   baseHL   committed highlights (sheet-sized)
+ *   liveHL   the highlight being drawn (viewport-sized, fixed, CSS opacity)
+ *   baseInk  committed pen strokes (sheet-sized)
+ *   live     the pen stroke being drawn, the lasso, a dragged selection (viewport-sized, fixed)
+ * So highlights always sit under the ink, and while writing only a small,
+ * screen-sized canvas changes.
+ *
+ * While the Pencil moves, only the newest segment is drawn (O(1) per sample, no
+ * smoothing lag). When it lifts, the stroke is rendered once with perfect-freehand
+ * onto its base layer; nothing else is repainted. Saving is debounced.
+ *
+ * Fingers scroll natively; only Pencil touches ("stylus" touchType) and touches
+ * during a gesture (a resting palm) are kept from scrolling.
+ * Strokes are stored in units of 1/1000 of the sheet width.
  */
 import { getStroke } from "perfect-freehand";
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
@@ -34,18 +42,23 @@ export interface InkHandle {
 
 const U = 1000;
 const ERASE_R = 9;
+const HL_ALPHA = 0.42;
 type Box = [number, number, number, number];
 
-function toPath(st: InkStroke, k: number, last: boolean): Path2D {
+const r1 = (v: number) => Math.round(v * 10) / 10;
+const r2 = (v: number) => Math.round(v * 100) / 100;
+
+/** Final outline of a stroke, in stroke units. */
+function outline(st: InkStroke): Path2D {
   const pts: number[][] = [];
-  for (let i = 0; i < st.p.length; i += 3) pts.push([st.p[i] * k, st.p[i + 1] * k, st.p[i + 2]]);
+  for (let i = 0; i < st.p.length; i += 3) pts.push([st.p[i], st.p[i + 1], st.p[i + 2]]);
   const poly = getStroke(pts, {
-    size: st.s * k,
-    thinning: st.hl ? 0 : 0.55,
-    smoothing: 0.5,
-    streamline: st.hl ? 0.6 : 0.4,
+    size: st.s,
+    thinning: st.hl ? 0 : 0.5,
+    smoothing: 0.45,
+    streamline: st.hl ? 0.5 : 0.22,
     simulatePressure: false,
-    last,
+    last: true,
     start: { cap: !st.hl },
     end: { cap: !st.hl },
   });
@@ -55,15 +68,6 @@ function toPath(st: InkStroke, k: number, last: boolean): Path2D {
   for (let i = 1; i < poly.length; i++) path.lineTo(poly[i][0], poly[i][1]);
   path.closePath();
   return path;
-}
-
-function paint(ctx: CanvasRenderingContext2D, st: InkStroke, k: number, last: boolean, dx = 0, dy = 0) {
-  ctx.save();
-  if (dx || dy) ctx.translate(dx * k, dy * k);
-  if (st.hl) ctx.globalAlpha = 0.42;
-  ctx.fillStyle = st.c;
-  ctx.fill(toPath(st, k, last));
-  ctx.restore();
 }
 
 function bounds(list: InkStroke[]): Box {
@@ -99,99 +103,157 @@ export default function InkLayer({
   ref?: Ref<InkHandle>;
 }) {
   const box = useRef<HTMLDivElement>(null);
-  const hlC = useRef<HTMLCanvasElement>(null);
-  const baseC = useRef<HTMLCanvasElement>(null);
-  const liveC = useRef<HTMLCanvasElement>(null);
+  const baseHL = useRef<HTMLCanvasElement>(null);
+  const liveHL = useRef<HTMLCanvasElement>(null);
+  const baseInk = useRef<HTMLCanvasElement>(null);
+  const live = useRef<HTMLCanvasElement>(null);
+
   const strokes = useRef<InkStroke[]>([]);
+  const paths = useRef(new WeakMap<InkStroke, Path2D>());
   const undoS = useRef<InkStroke[][]>([]);
   const redoS = useRef<InkStroke[][]>([]);
   const cur = useRef<InkStroke | null>(null);
+  const seg = useRef<{ mx: number; my: number; x: number; y: number } | null>(null);
   const erasing = useRef<{ changed: boolean } | null>(null);
   const lasso = useRef<number[] | null>(null);
   const sel = useRef<Set<number> | null>(null);
   const drag = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const view = useRef({ ox: 0, oy: 0, k: 1 }); // sheet origin (client px) and px per unit, fixed during a gesture
   const fingerRef = useRef(fingerDraws);
   fingerRef.current = fingerDraws;
   const scale = useRef(1);
   const dprRef = useRef(1);
-  const liveBox = useRef<Box | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selBox, setSelBox] = useState<Box | null>(null);
-  const [px, setPx] = useState(1); // css px per unit, to place the selection overlay
+  const [px, setPx] = useState(1);
 
   const ctxOf = (c: HTMLCanvasElement | null) => c?.getContext("2d") ?? null;
+  const pathOf = (st: InkStroke) => {
+    let p = paths.current.get(st);
+    if (!p) { p = outline(st); paths.current.set(st, p); }
+    return p;
+  };
 
-  const save = useCallback(() => {
+  /* ---------- saving (debounced: stringifying every stroke on every lift is costly) ---------- */
+  const flush = useCallback(() => {
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
     store.set(storageKey, strokes.current);
+  }, [storageKey]);
+  const save = useCallback(() => {
     onStrokes?.(strokes.current.length);
-  }, [storageKey, onStrokes]);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(flush, 600);
+  }, [flush, onStrokes]);
 
-  const redraw = useCallback((skip?: Set<number>) => {
-    const c = baseC.current, ctx = ctxOf(c);
-    if (!c || !ctx) return;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, c.width, c.height);
-    ctx.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
-    const all = strokes.current;
-    // highlights first, so the ink always stays on top of them
-    for (let i = 0; i < all.length; i++) if (all[i].hl && !skip?.has(i)) paint(ctx, all[i], scale.current, true);
-    for (let i = 0; i < all.length; i++) if (!all[i].hl && !skip?.has(i)) paint(ctx, all[i], scale.current, true);
-  }, []);
-
-  const clearCanvas = (c: HTMLCanvasElement | null) => {
+  /* ---------- base layers ---------- */
+  const paintOn = (c: HTMLCanvasElement | null, st: InkStroke, dx = 0, dy = 0) => {
+    const ctx = ctxOf(c);
+    if (!ctx) return;
+    const k = scale.current * dprRef.current;
+    ctx.setTransform(k, 0, 0, k, dx * k, dy * k);
+    ctx.globalAlpha = st.hl ? HL_ALPHA : 1;
+    ctx.fillStyle = st.c;
+    ctx.fill(pathOf(st));
+    ctx.globalAlpha = 1;
+  };
+  const wipe = (c: HTMLCanvasElement | null) => {
     const ctx = ctxOf(c);
     if (!c || !ctx) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, c.width, c.height);
   };
-
-  // Live stroke: only the area it covers is cleared and repainted.
-  const drawLive = useCallback((st: InkStroke | null, c: HTMLCanvasElement | null) => {
-    const ctx = ctxOf(c);
-    if (!c || !ctx) return;
-    const k = scale.current * dprRef.current;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (liveBox.current) {
-      const [x0, y0, x1, y1] = liveBox.current;
-      ctx.clearRect(x0, y0, x1 - x0, y1 - y0);
-      liveBox.current = null;
-    }
-    if (!st) return;
-    const [bx0, by0, bx1, by1] = bounds([st]);
-    const pad = 4;
-    liveBox.current = [
-      Math.max(0, Math.floor((bx0 - pad) * k)), Math.max(0, Math.floor((by0 - pad) * k)),
-      Math.min(c.width, Math.ceil((bx1 + pad) * k)), Math.min(c.height, Math.ceil((by1 + pad) * k)),
-    ];
-    ctx.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
-    paint(ctx, st, scale.current, false);
+  const redraw = useCallback((skip?: Set<number>) => {
+    wipe(baseHL.current);
+    wipe(baseInk.current);
+    strokes.current.forEach((st, i) => {
+      if (!skip?.has(i)) paintOn(st.hl ? baseHL.current : baseInk.current, st);
+    });
   }, []);
 
-  const drawLasso = () => {
-    const c = liveC.current, ctx = ctxOf(c), pts = lasso.current;
-    if (!c || !ctx) return;
-    clearCanvas(c);
-    if (!pts || pts.length < 4) return;
-    const k = scale.current;
-    ctx.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
+  /* ---------- live (viewport) layers ---------- */
+  const fitViewport = () => {
+    const dpr = dprRef.current;
+    const w = Math.round(window.innerWidth * dpr), h = Math.round(window.innerHeight * dpr);
+    for (const c of [liveHL.current, live.current]) {
+      if (!c) continue;
+      if (c.width !== w || c.height !== h) {
+        c.width = w; c.height = h;
+        c.style.width = window.innerWidth + "px";
+        c.style.height = window.innerHeight + "px";
+      }
+    }
+  };
+  /** Transform a viewport canvas so it draws in stroke units. */
+  const toUnits = (ctx: CanvasRenderingContext2D, dx = 0, dy = 0) => {
+    const { ox, oy, k } = view.current, d = dprRef.current;
+    ctx.setTransform(k * d, 0, 0, k * d, (ox + dx * k) * d, (oy + dy * k) * d);
+  };
+  const beginGesture = () => {
+    const r = box.current!.getBoundingClientRect();
+    view.current = { ox: r.left, oy: r.top, k: r.width / U };
+    fitViewport();
+  };
+
+  // Newest segment only: quadratic curve between midpoints, width from pressure.
+  const liveDot = (st: InkStroke) => {
+    const ctx = ctxOf(st.hl ? liveHL.current : live.current);
+    if (!ctx) return;
+    toUnits(ctx);
+    ctx.fillStyle = st.c;
     ctx.beginPath();
-    ctx.moveTo(pts[0] * k, pts[1] * k);
-    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i] * k, pts[i + 1] * k);
+    const w = st.hl ? st.s : st.s * (0.5 + st.p[2]);
+    ctx.arc(st.p[0], st.p[1], w / 2, 0, Math.PI * 2);
+    ctx.fill();
+    seg.current = { mx: st.p[0], my: st.p[1], x: st.p[0], y: st.p[1] };
+  };
+  const liveSegment = (st: InkStroke, x: number, y: number, pr: number) => {
+    const ctx = ctxOf(st.hl ? liveHL.current : live.current), s = seg.current;
+    if (!ctx || !s) return;
+    toUnits(ctx);
+    const mx = (s.x + x) / 2, my = (s.y + y) / 2;
+    ctx.strokeStyle = st.c;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = st.hl ? st.s : st.s * (0.5 + pr);
+    ctx.beginPath();
+    ctx.moveTo(s.mx, s.my);
+    ctx.quadraticCurveTo(s.x, s.y, mx, my);
+    ctx.stroke();
+    seg.current = { mx, my, x, y };
+  };
+
+  const drawLasso = () => {
+    const c = live.current, ctx = ctxOf(c), pts = lasso.current;
+    if (!c || !ctx) return;
+    wipe(c);
+    if (!pts || pts.length < 4) return;
+    toUnits(ctx);
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
     ctx.setLineDash([6, 5]);
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1.5 / view.current.k;
     ctx.strokeStyle = "#2347d9";
     ctx.stroke();
+    ctx.setLineDash([]);
     ctx.fillStyle = "rgba(35,71,217,0.06)";
     ctx.fill();
   };
 
   const drawDragged = () => {
-    const c = liveC.current, ctx = ctxOf(c), d = drag.current, s = sel.current;
+    const c = live.current, ctx = ctxOf(c), d = drag.current, s = sel.current;
     if (!c || !ctx || !d || !s) return;
-    clearCanvas(c);
-    ctx.setTransform(dprRef.current, 0, 0, dprRef.current, 0, 0);
+    wipe(c);
+    toUnits(ctx, d.dx, d.dy);
     const all = strokes.current;
-    for (const i of s) if (all[i]?.hl) paint(ctx, all[i], scale.current, true, d.dx, d.dy);
-    for (const i of s) if (all[i] && !all[i].hl) paint(ctx, all[i], scale.current, true, d.dx, d.dy);
+    for (const hl of [true, false]) for (const i of s) {
+      const st = all[i];
+      if (!st || !!st.hl !== hl) continue;
+      ctx.globalAlpha = st.hl ? HL_ALPHA : 1;
+      ctx.fillStyle = st.c;
+      ctx.fill(pathOf(st));
+    }
+    ctx.globalAlpha = 1;
   };
 
   const setSelection = useCallback((s: Set<number> | null) => {
@@ -200,7 +262,7 @@ export default function InkLayer({
     onSelect?.(sel.current?.size ?? 0);
   }, [onSelect]);
 
-  // Load saved ink; keep canvases matched to the sheet size.
+  /* ---------- load + size ---------- */
   useEffect(() => {
     strokes.current = store.get<InkStroke[]>(storageKey, []);
     undoS.current = [];
@@ -217,8 +279,8 @@ export default function InkLayer({
       scale.current = r.width / U;
       dprRef.current = dpr;
       setPx(r.width / U);
-      if (baseC.current && baseC.current.width === w && baseC.current.height === h) return;
-      for (const c of [hlC.current, baseC.current, liveC.current]) {
+      if (baseInk.current && baseInk.current.width === w && baseInk.current.height === h) return;
+      for (const c of [baseHL.current, baseInk.current]) {
         if (!c) continue;
         c.width = w;
         c.height = h;
@@ -228,15 +290,23 @@ export default function InkLayer({
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
-    return () => ro.disconnect();
-  }, [storageKey, redraw, onStrokes]);
+    // closing, reloading or leaving the app must not lose the last stroke
+    const onHide = () => { if (saveTimer.current) flush(); };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+      if (saveTimer.current) flush();
+    };
+  }, [storageKey, redraw, onStrokes, flush]);
 
-  // Changing tool (other than to the lasso) drops the selection.
   useEffect(() => {
     if (tool !== "lasso" && sel.current) setSelection(null);
   }, [tool, setSelection]);
 
-  // Fingers scroll natively; the Pencil and a palm during a stroke must not.
+  // Fingers scroll natively; the Pencil and a palm during a gesture must not.
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -252,6 +322,7 @@ export default function InkLayer({
     };
   }, []);
 
+  /* ---------- editing ---------- */
   const snapshot = () => {
     undoS.current.push(strokes.current.slice());
     if (undoS.current.length > 80) undoS.current.shift();
@@ -313,10 +384,10 @@ export default function InkLayer({
     recolor(c: string, hl: boolean) {
       const s = sel.current;
       if (!s) return false;
-      const targets = [...s].filter((i) => !!strokes.current[i].hl === hl);
-      if (!targets.length) return true;
+      const targets = new Set([...s].filter((i) => !!strokes.current[i].hl === hl));
+      if (!targets.size) return true;
       snapshot();
-      strokes.current = strokes.current.map((st, i) => (targets.includes(i) ? { ...st, c } : st));
+      strokes.current = strokes.current.map((st, i) => (targets.has(i) ? { ...st, c } : st));
       redraw();
       save();
       return true;
@@ -324,9 +395,8 @@ export default function InkLayer({
   }), [redraw, save, setSelection]);
 
   const pos = (e: { clientX: number; clientY: number }) => {
-    const r = box.current!.getBoundingClientRect();
-    const k = U / r.width;
-    return [(e.clientX - r.left) * k, (e.clientY - r.top) * k] as const;
+    const { ox, oy, k } = view.current;
+    return [(e.clientX - ox) / k, (e.clientY - oy) / k] as const;
   };
 
   const eraseAt = (x: number, y: number) => {
@@ -354,8 +424,8 @@ export default function InkLayer({
   };
 
   const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    beginGesture();
     const [x, y] = pos(e);
-    // a selection can be dragged with the Pencil or a finger
     const grab = !!sel.current && insideSel(x, y) && (canWrite(e) || e.pointerType === "touch");
     if (!grab && !canWrite(e)) return; // a finger: the browser scrolls natively
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -369,10 +439,7 @@ export default function InkLayer({
       return;
     }
     if (sel.current) setSelection(null);
-    if (tool === "lasso") {
-      lasso.current = [x, y];
-      return;
-    }
+    if (tool === "lasso") { lasso.current = [x, y]; return; }
     if (tool === "erase") {
       snapshot();
       erasing.current = { changed: false };
@@ -381,8 +448,8 @@ export default function InkLayer({
     }
     const hl = tool === "hl";
     const pr = e.pointerType === "pen" && e.pressure > 0 ? e.pressure : 0.5;
-    cur.current = { c: color, hl, s: size, p: [x, y, hl ? 0.5 : pr] };
-    drawLive(cur.current, hl ? hlC.current : liveC.current);
+    cur.current = { c: color, hl, s: size, p: [r1(x), r1(y), hl ? 0.5 : r2(pr)] };
+    liveDot(cur.current);
   };
 
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -408,22 +475,22 @@ export default function InkLayer({
     const st = cur.current!;
     for (const ev of list) {
       const [x, y] = pos(ev);
-      const pr = ev.pointerType === "pen" && ev.pressure > 0 ? ev.pressure : 0.5;
-      st.p.push(x, y, st.hl ? 0.5 : pr);
+      const pr = st.hl ? 0.5 : ev.pointerType === "pen" && ev.pressure > 0 ? ev.pressure : 0.5;
+      st.p.push(r1(x), r1(y), r2(pr));
+      liveSegment(st, x, y, pr);
     }
-    drawLive(st, st.hl ? hlC.current : liveC.current);
   };
 
   const onUp = () => {
     if (drag.current) {
       const { dx, dy } = drag.current;
       drag.current = null;
-      clearCanvas(liveC.current);
+      wipe(live.current);
       if (Math.abs(dx) + Math.abs(dy) > 0.5 && sel.current) {
         snapshot();
         const s = sel.current;
         strokes.current = strokes.current.map((st, i) =>
-          s.has(i) ? { ...st, p: st.p.map((v, j) => (j % 3 === 0 ? v + dx : j % 3 === 1 ? v + dy : v)) } : st);
+          s.has(i) ? { ...st, p: st.p.map((v, j) => (j % 3 === 0 ? r1(v + dx) : j % 3 === 1 ? r1(v + dy) : v)) } : st);
         setSelection(new Set(s));
         save();
       }
@@ -433,7 +500,7 @@ export default function InkLayer({
     if (lasso.current) {
       const poly = lasso.current;
       lasso.current = null;
-      clearCanvas(liveC.current);
+      wipe(live.current);
       if (poly.length < 8) return;
       const picked = new Set<number>();
       strokes.current.forEach((st, i) => {
@@ -452,11 +519,12 @@ export default function InkLayer({
     const st = cur.current;
     if (!st) return;
     cur.current = null;
-    drawLive(null, st.hl ? hlC.current : liveC.current); // clears the live area
+    seg.current = null;
     if (st.p.length === 3) st.p.push(st.p[0] + 0.3, st.p[1] + 0.3, st.p[2]); // a tap makes a dot
     snapshot();
     strokes.current = [...strokes.current, st];
-    redraw();
+    paintOn(st.hl ? baseHL.current : baseInk.current, st); // only the new stroke
+    wipe(st.hl ? liveHL.current : live.current);
     save();
   };
 
@@ -471,9 +539,10 @@ export default function InkLayer({
       style={{ cursor: tool === "erase" ? "cell" : tool === "lasso" ? "default" : "crosshair" }}
       aria-label="Zona de escritura con Apple Pencil"
     >
-      <canvas ref={hlC} />
-      <canvas ref={baseC} />
-      <canvas ref={liveC} />
+      <canvas ref={baseHL} className="base" />
+      <canvas ref={liveHL} className="vp" style={{ opacity: HL_ALPHA }} />
+      <canvas ref={baseInk} className="base" />
+      <canvas ref={live} className="vp" />
       {selBox && (
         <div className="selbox" style={{ left: selBox[0] * px, top: selBox[1] * px, width: (selBox[2] - selBox[0]) * px, height: (selBox[3] - selBox[1]) * px }}>
           <div className="selbar" onPointerDown={(e) => e.stopPropagation()}>

@@ -42,9 +42,17 @@ Abre la app ya cargada con un diagnóstico de ejemplo y una nota de clase ("Clas
 - **¿Qué vieron hoy?** El alumno marca los subtemas de la clase. En computadora, Kwanta los detecta del texto de las notas.
 - **Ejercicios de lo que anotaron:** 4 hojas de examen originales sobre esos subtemas, con números nuevos cada vez, corrección por marcas y solución paso a paso. Hay 14 tipos de ejercicio en A.1, A.2, A.3, B.3 y D.1 (`src/lib/generators.ts`).
 
+## Mocks
+
+Mock corto de Prueba 2 (NM: 6 preguntas, NS: 8) con preguntas de todos los temas y tiempo real (1,8 min por marca). En modo examen no hay pistas ni correcciones. Se entrega a mano o solo al acabarse el tiempo. En computadora se corrige automáticamente; en iPad el alumno se corrige con el esquema. Al final da la nota estimada y el desglose por tema.
+
+## Por dónde empezar
+
+El inicio muestra el siguiente paso del ciclo: Diagnóstico → Notas de clase → Ejercicios → Mock, con un solo botón para continuar.
+
 ## Escritura en iPad
 
-Pluma con presión en 8 colores y 3 grosores. Resaltador en 5 colores que siempre queda debajo de la tinta. Borrador. Lazo para seleccionar trazos y arrastrarlos, borrarlos, duplicarlos o cambiarles el color. Deshacer y rehacer. El dedo desplaza la hoja con el scroll nativo y la palma no raya.
+Baja latencia: mientras el lápiz se mueve solo se dibuja el segmento nuevo, en un lienzo del tamaño de la pantalla y sin suavizado que retrase. Al levantarlo, el trazo se pinta una sola vez en su capa. Pluma con presión en 8 colores y 3 grosores. Resaltador en 5 colores que siempre queda debajo de la tinta. Borrador. Lazo para seleccionar trazos y arrastrarlos, borrarlos, duplicarlos o cambiarles el color. Deshacer y rehacer. El dedo desplaza la hoja con el scroll nativo y la palma no raya.
 
 ## Correr el proyecto
 
@@ -80,6 +88,7 @@ src/
     InkTools.tsx       barra de herramientas: colores, grosores, lazo
     NotesPage.tsx      notas de clase con plantilla
     PracticePage.tsx   ejercicios generados y su corrección
+    MockPage.tsx       mocks cronometrados de Prueba 2
     Dashboard.tsx      inicio del alumno
     AppShell.tsx       sesión demo y navegación
     SheetStep.tsx      una hoja del diagnóstico + barra de herramientas + corrección
@@ -97,6 +106,7 @@ src/
     notes.ts           notas y conjuntos de práctica (en el navegador)
     session.ts         cuenta demo y datos de ejemplo
     diag.ts            estado y resultado del diagnóstico
+    mocks.ts           mocks guardados en el navegador
 ```
 
 Las preguntas son originales. Kwanta no está afiliado con la Organización del Bachillerato Internacional.

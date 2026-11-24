@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { Mark } from "@/components/Brand";
 import { DeviceProvider, VistaSwitcher } from "@/components/Device";
+import TopbarActions from "@/components/TopbarActions";
 
 export const metadata: Metadata = {
   title: "Kwanta · Física IB en español",
@@ -32,10 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header className="topbar">
             <div className="wrap">
               <Link href="/" className="logo"><Mark />kwanta</Link>
-              <nav style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Link href="/entrar" className="btn ghost sm">Entrar</Link>
-                <Link href="/diagnostico" className="btn primary sm">Diagnóstico gratis</Link>
-              </nav>
+              <TopbarActions />
             </div>
           </header>
           <main>{children}</main>

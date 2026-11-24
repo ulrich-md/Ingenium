@@ -16,7 +16,7 @@ type Awarded = (boolean | null)[][];
 const KEYS = ["√(", "×", "×10ⁿ", "²", "³", "⁻¹", "π", "θ", "Δ", "λ", "ω", "μ", "ρ", "≈", "°", "→"];
 
 export default function SheetStep({
-  sheet, mode, typed, onTyped, awarded, onAwarded, marked, onMarked, onNext, nextLabel,
+  sheet, mode, typed, onTyped, awarded, onAwarded, marked, onMarked, onNext, nextLabel, exam,
 }: {
   sheet: Sheet;
   mode: "ipad" | "computadora";
@@ -28,6 +28,8 @@ export default function SheetStep({
   onMarked: (m: boolean) => void;
   onNext: () => void;
   nextLabel: string;
+  /** Exam mode: no marking, hints or skipping; the parent controls navigation. */
+  exam?: { onPrev?: () => void; info: string };
 }) {
   const ink = useRef<InkHandle>(null);
   const lastInput = useRef<HTMLInputElement | null>(null);
@@ -123,9 +125,21 @@ export default function SheetStep({
               ) : (
                 <p className="muted" style={{ fontSize: ".92rem" }}>Escribe un paso por renglón, como en el examen. Usa la barra de símbolos o escribe <span className="mono">10^6</span>, <span className="mono">sqrt(</span>: se convierten solos al pasar de renglón.</p>
               )}
-              <button className="btn primary" type="button" onClick={doMark} disabled={!wrote}>Terminar y corregir</button>
-              {!wrote && <p className="muted" style={{ fontSize: ".82rem" }}>Escribe al menos un renglón para corregir.</p>}
-              <button className="btn ghost sm" type="button" onClick={onNext}>Saltar esta pregunta</button>
+              {exam ? (
+                <>
+                  <p className="muted" style={{ fontSize: ".86rem" }}>{exam.info}</p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {exam.onPrev && <button className="btn" type="button" onClick={exam.onPrev}>← Anterior</button>}
+                    <button className="btn primary" type="button" onClick={onNext}>{nextLabel}</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button className="btn primary" type="button" onClick={doMark} disabled={!wrote}>Terminar y corregir</button>
+                  {!wrote && <p className="muted" style={{ fontSize: ".82rem" }}>Escribe al menos un renglón para corregir.</p>}
+                  <button className="btn ghost sm" type="button" onClick={onNext}>Saltar esta pregunta</button>
+                </>
+              )}
             </>
           ) : (
             <>

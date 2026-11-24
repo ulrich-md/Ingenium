@@ -7,9 +7,10 @@ import { getSession, logout, type Session } from "@/lib/session";
 
 const TABS = [
   { href: "/app", label: "Inicio" },
-  { href: "/app/notas", label: "Notas de clase" },
-  { href: "/app/practica", label: "Práctica" },
   { href: "/diagnostico", label: "Diagnóstico" },
+  { href: "/app/notas", label: "Notas" },
+  { href: "/app/practica", label: "Práctica" },
+  { href: "/app/mock", label: "Mocks" },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
