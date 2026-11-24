@@ -1,8 +1,10 @@
 "use client";
 /**
  * Apple Pencil ink over an exam sheet (iPad only).
- * - The Pencil (and a mouse/trackpad) writes; the finger scrolls the page,
- *   so a resting palm never leaves marks. "Dedo escribe" lets the finger write.
+ * - The Pencil (and a mouse/trackpad) writes; the finger scrolls the page with
+ *   Safari's own native scrolling (momentum, no jank). Only Pencil touches
+ *   ("stylus" in Safari's Touch.touchType) are kept from scrolling, and a palm
+ *   resting while you write is ignored. "Dedo escribe" lets the finger write.
  * - Strokes are stored in units of 1/1000 of the sheet width, so they stay in
  *   place when the sheet is resized or the iPad is rotated.
  */
@@ -83,7 +85,8 @@ export default function InkLayer({
   const redoS = useRef<InkStroke[][]>([]);
   const cur = useRef<InkStroke | null>(null);
   const erasing = useRef<{ changed: boolean } | null>(null);
-  const pan = useRef<{ id: number; y: number } | null>(null);
+  const fingerRef = useRef(fingerDraws);
+  fingerRef.current = fingerDraws;
   const scale = useRef(1);
 
   const save = useCallback(() => {
@@ -97,21 +100,42 @@ export default function InkLayer({
     const ctx = c.getContext("2d")!;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, c.width, c.height);
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     for (const st of strokes.current) paint(ctx, st, scale.current, true);
   }, []);
 
+  // Only the area the live stroke covers is cleared and repainted: clearing the
+  // whole (tall) canvas on every Pencil sample is what makes writing lag.
+  const liveBox = useRef<[number, number, number, number] | null>(null);
   const drawLive = useCallback(() => {
     const c = liveC.current;
     if (!c) return;
     const ctx = c.getContext("2d")!;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const k = scale.current * dpr;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, c.width, c.height);
-    if (!cur.current) return;
+    if (liveBox.current) {
+      const [x0, y0, x1, y1] = liveBox.current;
+      ctx.clearRect(x0, y0, x1 - x0, y1 - y0);
+      liveBox.current = null;
+    }
+    const st = cur.current;
+    if (!st) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < st.p.length; i += 3) {
+      if (st.p[i] < minX) minX = st.p[i];
+      if (st.p[i] > maxX) maxX = st.p[i];
+      if (st.p[i + 1] < minY) minY = st.p[i + 1];
+      if (st.p[i + 1] > maxY) maxY = st.p[i + 1];
+    }
+    const pad = st.s * 2 + 4;
+    liveBox.current = [
+      Math.max(0, Math.floor((minX - pad) * k)), Math.max(0, Math.floor((minY - pad) * k)),
+      Math.min(c.width, Math.ceil((maxX + pad) * k)), Math.min(c.height, Math.ceil((maxY + pad) * k)),
+    ];
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    paint(ctx, cur.current, scale.current, false);
+    paint(ctx, st, scale.current, false);
   }, []);
 
   // Load saved ink and keep the canvases matched to the sheet size.
@@ -124,11 +148,14 @@ export default function InkLayer({
     if (!el) return;
     const fit = () => {
       const r = el.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const w = Math.max(1, Math.round(r.width * dpr));
+      const h = Math.max(1, Math.round(r.height * dpr));
+      if (baseC.current && baseC.current.width === w && baseC.current.height === h) return;
       for (const c of [baseC.current, liveC.current]) {
         if (!c) continue;
-        c.width = Math.max(1, Math.round(r.width * dpr));
-        c.height = Math.max(1, Math.round(r.height * dpr));
+        c.width = w;
+        c.height = h;
       }
       scale.current = r.width / U;
       redraw();
@@ -138,6 +165,24 @@ export default function InkLayer({
     ro.observe(el);
     return () => ro.disconnect();
   }, [storageKey, redraw, onStrokes]);
+
+  // Safari scrolls on any touch the CSS allows (touch-action: pan-y), Pencil included.
+  // Cancel only the Pencil's touches, plus any touch while a stroke is in progress
+  // (a resting palm), so fingers keep native, smooth scrolling.
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      const stylus = Array.from(e.changedTouches).some((t) => (t as Touch & { touchType?: string }).touchType === "stylus");
+      if (stylus || fingerRef.current || cur.current || erasing.current) e.preventDefault();
+    };
+    el.addEventListener("touchstart", block, { passive: false });
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => {
+      el.removeEventListener("touchstart", block);
+      el.removeEventListener("touchmove", block);
+    };
+  }, []);
 
   const snapshot = () => {
     undoS.current.push(strokes.current.slice());
@@ -196,10 +241,7 @@ export default function InkLayer({
     e.pointerType === "pen" || e.pointerType === "mouse" || (fingerDraws && e.pointerType === "touch");
 
   const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!canWrite(e)) {
-      if (e.pointerType === "touch" && !pan.current) pan.current = { id: e.pointerId, y: e.clientY };
-      return;
-    }
+    if (!canWrite(e)) return; // a finger: the browser scrolls natively
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     try {
@@ -220,11 +262,6 @@ export default function InkLayer({
   };
 
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (pan.current && pan.current.id === e.pointerId) {
-      window.scrollBy(0, pan.current.y - e.clientY);
-      pan.current.y = e.clientY;
-      return;
-    }
     const evs = typeof e.nativeEvent.getCoalescedEvents === "function" ? e.nativeEvent.getCoalescedEvents() : [];
     const list = evs.length ? evs : [e.nativeEvent];
     if (erasing.current) {
@@ -242,7 +279,6 @@ export default function InkLayer({
   };
 
   const onUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (pan.current && pan.current.id === e.pointerId) { pan.current = null; return; }
     if (erasing.current) {
       if (erasing.current.changed) save(); else undoS.current.pop();
       erasing.current = null;
@@ -262,7 +298,7 @@ export default function InkLayer({
   return (
     <div
       ref={box}
-      className="inklayer"
+      className={"inklayer" + (fingerDraws ? " finger" : "")}
       onPointerDown={onDown}
       onPointerMove={onMove}
       onPointerUp={onUp}
