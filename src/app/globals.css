@@ -261,7 +261,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .desk.notes .paper { width: 100%; max-width: 900px; }
 
 /* ink v3: sheet-sized base layers + viewport-sized live layers (low latency) */
-.inklayer canvas.vp { position: fixed; left: 0; top: 0; inset: auto; pointer-events: none; }
+.inklayer canvas.vp { position: fixed; top: 0; left: 0; right: auto; bottom: auto; pointer-events: none; }
 .inklayer canvas.base { pointer-events: none; }
 
 /* next step + stepper */
@@ -280,3 +280,5 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 /* mock clock */
 .clock { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 55; background: #16181d; color: #fff; font: 700 1.15rem var(--mono); font-variant-numeric: tabular-nums; padding: 10px 16px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
 .clock.warn { background: var(--bad); }
+
+.inkdebug { position: fixed; left: 8px; right: 8px; top: calc(env(safe-area-inset-top, 0px) + 6px); z-index: 70; background: rgba(22,24,29,0.88); color: #fff; font: 600 12px/1.4 var(--mono); padding: 6px 10px; border-radius: 8px; pointer-events: none; }

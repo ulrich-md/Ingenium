@@ -113,12 +113,17 @@ export default function InkLayer({
   const undoS = useRef<InkStroke[][]>([]);
   const redoS = useRef<InkStroke[][]>([]);
   const cur = useRef<InkStroke | null>(null);
-  const seg = useRef<{ mx: number; my: number; x: number; y: number } | null>(null);
+  const seg = useRef<{ mx: number; my: number; x: number; y: number; w: number } | null>(null);
   const erasing = useRef<{ changed: boolean } | null>(null);
   const lasso = useRef<number[] | null>(null);
   const sel = useRef<Set<number> | null>(null);
   const drag = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
-  const view = useRef({ ox: 0, oy: 0, k: 1 }); // sheet origin (client px) and px per unit, fixed during a gesture
+  // sheet origin and live-canvas origin (client px), px per unit; measured at the start of each gesture
+  const view = useRef({ ox: 0, oy: 0, cx: 0, cy: 0, k: 1 });
+  const pred = useRef<HTMLCanvasElement>(null);
+  const predBox = useRef<Box | null>(null);
+  const debug = useRef<{ on: boolean; ev: number; samples: number; ms: number; max: number; predicted: boolean; coalesced: boolean } | null>(null);
+  const debugEl = useRef<HTMLDivElement>(null);
   const fingerRef = useRef(fingerDraws);
   fingerRef.current = fingerDraws;
   const scale = useRef(1);
@@ -127,7 +132,8 @@ export default function InkLayer({
   const [selBox, setSelBox] = useState<Box | null>(null);
   const [px, setPx] = useState(1);
 
-  const ctxOf = (c: HTMLCanvasElement | null) => c?.getContext("2d") ?? null;
+  // desynchronized: a low-latency hint for the live layers (browsers that do not support it ignore it)
+  const ctxOf = (c: HTMLCanvasElement | null) => c?.getContext("2d", { desynchronized: true }) ?? null;
   const pathOf = (st: InkStroke) => {
     let p = paths.current.get(st);
     if (!p) { p = outline(st); paths.current.set(st, p); }
@@ -174,7 +180,7 @@ export default function InkLayer({
   const fitViewport = () => {
     const dpr = dprRef.current;
     const w = Math.round(window.innerWidth * dpr), h = Math.round(window.innerHeight * dpr);
-    for (const c of [liveHL.current, live.current]) {
+    for (const c of [liveHL.current, live.current, pred.current]) {
       if (!c) continue;
       if (c.width !== w || c.height !== h) {
         c.width = w; c.height = h;
@@ -183,15 +189,16 @@ export default function InkLayer({
       }
     }
   };
-  /** Transform a viewport canvas so it draws in stroke units. */
+  /** Transform a viewport canvas so it draws in stroke units, wherever the canvas really is. */
   const toUnits = (ctx: CanvasRenderingContext2D, dx = 0, dy = 0) => {
-    const { ox, oy, k } = view.current, d = dprRef.current;
-    ctx.setTransform(k * d, 0, 0, k * d, (ox + dx * k) * d, (oy + dy * k) * d);
+    const { ox, oy, cx, cy, k } = view.current, d = dprRef.current;
+    ctx.setTransform(k * d, 0, 0, k * d, (ox - cx + dx * k) * d, (oy - cy + dy * k) * d);
   };
   const beginGesture = () => {
-    const r = box.current!.getBoundingClientRect();
-    view.current = { ox: r.left, oy: r.top, k: r.width / U };
     fitViewport();
+    const r = box.current!.getBoundingClientRect();
+    const c = live.current?.getBoundingClientRect();
+    view.current = { ox: r.left, oy: r.top, cx: c?.left ?? 0, cy: c?.top ?? 0, k: r.width / U };
   };
 
   // Newest segment only: quadratic curve between midpoints, width from pressure.
@@ -204,7 +211,7 @@ export default function InkLayer({
     const w = st.hl ? st.s : st.s * (0.5 + st.p[2]);
     ctx.arc(st.p[0], st.p[1], w / 2, 0, Math.PI * 2);
     ctx.fill();
-    seg.current = { mx: st.p[0], my: st.p[1], x: st.p[0], y: st.p[1] };
+    seg.current = { mx: st.p[0], my: st.p[1], x: st.p[0], y: st.p[1], w };
   };
   const liveSegment = (st: InkStroke, x: number, y: number, pr: number) => {
     const ctx = ctxOf(st.hl ? liveHL.current : live.current), s = seg.current;
@@ -214,12 +221,49 @@ export default function InkLayer({
     ctx.strokeStyle = st.c;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.lineWidth = st.hl ? st.s : st.s * (0.5 + pr);
+    // pressure is low-passed so the width does not jump between samples
+    const w = st.hl ? st.s : s.w * 0.65 + st.s * (0.5 + pr) * 0.35;
+    ctx.lineWidth = w;
     ctx.beginPath();
     ctx.moveTo(s.mx, s.my);
     ctx.quadraticCurveTo(s.x, s.y, mx, my);
     ctx.stroke();
-    seg.current = { mx, my, x, y };
+    seg.current = { mx, my, x, y, w };
+  };
+
+  // Where the Pencil is about to be (if the browser predicts it): drawn on its own
+  // layer and replaced on every event, so the ink seems to stick to the tip.
+  const drawPrediction = (st: InkStroke | null, evs: PointerEvent[]) => {
+    const c = pred.current, ctx = ctxOf(c);
+    if (!c || !ctx) return;
+    if (predBox.current) {
+      const [x0, y0, x1, y1] = predBox.current;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(x0, y0, x1 - x0, y1 - y0);
+      predBox.current = null;
+    }
+    const s = seg.current;
+    if (!st || !s || !evs.length || st.hl) return;
+    toUnits(ctx);
+    ctx.strokeStyle = st.c;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = s.w;
+    ctx.beginPath();
+    ctx.moveTo(s.mx, s.my);
+    ctx.lineTo(s.x, s.y);
+    let x0 = Math.min(s.mx, s.x), y0 = Math.min(s.my, s.y), x1 = Math.max(s.mx, s.x), y1 = Math.max(s.my, s.y);
+    for (const ev of evs.slice(0, 3)) {
+      const [x, y] = pos(ev);
+      ctx.lineTo(x, y);
+      x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+    }
+    ctx.stroke();
+    const { ox, oy, cx, cy, k } = view.current, d = dprRef.current, pad = s.w + 4;
+    predBox.current = [
+      Math.floor((ox - cx + (x0 - pad) * k) * d), Math.floor((oy - cy + (y0 - pad) * k) * d),
+      Math.ceil((ox - cx + (x1 + pad) * k) * d), Math.ceil((oy - cy + (y1 + pad) * k) * d),
+    ];
   };
 
   const drawLasso = () => {
@@ -305,6 +349,21 @@ export default function InkLayer({
   useEffect(() => {
     if (tool !== "lasso" && sel.current) setSelection(null);
   }, [tool, setSelection]);
+
+  // ?inkdebug=1 shows input and drawing stats on screen (to diagnose on a real iPad).
+  const [, setDbgOn] = useState(false);
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has("inkdebug")) return;
+    debug.current = { on: true, ev: 0, samples: 0, ms: 0, max: 0, predicted: false, coalesced: false };
+    setDbgOn(true);
+    const t = setInterval(() => {
+      const d = debug.current, el = debugEl.current;
+      if (!d || !el) return;
+      el.textContent = `eventos/s ${d.ev * 2} · muestras/s ${d.samples * 2} · dibujo ${(d.ev ? d.ms / d.ev : 0).toFixed(2)} ms (máx ${d.max.toFixed(1)}) · coalesced ${d.coalesced ? "sí" : "no"} · predicción ${d.predicted ? "sí" : "no"} · dpr ${dprRef.current}`;
+      d.ev = 0; d.samples = 0; d.ms = 0; d.max = 0;
+    }, 500);
+    return () => clearInterval(t);
+  }, []);
 
   // Fingers scroll natively; the Pencil and a palm during a gesture must not.
   useEffect(() => {
@@ -472,12 +531,22 @@ export default function InkLayer({
       for (const ev of list) { const [x, y] = pos(ev); eraseAt(x, y); }
       return;
     }
+    const t0 = performance.now();
     const st = cur.current!;
     for (const ev of list) {
       const [x, y] = pos(ev);
       const pr = st.hl ? 0.5 : ev.pointerType === "pen" && ev.pressure > 0 ? ev.pressure : 0.5;
       st.p.push(r1(x), r1(y), r2(pr));
       liveSegment(st, x, y, pr);
+    }
+    const ne = e.nativeEvent;
+    drawPrediction(st, typeof ne.getPredictedEvents === "function" ? ne.getPredictedEvents() : []);
+    const dbg = debug.current;
+    if (dbg) {
+      const ms = performance.now() - t0;
+      dbg.ev++; dbg.samples += list.length; dbg.ms += ms; dbg.max = Math.max(dbg.max, ms);
+      dbg.coalesced = evs.length > 0 || dbg.coalesced;
+      dbg.predicted = (typeof ne.getPredictedEvents === "function" && ne.getPredictedEvents().length > 0) || dbg.predicted;
     }
   };
 
@@ -519,6 +588,7 @@ export default function InkLayer({
     const st = cur.current;
     if (!st) return;
     cur.current = null;
+    drawPrediction(null, []);
     seg.current = null;
     if (st.p.length === 3) st.p.push(st.p[0] + 0.3, st.p[1] + 0.3, st.p[2]); // a tap makes a dot
     snapshot();
@@ -543,6 +613,8 @@ export default function InkLayer({
       <canvas ref={liveHL} className="vp" style={{ opacity: HL_ALPHA }} />
       <canvas ref={baseInk} className="base" />
       <canvas ref={live} className="vp" />
+      <canvas ref={pred} className="vp" />
+      {debug.current && <div ref={debugEl} className="inkdebug" />}
       {selBox && (
         <div className="selbox" style={{ left: selBox[0] * px, top: selBox[1] * px, width: (selBox[2] - selBox[0]) * px, height: (selBox[3] - selBox[1]) * px }}>
           <div className="selbar" onPointerDown={(e) => e.stopPropagation()}>
