@@ -17,6 +17,7 @@ import SaveStatus from "./SaveStatus";
 import { useFocusMode } from "./Focus";
 import { Floating, useCamera, ZoomBadge } from "./Camera";
 import FitPage from "./FitPage";
+import Icon from "./Icon";
 
 export default function NotesPage() {
   const id = useSearchParams().get("id");
@@ -28,23 +29,31 @@ function NotesList() {
   const [notes, setNotes] = useState<Note[] | null>(null);
   useEffect(() => setNotes(listNotes()), []);
   if (!notes) return null;
+  const create = () => { const n = newNote(); router.push(`/app/notas?id=${n.id}`); };
   return (
     <div className="wrap diag">
       <div className="step-head">
         <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Notas de clase</h1>
-        <button className="btn primary" type="button" onClick={() => { const n = newNote(); router.push(`/app/notas?id=${n.id}`); }}>Nueva nota</button>
+        <button className="btn primary" type="button" onClick={create}><Icon name="plus" /> Nueva nota</button>
       </div>
       <p className="muted" style={{ maxWidth: "62ch" }}>Cada nota usa la plantilla de clase de Kwanta: preguntas clave, notas, un ejemplo resuelto y un resumen. Marca qué vieron en clase y Kwanta te arma ejercicios tipo examen con eso.</p>
-      <div className="grid3">
-        {notes.map((n) => (
-          <Link key={n.id} href={`/app/notas?id=${n.id}`} className="card notecard">
-            <span className="pill">{topicById(n.topic)?.name ?? n.topic}</span>
-            <b>{n.title || "Sin título"}</b>
-            <span className="muted">{fmtDate(n.date)} · {n.concepts.length} temas marcados</span>
-          </Link>
-        ))}
+      <div className="cardgrid">
+        {notes.map((n) => {
+          const t = topicById(n.topic);
+          return (
+            <Link key={n.id} href={`/app/notas?id=${n.id}`} className="card notecard unitcard" style={t ? { background: `var(--t${t.unit})`, borderColor: "transparent" } : undefined}>
+              <span className="unitrow">{t && <span className="ubadge sm" style={{ background: `var(--u${t.unit})` }}>{t.unit}</span>}<span>{t?.name ?? n.topic}</span></span>
+              <b className="nc-title">{n.title || "Sin título"}</b>
+              <span className="muted">{fmtDate(n.date)} · {n.concepts.length} {n.concepts.length === 1 ? "tema marcado" : "temas marcados"}</span>
+            </Link>
+          );
+        })}
+        <button type="button" className="newtile" onClick={create}>
+          <span className="newtile-ic"><Icon name="plus" size={22} /></span>
+          <b>Nueva nota de clase</b>
+          <span className="muted">Plantilla Cornell para Física IB</span>
+        </button>
       </div>
-      {!notes.length && <p className="muted">Aún no tienes notas.</p>}
     </div>
   );
 }

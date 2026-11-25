@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { downloadBackup, isAppleTouch, isInstalled, lastBackupAt, restoreBackup, store } from "@/lib/storage";
+import { useDevice } from "./Device";
 
 const DAY = 86_400_000;
 const HIDE_KEY = "kw-install-hidden";
@@ -19,6 +20,7 @@ function ShareIcon() {
 }
 
 export function InstallCard() {
+  const { mode } = useDevice();
   const [show, setShow] = useState(false);
   useEffect(() => {
     const hiddenAt = store.get<number>(HIDE_KEY, 0);
@@ -28,7 +30,7 @@ export function InstallCard() {
   return (
     <div className="keepcard install" role="note">
       <div>
-        <b>Instala Kwanta en tu iPad</b>
+        <b>Instala Kwanta en tu {mode === "telefono" ? "iPhone" : "iPad"}</b>
         <span className="muted">Safari borra las notas de los sitios que no abres en 7 días. Instalada, no se borran y se abre a pantalla completa.</span>
         <ol className="steps">
           <li>Toca <ShareIcon /> <b>Compartir</b> en la barra de Safari.</li>

@@ -36,22 +36,38 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     else store.del("kw-mode");
   };
 
-  return <Ctx.Provider value={{ mode: override ?? auto, setMode, auto }}>{children}</Ctx.Provider>;
+  const mode = override ?? auto;
+  // lets CSS adapt to the experience, not only to the width (e.g. the phone's bottom tab bar)
+  useEffect(() => {
+    if (mode) document.documentElement.dataset.mode = mode;
+  }, [mode]);
+
+  return <Ctx.Provider value={{ mode, setMode, auto }}>{children}</Ctx.Provider>;
 }
 
 export const useDevice = () => useContext(Ctx);
 
+/** Folded to a small chip so it never covers the page; opens to pick another view. */
 export function VistaSwitcher() {
   const { mode, setMode, auto } = useDevice();
+  const [open, setOpen] = useState(false);
   if (!mode) return null;
+  if (!open) {
+    return (
+      <button type="button" className="vista folded" onClick={() => setOpen(true)} aria-label={`Vista: ${MODE_LABEL[mode]}. Cambiar vista`}>
+        {MODE_LABEL[mode]}
+      </button>
+    );
+  }
   return (
     <div className="vista" role="group" aria-label="Vista de dispositivo">
       <span>Vista</span>
       {(["ipad", "computadora", "telefono"] as Mode[]).map((m) => (
-        <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m === auto ? null : m)}>
+        <button key={m} type="button" aria-pressed={mode === m} onClick={() => { setMode(m === auto ? null : m); setOpen(false); }}>
           {MODE_LABEL[m]}
         </button>
       ))}
+      <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar">×</button>
     </div>
   );
 }

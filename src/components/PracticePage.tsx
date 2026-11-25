@@ -9,6 +9,7 @@ import { SHEET_MAX } from "@/lib/content";
 import { setScore } from "./Dashboard";
 import { useDevice } from "./Device";
 import SheetStep from "./SheetStep";
+import Icon from "./Icon";
 
 export default function PracticePage() {
   const id = useSearchParams().get("set");
@@ -26,39 +27,52 @@ function Home() {
   return (
     <div className="wrap diag">
       <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Práctica</h1>
-      <div className="card" style={{ maxWidth: 760 }}>
-        <h3>Practicar un tema</h3>
-        <label className="fld">Tema
-          <select id="pr-topic" value={topic} onChange={(e) => { setTopic(e.target.value); setChosen([]); }}>
-            {TOPICS.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-          </select>
-        </label>
-        <div className="chips">
-          {t.concepts.map((c) => (
-            <button key={c.id} type="button" className={"chip" + (chosen.includes(c.id) ? " on" : "")} aria-pressed={chosen.includes(c.id)}
-              onClick={() => setChosen((x) => (x.includes(c.id) ? x.filter((y) => y !== c.id) : [...x, c.id]))}>{c.label}</button>
-          ))}
+      <div className="practice-grid">
+        <div className="card">
+          <h3>Practicar un tema</h3>
+          <div className="topics" role="radiogroup" aria-label="Tema">
+            {TOPICS.map((x) => (
+              <button key={x.id} type="button" role="radio" aria-checked={topic === x.id} className={"topic" + (topic === x.id ? " on" : "")}
+                style={{ background: topic === x.id ? `var(--t${x.unit})` : undefined }}
+                onClick={() => { setTopic(x.id); setChosen([]); }}>
+                <span className="ubadge sm" style={{ background: `var(--u${x.unit})` }}>{x.unit}</span>
+                <span>{x.name}</span>
+              </button>
+            ))}
+          </div>
+          <span className="eyebrow">Subtemas de {t.name}</span>
+          <div className="chips">
+            {t.concepts.map((c) => (
+              <button key={c.id} type="button" className={"chip" + (chosen.includes(c.id) ? " on" : "")} aria-pressed={chosen.includes(c.id)}
+                onClick={() => setChosen((x) => (x.includes(c.id) ? x.filter((y) => y !== c.id) : [...x, c.id]))}>{c.label}</button>
+            ))}
+          </div>
+          <p className="muted" style={{ fontSize: ".86rem" }}>Sin elegir nada, entran todos los subtemas. Cada vez salen números nuevos.</p>
+          <button className="btn primary" type="button" onClick={() => {
+            const s = newSet({ title: `Práctica · ${t.name}`, topic, concepts: chosen });
+            router.push(`/app/practica?set=${s.id}`);
+          }}>Crear 4 ejercicios <Icon name="arrow" /></button>
         </div>
-        <p className="muted" style={{ fontSize: ".86rem" }}>Sin elegir nada, entran todos los subtemas. Cada vez salen números nuevos.</p>
-        <button className="btn primary" type="button" onClick={() => {
-          const s = newSet({ title: `Práctica · ${t.name}`, topic, concepts: chosen });
-          router.push(`/app/practica?set=${s.id}`);
-        }}>Crear 4 ejercicios</button>
-      </div>
-      {sets.length > 0 && (
-        <div style={{ display: "grid", gap: 10 }}>
+        <div className="card">
           <h3>Tus ejercicios</h3>
           {sets.map((s) => {
             const sc = setScore(s);
+            const u = topicById(s.topic)?.unit;
             return (
-              <Link key={s.id} href={`/app/practica?set=${s.id}`} className="card row-card">
+              <Link key={s.id} href={`/app/practica?set=${s.id}`} className="row-link" style={u ? { background: `var(--t${u})`, borderColor: "transparent" } : undefined}>
                 <b>{s.title}</b>
-                <span className="muted">{sc.done}/{s.n} hechos · {sc.got}/{sc.max || "—"} marcas</span>
+                <span className="muted">{sc.done}/{s.n} hojas · {sc.got}/{sc.max || "—"} marcas</span>
               </Link>
             );
           })}
+          {!sets.length && (
+            <div className="empty">
+              <span className="newtile-ic"><Icon name="practice" size={22} /></span>
+              <p className="muted">Aquí aparecen tus hojas de práctica con sus marcas. Elige un tema y crea las primeras 4, o créalas desde una nota de clase.</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

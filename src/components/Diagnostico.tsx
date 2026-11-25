@@ -259,7 +259,7 @@ export default function Diagnostico() {
               <span><b>{b.unit}</b> · {UNIT_NAME[b.unit]} <span className="muted">({Math.round(share(tally[b.unit]) * 100)}% hoy)</span></span>
             </li>
           ))}
-          <li><span className="wk">Semanas 11–12</span><span><b>Mocks</b> · Prueba 1 y Prueba 2 completas con tiempo</span></li>
+          <li><span className="wk">Semanas 11–12</span><span><b>Simulacros</b> · Prueba 1 y Prueba 2 completas con tiempo</span></li>
         </ul>
       </div>
 
@@ -288,7 +288,7 @@ export default function Diagnostico() {
 
       <div className="callout" style={{ borderLeftColor: "var(--vec)" }}>
         <b>Sprint al 7 · cohorte de febrero</b>
-        <span>12 semanas con hojas de examen corregidas, una clase semanal en vivo con un coach que sacó 7 y 4 mocks corregidos sobre tu hoja. Cupo de 25. Los primeros lugares tienen precio de fundador.</span>
+        <span>12 semanas con hojas de examen corregidas, una clase semanal en vivo con un coach que sacó 7 y 4 simulacros corregidos sobre tu hoja. Cupo de 25. Los primeros lugares tienen precio de fundador.</span>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
           {PREVENTA ? (
             <a className="btn sig" href={PREVENTA} target="_blank" rel="noopener">Apartar lugar de fundador · pagar con Mercado Pago</a>

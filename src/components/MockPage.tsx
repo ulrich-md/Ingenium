@@ -15,6 +15,7 @@ import { SHEET_MAX } from "@/lib/content";
 import { getMock, listMocks, mockLeft, mockSheets, newMock, pauseMock, resumeMock, saveMock, MOCK_SIZE, type Mock } from "@/lib/mocks";
 import { gradeFromShare } from "@/lib/scoring";
 import { useDevice } from "./Device";
+import Icon from "./Icon";
 import SheetStep from "./SheetStep";
 import { Floating } from "./Camera";
 
@@ -39,22 +40,22 @@ function Home() {
   const start = (l: "NM" | "NS") => { const m = newMock(l); router.push(`/app/mock?id=${m.id}`); };
   return (
     <div className="wrap diag">
-      <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Mocks</h1>
+      <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Simulacros</h1>
       <p className="muted" style={{ maxWidth: "64ch" }}>Practica en condiciones de examen: tiempo real, sin pistas y sin ver correcciones hasta entregar. Al final ves tu nota estimada. Puedes salir cuando quieras: se guarda y el reloj se detiene hasta que vuelvas.</p>
       {mode === "telefono" ? (
-        <div className="callout"><b>Los mocks se hacen en iPad o computadora</b><span>Son hojas de examen completas, como la Prueba 2.</span></div>
+        <div className="callout"><b>Los simulacros se hacen en iPad o computadora</b><span>Son hojas de examen completas, como la Prueba 2.</span></div>
       ) : (
         <div className="grid3">
           {(["NM", "NS"] as const).map((l) => (
             <div key={l} className="card">
-              <span className="pill">{l === "NM" ? "Nivel Medio" : "Nivel Superior"}</span>
-              <h3>Mock corto de Prueba 2</h3>
+              <div className="tile-head"><span className="pill">{l === "NM" ? "Nivel Medio" : "Nivel Superior"}</span><span className="kpi-ic"><Icon name="timer" size={20} /></span></div>
+              <h3>Simulacro corto de Prueba 2</h3>
               <p className="muted">{MOCK_SIZE[l]} preguntas de desarrollo de todos los temas · unos {l === "NM" ? "25–35" : "35–50"} minutos (1,8 min por marca, como la Prueba 2 real).</p>
-              <button className="btn primary" type="button" onClick={() => start(l)}>Empezar mock {l}</button>
+              <button className="btn primary" type="button" onClick={() => start(l)}>Empezar simulacro {l}</button>
             </div>
           ))}
-          <div className="card" style={{ opacity: 0.7 }}>
-            <span className="pill sig">Próximamente</span>
+          <div className="card soon">
+            <span className="pill">Próximamente</span>
             <h3>Prueba 1 (opción múltiple)</h3>
             <p className="muted">Prueba 1A con preguntas de opción múltiple y 1B con datos, con su tiempo real.</p>
           </div>
@@ -62,7 +63,7 @@ function Home() {
       )}
       {mocks.length > 0 && (
         <div style={{ display: "grid", gap: 10 }}>
-          <h3>Tus mocks</h3>
+          <h3>Tus simulacros</h3>
           {mocks.map((m) => {
             const sc = mockScore(m);
             return (
@@ -137,9 +138,9 @@ function Runner({ id }: { id: string }) {
   }, [now]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (m === undefined || !mode) return null;
-  if (m === null) return <div className="wrap diag"><p>No encontramos este mock.</p><Link href="/app/mock">Volver</Link></div>;
+  if (m === null) return <div className="wrap diag"><p>No encontramos este simulacro.</p><Link href="/app/mock">Volver</Link></div>;
   if (mode === "telefono") {
-    return <div className="wrap diag"><div className="callout"><b>Este mock se hace en iPad o computadora</b><span>Tu tiempo sigue corriendo: ábrelo en tu iPad o computadora.</span></div></div>;
+    return <div className="wrap diag"><div className="callout"><b>Este simulacro se hace en iPad o computadora</b><span>Tu tiempo sigue corriendo: ábrelo en tu iPad o computadora.</span></div></div>;
   }
 
   /* ---------- result ---------- */
@@ -156,7 +157,7 @@ function Runner({ id }: { id: string }) {
     });
     return (
       <div className="wrap diag res" style={{ maxWidth: 860 }}>
-        <p className="eyebrow">Resultado del mock · Prueba 2 · {m.level}</p>
+        <p className="eyebrow">Resultado del simulacro · Prueba 2 · {m.level}</p>
         <div className="res-top">
           <div style={{ display: "grid", gap: 8 }}>
             <span className="muted">Nota estimada</span>
@@ -174,7 +175,7 @@ function Runner({ id }: { id: string }) {
         </div>
         <p className="muted" style={{ fontSize: ".84rem" }}>Fronteras de nota aproximadas. Para ver la solución de cada pregunta, practica el tema desde Práctica.</p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button className="btn primary" type="button" onClick={() => { const n = newMock(m.level); router.push(`/app/mock?id=${n.id}`); }}>Nuevo mock</button>
+          <button className="btn primary" type="button" onClick={() => { const n = newMock(m.level); router.push(`/app/mock?id=${n.id}`); }}>Nuevo simulacro</button>
           <Link className="btn" href="/app">Volver al inicio</Link>
         </div>
       </div>
@@ -191,7 +192,7 @@ function Runner({ id }: { id: string }) {
     return (
       <div className="wrap diag">
         <div className="step-head">
-          <span className="eyebrow">Corrige tu mock · pregunta {m.idx + 1} de {sheets.length}</span>
+          <span className="eyebrow">Corrige tu simulacro · pregunta {m.idx + 1} de {sheets.length}</span>
           <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda; sigues después donde lo dejaste">Salir</button>
         </div>
         <SheetStep
@@ -213,7 +214,7 @@ function Runner({ id }: { id: string }) {
   return (
     <div className="wrap diag">
       <div className="step-head">
-        <span className="eyebrow">Mock Prueba 2 · {m.level} · pregunta {m.idx + 1} de {sheets.length}</span>
+        <span className="eyebrow">Simulacro · Prueba 2 · {m.level} · pregunta {m.idx + 1} de {sheets.length}</span>
         <span style={{ display: "flex", gap: 8 }}>
           <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda y el reloj se detiene hasta que vuelvas">Salir</button>
           <button className="btn sm" type="button" onClick={() => setConfirm(true)}>Entregar</button>
@@ -222,7 +223,7 @@ function Runner({ id }: { id: string }) {
       <div className="progress" aria-hidden="true">{sheets.map((s, i) => <i key={s.id} className={i < m.idx ? "done" : i === m.idx ? "cur" : ""} />)}</div>
       {confirm && (
         <div className="callout" role="alertdialog" aria-label="Confirmar entrega">
-          <b>¿Entregar el mock ahora?</b>
+          <b>¿Entregar el simulacro ahora?</b>
           <span>Te quedan {mmss(left)}. Después ya no podrás cambiar tus respuestas.</span>
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn primary sm" type="button" onClick={() => { setConfirm(false); submit(); }}>Sí, entregar</button>
@@ -238,7 +239,7 @@ function Runner({ id }: { id: string }) {
         awarded={undefined} onAwarded={() => {}}
         marked={false} onMarked={() => {}}
         exam={{ info: "Modo examen: sin pistas ni correcciones hasta entregar. Puedes ir y volver entre preguntas, y salir cuando quieras (el reloj se detiene).", onPrev: m.idx > 0 ? () => up((x) => ({ ...x, idx: x.idx - 1 })) : undefined }}
-        nextLabel={last ? "Entregar mock" : "Siguiente pregunta →"}
+        nextLabel={last ? "Entregar simulacro" : "Siguiente pregunta →"}
         onNext={() => (last ? setConfirm(true) : up((x) => ({ ...x, idx: x.idx + 1 })))}
       />
       <Floating><div className={"clock" + (left < 5 * 60_000 ? " warn" : "")} role="timer" aria-live="off">⏱ {mmss(left)}</div></Floating>
