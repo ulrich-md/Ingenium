@@ -16,6 +16,7 @@ import { getMock, listMocks, mockLeft, mockSheets, newMock, pauseMock, resumeMoc
 import { gradeFromShare } from "@/lib/scoring";
 import { useDevice } from "./Device";
 import Icon from "./Icon";
+import { IlloChoices, IlloTimer } from "./Illos";
 import SheetStep from "./SheetStep";
 import { Floating } from "./Camera";
 
@@ -40,8 +41,13 @@ function Home() {
   const start = (l: "NM" | "NS") => { const m = newMock(l); router.push(`/app/mock?id=${m.id}`); };
   return (
     <div className="wrap diag">
-      <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Simulacros</h1>
-      <p className="muted" style={{ maxWidth: "64ch" }}>Practica en condiciones de examen: tiempo real, sin pistas y sin ver correcciones hasta entregar. Al final ves tu nota estimada. Puedes salir cuando quieras: se guarda y el reloj se detiene hasta que vuelvas.</p>
+      <div className="pagehead">
+        <div className="pagehead-text">
+          <h1>Simulacros</h1>
+          <p className="muted">Practica en condiciones de examen: tiempo real, sin pistas y sin ver correcciones hasta entregar. Al final ves tu nota estimada. Puedes salir cuando quieras: se guarda y el reloj se detiene hasta que vuelvas.</p>
+        </div>
+        <IlloTimer className="pagehead-art" />
+      </div>
       {mode === "telefono" ? (
         <div className="callout"><b>Los simulacros se hacen en iPad o computadora</b><span>Son hojas de examen completas, como la Prueba 2.</span></div>
       ) : (
@@ -55,6 +61,7 @@ function Home() {
             </div>
           ))}
           <div className="card soon">
+            <IlloChoices className="soon-art" />
             <span className="pill">Próximamente</span>
             <h3>Prueba 1 (opción múltiple)</h3>
             <p className="muted">Prueba 1A con preguntas de opción múltiple y 1B con datos, con su tiempo real.</p>

@@ -18,6 +18,7 @@ import { useFocusMode } from "./Focus";
 import { Floating, useCamera, ZoomBadge } from "./Camera";
 import FitPage from "./FitPage";
 import Icon from "./Icon";
+import { IlloNotebook, UNIT_ILLO } from "./Illos";
 
 export default function NotesPage() {
   const id = useSearchParams().get("id");
@@ -32,16 +33,21 @@ function NotesList() {
   const create = () => { const n = newNote(); router.push(`/app/notas?id=${n.id}`); };
   return (
     <div className="wrap diag">
-      <div className="step-head">
-        <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Notas de clase</h1>
-        <button className="btn primary" type="button" onClick={create}><Icon name="plus" /> Nueva nota</button>
+      <div className="pagehead">
+        <div className="pagehead-text">
+          <h1>Notas de clase</h1>
+          <p className="muted">Cada nota usa la plantilla de clase de Kwanta: preguntas clave, notas, un ejemplo resuelto y un resumen. Marca qué vieron en clase y Kwanta te arma ejercicios tipo examen con eso.</p>
+          <button className="btn primary" type="button" onClick={create}><Icon name="plus" /> Nueva nota</button>
+        </div>
+        <IlloNotebook className="pagehead-art" />
       </div>
-      <p className="muted" style={{ maxWidth: "62ch" }}>Cada nota usa la plantilla de clase de Kwanta: preguntas clave, notas, un ejemplo resuelto y un resumen. Marca qué vieron en clase y Kwanta te arma ejercicios tipo examen con eso.</p>
       <div className="cardgrid">
         {notes.map((n) => {
           const t = topicById(n.topic);
+          const Art = t ? UNIT_ILLO[t.unit] : null;
           return (
             <Link key={n.id} href={`/app/notas?id=${n.id}`} className="card notecard unitcard" style={t ? { background: `var(--t${t.unit})`, borderColor: "transparent" } : undefined}>
+              {Art && <Art className="nc-art" />}
               <span className="unitrow">{t && <span className="ubadge sm" style={{ background: `var(--u${t.unit})` }}>{t.unit}</span>}<span>{t?.name ?? n.topic}</span></span>
               <b className="nc-title">{n.title || "Sin título"}</b>
               <span className="muted">{fmtDate(n.date)} · {n.concepts.length} {n.concepts.length === 1 ? "tema marcado" : "temas marcados"}</span>

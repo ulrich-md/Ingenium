@@ -12,6 +12,7 @@ import { store } from "@/lib/storage";
 import { EnergyLevels } from "./Brand";
 import { BackupCard, InstallCard } from "./KeepData";
 import Icon from "./Icon";
+import { IlloNotebook, IlloSheet } from "./Illos";
 import type { UiIconName } from "./uiIcons";
 
 export function setScore(s: PracticeSet) {
@@ -101,6 +102,7 @@ export default function Dashboard() {
               </Link>
             );
           })}
+          {!d.notes.length && <IlloNotebook className="tile-art" />}
           {!d.notes.length && <p className="muted">Toma notas en la plantilla y Kwanta te arma ejercicios de lo que viste.</p>}
           <button className="btn" type="button" onClick={newNoteGo}><Icon name="plus" /> Nueva nota</button>
         </section>
@@ -116,6 +118,7 @@ export default function Dashboard() {
               </Link>
             );
           })}
+          {!d.sets.length && <IlloSheet className="tile-art" />}
           {!d.sets.length && <p className="muted">Todavía no tienes ejercicios. Créalos desde una nota o elige un tema.</p>}
           <Link className="btn" href="/app/practica">Practicar un tema</Link>
         </section>

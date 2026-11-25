@@ -177,3 +177,95 @@ export function IlloJump({ className }: P) {
     <circle cx="158" cy="18" r="8" fill={C.brand} />
   </>);
 }
+
+/** Class notes: an open notebook with a Cornell margin. */
+export function IlloNotebook({ className }: P) {
+  return svg("0 0 160 120", className, <>
+    <circle cx="80" cy="60" r="54" fill={C.brandXL} />
+    <path d="M24 30 Q 52 22 80 32 L80 104 Q 52 94 24 102 Z" fill={C.white} />
+    <path d="M136 30 Q 108 22 80 32 L80 104 Q 108 94 136 102 Z" fill={C.cloud} />
+    <path d="M80 32 L80 104" stroke={C.cloudD} strokeWidth="3" />
+    <path d="M40 38 L40 96" stroke={C.red} strokeWidth="2" opacity=".6" />
+    {[48, 60, 72, 84].map((y) => <path key={y} d={`M46 ${y} Q 60 ${y - 3} 74 ${y + 1}`} stroke={C.brandL} strokeWidth="2.5" fill="none" strokeLinecap="round" />)}
+    <path d="M90 50 q5 -7 9 0 t9 0 M90 66 h22 M90 80 q4 -6 8 0 t8 0 t8 0" fill="none" stroke="#1d3fbf" strokeWidth="3" strokeLinecap="round" />
+    <rect x="112" y="12" width="12" height="34" rx="4" fill={C.sun} />
+    <path d="M112 46 l6 -6 l6 6 z" fill={C.cloud} />
+  </>);
+}
+
+/** Exam sheet marked: ticks in red in the margin and a pencil. */
+export function IlloSheet({ className }: P) {
+  return svg("0 0 160 120", className, <>
+    <circle cx="80" cy="60" r="54" fill={C.brandXL} />
+    <rect x="40" y="14" width="74" height="96" rx="6" fill={C.cloudD} transform="rotate(-6 77 62)" />
+    <rect x="44" y="12" width="74" height="96" rx="6" fill={C.white} />
+    <rect x="54" y="22" width="40" height="6" rx="3" fill={C.ink} />
+    {[40, 56, 72, 88].map((y, i) => (
+      <g key={y}>
+        <rect x="54" y={y} width={i % 2 ? 34 : 42} height="5" rx="2.5" fill={C.cloudD} />
+        {i < 3 && <path d={`M100 ${y + 2} l4 4 l8 -9`} fill="none" stroke={C.red} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />}
+      </g>
+    ))}
+    <g transform="rotate(-40 128 86)">
+      <rect x="122" y="52" width="12" height="54" rx="6" fill={C.sun} />
+      <path d="M122 106 L134 106 L128 118 Z" fill={C.inkL} />
+      <rect x="122" y="52" width="12" height="9" rx="4" fill={C.red} />
+    </g>
+  </>);
+}
+
+/** Paper 1: multiple-choice bubbles, one filled. */
+export function IlloChoices({ className }: P) {
+  return svg("0 0 160 120", className, <>
+    <circle cx="80" cy="60" r="54" fill={C.brandXL} />
+    {["A", "B", "C", "D"].map((l, i) => (
+      <g key={l}>
+        <rect x="34" y={20 + i * 22} width="92" height="18" rx="9" fill={i === 2 ? C.brand : C.white} />
+        <circle cx="46" cy={29 + i * 22} r="7" fill={i === 2 ? C.ink : C.cloud} />
+        <text x="46" y={33 + i * 22} textAnchor="middle" fontFamily="Nunito, sans-serif" fontWeight="900" fontSize="10" fill={i === 2 ? C.white : C.inkL}>{l}</text>
+        <rect x="60" y={26 + i * 22} width={[44, 36, 50, 30][i]} height="6" rx="3" fill={i === 2 ? C.white : C.cloudD} />
+      </g>
+    ))}
+  </>);
+}
+
+/** Sign in: an open padlock with an electron orbit. */
+export function IlloLock({ className }: P) {
+  return svg("0 0 160 120", className, <>
+    <circle cx="80" cy="60" r="54" fill={C.brandXL} />
+    <path d="M60 54 L60 38 A20 20 0 0 1 100 38 L100 42" fill="none" stroke={C.inkL} strokeWidth="9" strokeLinecap="round" />
+    <rect x="46" y="52" width="68" height="54" rx="14" fill={C.brandD} />
+    <rect x="46" y="50" width="68" height="50" rx="14" fill={C.brand} />
+    <circle cx="80" cy="72" r="8" fill={C.ink} />
+    <rect x="77" y="74" width="6" height="14" rx="3" fill={C.ink} />
+    <ellipse cx="80" cy="76" rx="62" ry="16" fill="none" stroke={C.sun} strokeWidth="3.5" strokeDasharray="2 9" strokeLinecap="round" transform="rotate(-12 80 76)" />
+    <circle cx="140" cy="62" r="6" fill={C.sun} />
+  </>);
+}
+
+/** Results: a medal with a level number. */
+export function IlloMedal({ className, n = 7 }: P & { n?: number }) {
+  return svg("0 0 160 120", className, <>
+    <circle cx="80" cy="60" r="54" fill={C.brandXL} />
+    <path d="M58 10 L80 50 L66 56 L46 16 Z" fill={C.brand} />
+    <path d="M102 10 L80 50 L94 56 L114 16 Z" fill={C.brandD} />
+    <circle cx="80" cy="76" r="32" fill={C.sunD} />
+    <circle cx="80" cy="73" r="30" fill={C.sun} />
+    <circle cx="80" cy="73" r="21" fill="#ffd77a" />
+    <text x="80" y="84" textAnchor="middle" fontFamily="Nunito, sans-serif" fontWeight="900" fontSize="30" fill={C.ink}>{n}</text>
+    <path d="M28 36 l4 -8 l4 8 l-4 8 z M128 92 l3 -6 l3 6 l-3 6 z" fill={C.sun} />
+  </>);
+}
+
+/** 404: an electron that fell off the energy levels. */
+export function IlloLost({ className }: P) {
+  return svg("0 0 200 140", className, <>
+    <circle cx="100" cy="70" r="64" fill={C.brandXL} />
+    {[0, 1, 2, 3].map((i) => <rect key={i} x={40 + i * 6} y={30 + i * 22} width={120 - i * 12} height="6" rx="3" fill={i === 2 ? C.cloudD : C.brandL} />)}
+    <path d="M70 70 L84 70" stroke={C.brandXL} strokeWidth="10" />
+    <path d="M78 64 q 10 30 2 56" fill="none" stroke={C.ink} strokeWidth="3" strokeDasharray="3 7" strokeLinecap="round" opacity=".5" />
+    <circle cx="80" cy="124" r="10" fill={C.brand} />
+    <circle cx="77" cy="121" r="3" fill={C.white} />
+    <text x="140" y="118" textAnchor="middle" fontFamily="Nunito, sans-serif" fontWeight="900" fontSize="34" fill={C.sun}>?</text>
+  </>);
+}

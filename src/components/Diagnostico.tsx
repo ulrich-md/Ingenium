@@ -15,6 +15,7 @@ import { useDevice } from "./Device";
 import { EnergyLevels } from "./Brand";
 import SheetStep from "./SheetStep";
 import LeadForm from "./LeadForm";
+import { IlloDiagnostic, IlloMedal } from "./Illos";
 
 type State = DiagState;
 const KEY = DIAG_KEY;
@@ -24,7 +25,7 @@ const UCOL: Record<Unit, string> = { A: "var(--uA)", B: "var(--uB)", C: "var(--u
 const PREVENTA = process.env.NEXT_PUBLIC_PREVENTA_URL;
 
 export default function Diagnostico() {
-  const { mode } = useDevice();
+  const { mode, setMode } = useDevice();
   const [s, setS] = useState<State | null>(null);
 
   useEffect(() => {
@@ -53,22 +54,32 @@ export default function Diagnostico() {
   if (s.stage === "intro") {
     return (
       <div className="diag wrap" style={{ maxWidth: 820 }}>
-        <p className="eyebrow">Diagnóstico gratis · Física IB</p>
-        <h1 style={{ fontSize: "clamp(1.9rem,5vw,2.8rem)" }}>¿Cuánta física sabes?</h1>
-        <p className="muted" style={{ fontSize: "1.08rem" }}>
-          15 minutos. 10 preguntas de opción múltiple, como en la Prueba 1A, y 3 preguntas de desarrollo en hoja de examen, como en la Prueba 2.
-          Al final ves tu nota proyectada, qué temas te cuestan y un plan de 12 semanas.
-        </p>
+        <div className="pagehead">
+          <div className="pagehead-text">
+            <p className="eyebrow">Diagnóstico gratis · Física IB</p>
+            <h1>¿Cuánta física sabes?</h1>
+            <p className="muted" style={{ fontSize: "1.08rem" }}>
+              15 minutos. 10 preguntas de opción múltiple, como en la Prueba 1A, y 3 preguntas de desarrollo en hoja de examen, como en la Prueba 2.
+              Al final ves tu nota proyectada, qué temas te cuestan y un plan de 12 semanas.
+            </p>
+          </div>
+          <IlloDiagnostic className="pagehead-art" />
+        </div>
         <div className="callout">
           <b>Estás en {MODE_LABEL[mode]}</b>
           {mode === "ipad" && <span>Las preguntas de desarrollo se escriben a mano con el Apple Pencil, sobre la hoja de examen.</span>}
           {mode === "computadora" && <span>Las preguntas de desarrollo se escriben renglón por renglón con el teclado, sobre la hoja de examen.</span>}
           {mode === "telefono" && <span>En el teléfono haces la parte de opción múltiple. Las preguntas de desarrollo se hacen en iPad (a mano) o en computadora (tecleando).</span>}
+          <span className="mode-pick">¿No es tu dispositivo? Cambiar a:{" "}
+            {(["ipad", "computadora", "telefono"] as const).filter((m) => m !== mode).map((m, i) => (
+              <span key={m}>{i > 0 && " · "}<button type="button" className="linkbtn" onClick={() => setMode(m)}>{MODE_LABEL[m]}</button></span>
+            ))}
+          </span>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <span className="muted">Nivel:</span>
           {(["NM", "NS"] as const).map((l) => (
-            <button key={l} type="button" className="btn sm" aria-pressed={s.level === l} style={s.level === l ? { borderColor: "var(--vec)", background: "var(--vec-soft)" } : undefined} onClick={() => up({ level: l })}>
+            <button key={l} type="button" className="btn sm" aria-pressed={s.level === l} style={s.level === l ? { borderColor: "var(--brand-shadow)", background: "var(--brand)" } : undefined} onClick={() => up({ level: l })}>
               {l === "NM" ? "Nivel Medio (NM)" : "Nivel Superior (NS)"}
             </button>
           ))}
@@ -225,12 +236,12 @@ export default function Diagnostico() {
           <span className="muted">Nota proyectada hoy</span>
           <span className="grade">{grade}<small> / 7</small></span>
           <span className="muted">{earned} de {possible} marcas · {Math.round((earned / Math.max(1, possible)) * 100)}%</span>
-          {sheetsDone === 0 && <span className="pill sig">Solo opción múltiple: menos preciso</span>}
+          {sheetsDone === 0 && <span className="pill sun">Solo opción múltiple: menos preciso</span>}
           <p style={{ maxWidth: "48ch" }}>
             {grade >= 7 ? "Ya estás en el nivel 7. El reto es mantenerlo en todas las unidades y bajo tiempo de examen." : `Tu meta es el nivel 7. Para llegar, el plan empieza por ${UNIT_NAME[weeks[0].unit].toLowerCase()}.`}
           </p>
         </div>
-        <div className="card"><EnergyLevels grade={grade} /></div>
+        <div className="card res-levels"><IlloMedal n={grade} className="res-medal" /><EnergyLevels grade={grade} /></div>
       </div>
 
       <div className="card">

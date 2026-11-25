@@ -1,17 +1,18 @@
 "use client";
 /**
  * Which experience to show: iPad (handwriting), computer (typing) or phone (review).
- * Detected automatically; the "Vista" switcher overrides it for demos and testing
- * (also ?modo=ipad|computadora|telefono in the URL).
+ * Detected automatically. For demos and testing, ?modo=ipad|computadora|telefono in the URL
+ * forces a view; only then the "Vista" switcher appears (students never see it).
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { detectMode, isMode, MODE_LABEL, type Mode } from "@/lib/device";
 import { store } from "@/lib/storage";
 
-const Ctx = createContext<{ mode: Mode | null; setMode: (m: Mode | null) => void; auto: Mode | null }>({
+const Ctx = createContext<{ mode: Mode | null; setMode: (m: Mode | null) => void; auto: Mode | null; forced: boolean }>({
   mode: null,
   setMode: () => {},
   auto: null,
+  forced: false,
 });
 
 export function DeviceProvider({ children }: { children: ReactNode }) {
@@ -42,16 +43,16 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     if (mode) document.documentElement.dataset.mode = mode;
   }, [mode]);
 
-  return <Ctx.Provider value={{ mode, setMode, auto }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ mode, setMode, auto, forced: override !== null }}>{children}</Ctx.Provider>;
 }
 
 export const useDevice = () => useContext(Ctx);
 
-/** Folded to a small chip so it never covers the page; opens to pick another view. */
+/** Only for testers who forced a view; folded to a small chip that opens to pick another one. */
 export function VistaSwitcher() {
-  const { mode, setMode, auto } = useDevice();
+  const { mode, setMode, auto, forced } = useDevice();
   const [open, setOpen] = useState(false);
-  if (!mode) return null;
+  if (!mode || !forced) return null;
   if (!open) {
     return (
       <button type="button" className="vista folded" onClick={() => setOpen(true)} aria-label={`Vista: ${MODE_LABEL[mode]}. Cambiar vista`}>

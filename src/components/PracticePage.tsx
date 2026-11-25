@@ -11,6 +11,7 @@ import { setScore } from "./Dashboard";
 import { useDevice } from "./Device";
 import SheetStep from "./SheetStep";
 import Icon from "./Icon";
+import { IlloSheet } from "./Illos";
 
 const UNITS = [...new Set(TOPICS.map((x) => x.unit))];
 
@@ -30,7 +31,13 @@ function Home() {
   if (!sets) return null;
   return (
     <div className="wrap diag">
-      <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Práctica</h1>
+      <div className="pagehead">
+        <div className="pagehead-text">
+          <h1>Práctica</h1>
+          <p className="muted">Hojas de examen de un tema, con números nuevos cada vez. Elige la unidad, el tema y, si quieres, los subtemas.</p>
+        </div>
+        <IlloSheet className="pagehead-art" />
+      </div>
       <div className="practice-grid">
         <div className="card">
           <h3>Practicar un tema</h3>
@@ -89,7 +96,7 @@ function Home() {
           })}
           {!sets.length && (
             <div className="empty">
-              <span className="newtile-ic"><Icon name="practice" size={22} /></span>
+              <IlloSheet className="empty-art" />
               <p className="muted">Aquí aparecen tus hojas de práctica con sus marcas. Elige un tema y crea las primeras 4, o créalas desde una nota de clase.</p>
             </div>
           )}

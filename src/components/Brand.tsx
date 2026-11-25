@@ -8,7 +8,7 @@ export function Mark({ size = 30 }: { size?: number }) {
         <line x1="3" y1="12" x2="14" y2="12" />
         <line x1="3" y1="5" x2="27" y2="5" />
       </g>
-      <path d="M9 17 Q 15 8 20 6.5" fill="none" stroke="#0a6fb8" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M9 17 Q 15 8 20 6.5" fill="none" stroke="#0864a8" strokeWidth="2.2" strokeLinecap="round" />
       <circle cx="23" cy="5" r="3.6" fill="#2bb5ff" stroke="#0d1b2a" strokeWidth="1.6" />
     </svg>
   );
@@ -20,16 +20,16 @@ export function EnergyLevels({ grade, goal = 7 }: { grade: number; goal?: number
   const y = (n: number) => 150 - (n - 1) * 20;
   return (
     <svg viewBox="0 0 360 170" style={{ width: "100%", maxWidth: 420, height: "auto", display: "block" }} role="img" aria-label={`Nivel actual ${grade} de 7, meta ${goal}`}>
-      <g fontFamily="JetBrains Mono, monospace" fontSize="11">
+      <g fontFamily="JetBrains Mono, monospace" fontSize="14" fontWeight={600}>
         {[1, 2, 3, 4, 5, 6, 7].map((n) => (
           <g key={n}>
             {n === goal ? (
               <>
-                <line x1="62" y1={y(n)} x2="270" y2={y(n)} style={{ stroke: "var(--ink)" }} strokeWidth={6} strokeLinecap="round" />
-                <line x1="62" y1={y(n)} x2="270" y2={y(n)} style={{ stroke: "var(--sun)" }} strokeWidth={3.6} strokeLinecap="round" />
+                <line x1="62" y1={y(n)} x2="266" y2={y(n)} style={{ stroke: "var(--ink)" }} strokeWidth={6} strokeLinecap="round" />
+                <line x1="62" y1={y(n)} x2="266" y2={y(n)} style={{ stroke: "var(--sun)" }} strokeWidth={3.6} strokeLinecap="round" />
               </>
             ) : (
-              <line x1="62" y1={y(n)} x2="270" y2={y(n)} style={{ stroke: n <= grade ? "var(--brand-ink)" : "var(--line2)" }} strokeWidth={n <= grade ? 3 : 2} strokeLinecap="round" />
+              <line x1="62" y1={y(n)} x2="266" y2={y(n)} style={{ stroke: n <= grade ? "var(--brand-ink)" : "var(--line2)" }} strokeWidth={n <= grade ? 3 : 2} strokeLinecap="round" />
             )}
             <text x="12" y={y(n) + 4} style={{ fill: n === goal ? "var(--ink)" : "var(--muted)" }} fontWeight={n === goal ? 700 : 400}>n = {n}</text>
           </g>
@@ -41,8 +41,8 @@ export function EnergyLevels({ grade, goal = 7 }: { grade: number; goal?: number
             <circle cx="224" cy={y(goal)} r="7.5" style={{ fill: "var(--sun)", stroke: "var(--ink)" }} strokeWidth="2" />
           </>
         )}
-        <text x="282" y={y(goal) + 4} style={{ fill: "var(--ink)" }} fontWeight={700}>meta</text>
-        {grade !== goal && <text x="282" y={y(grade) + 4} style={{ fill: "var(--brand-ink)" }} fontWeight={700}>hoy</text>}
+        <text x="280" y={y(goal) + 4} style={{ fill: "var(--ink)" }} fontWeight={700}>meta</text>
+        {grade !== goal && <text x="280" y={y(grade) + 4} style={{ fill: "var(--brand-ink)" }} fontWeight={700}>hoy</text>}
       </g>
     </svg>
   );

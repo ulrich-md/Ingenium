@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getSession, login } from "@/lib/session";
+import { IlloLock } from "@/components/Illos";
 
 export default function Entrar() {
   const router = useRouter();
@@ -22,8 +23,8 @@ export default function Entrar() {
 
   return (
     <div className="wrap diag" style={{ maxWidth: 460 }}>
-      <p className="eyebrow">Kwanta</p>
-      <h1 style={{ fontSize: "clamp(1.9rem,6vw,2.4rem)" }}>Entrar</h1>
+      <IlloLock className="login-art" />
+      <h1 style={{ fontSize: "clamp(1.9rem,6vw,2.4rem)" }}>Entrar a Kwanta</h1>
       <form className="card lead" onSubmit={submit} noValidate>
         <label>Correo<input name="correo" id="login-correo" type="email" autoComplete="username" inputMode="email" required /></label>
         <label>Contraseña<input name="contrasena" id="login-contrasena" type="password" autoComplete="current-password" required /></label>
