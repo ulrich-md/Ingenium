@@ -115,7 +115,7 @@ function iconInk(hex: string): string {
   const h = (v: number) => Math.round(v * k).toString(16).padStart(2, "0");
   return `#${h(r)}${h(g)}${h(b)}`;
 }
-const TOOL_COLOR: Partial<Record<Tool, string>> = { erase: "#7b8494", lasso: "#1235c2" };
+const TOOL_COLOR: Partial<Record<Tool, string>> = { erase: "#7b8494", lasso: "#0a6fb8" };
 
 export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<InkHandle | null>; onClear?: () => void }) {
   const [panel, setPanel] = useState(false);

@@ -6,10 +6,13 @@ import { useEffect, useMemo, useState } from "react";
 import { generateSet, TOPICS, topicById } from "@/lib/generators";
 import { getSet, listSets, newSet, saveSet, type PracticeSet } from "@/lib/notes";
 import { SHEET_MAX } from "@/lib/content";
+import { UNIT_NAME, type Unit } from "@/lib/scoring";
 import { setScore } from "./Dashboard";
 import { useDevice } from "./Device";
 import SheetStep from "./SheetStep";
 import Icon from "./Icon";
+
+const UNITS = [...new Set(TOPICS.map((x) => x.unit))];
 
 export default function PracticePage() {
   const id = useSearchParams().get("set");
@@ -21,6 +24,7 @@ function Home() {
   const [sets, setSets] = useState<PracticeSet[] | null>(null);
   const [topic, setTopic] = useState(TOPICS[0].id);
   const [chosen, setChosen] = useState<string[]>([]);
+  const [openU, setOpenU] = useState<Unit | null>(TOPICS[0].unit);
   useEffect(() => setSets(listSets()), []);
   const t = topicById(topic)!;
   if (!sets) return null;
@@ -30,15 +34,33 @@ function Home() {
       <div className="practice-grid">
         <div className="card">
           <h3>Practicar un tema</h3>
-          <div className="topics" role="radiogroup" aria-label="Tema">
-            {TOPICS.map((x) => (
-              <button key={x.id} type="button" role="radio" aria-checked={topic === x.id} className={"topic" + (topic === x.id ? " on" : "")}
-                style={{ background: topic === x.id ? `var(--t${x.unit})` : undefined }}
-                onClick={() => { setTopic(x.id); setChosen([]); }}>
-                <span className="ubadge sm" style={{ background: `var(--u${x.unit})` }}>{x.unit}</span>
-                <span>{x.name}</span>
-              </button>
-            ))}
+          <div className="acc">
+            {UNITS.map((u) => {
+              const list = TOPICS.filter((x) => x.unit === u);
+              const open = openU === u;
+              const sel = list.find((x) => x.id === topic);
+              return (
+                <div key={u} className={"acc-item" + (open ? " open" : "")}>
+                  <button type="button" className="acc-head" aria-expanded={open} aria-controls={`acc-${u}`} onClick={() => setOpenU(open ? null : u)}>
+                    <span className="ubadge sm" style={{ background: `var(--u${u})` }}>{u}</span>
+                    <span className="acc-t"><b>{UNIT_NAME[u]}</b><small>{sel ? `Elegido: ${sel.name}` : `${list.length} ${list.length === 1 ? "tema" : "temas"}`}</small></span>
+                    <Icon name="caret" size={18} className="acc-caret" />
+                  </button>
+                  {open && (
+                    <div id={`acc-${u}`} className="topics" role="radiogroup" aria-label={`Temas de la unidad ${u}`}>
+                      {list.map((x) => (
+                        <button key={x.id} type="button" role="radio" aria-checked={topic === x.id} className={"topic" + (topic === x.id ? " on" : "")}
+                          style={{ background: topic === x.id ? `var(--t${x.unit})` : undefined }}
+                          onClick={() => { setTopic(x.id); setChosen([]); }}>
+                          <span>{x.name}</span>
+                          {topic === x.id && <Icon name="check" size={18} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <span className="eyebrow">Subtemas de {t.name}</span>
           <div className="chips">

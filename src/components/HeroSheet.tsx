@@ -34,7 +34,7 @@ export default function HeroSheet() {
         <span><b>Corregida paso a paso</b><small>con el esquema de marcas</small></span>
       </div>
       <div className="hs-chip hs-chip-b" aria-hidden="true">
-        <span className="hs-grade"><small>Nota proyectada</small><b><span className="limehl">5</span> / 7</b></span>
+        <span className="hs-grade"><small>Nota proyectada</small><b><span className="markhl">5</span> / 7</b></span>
         <div className="hs-levels"><EnergyLevels grade={5} /></div>
       </div>
     </div>

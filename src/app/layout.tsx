@@ -16,7 +16,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f2f3f6",
+  themeColor: "#2bb5ff",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..900&family=JetBrains+Mono:wght@400;600&family=Caveat:wght@600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@500..1000&family=JetBrains+Mono:wght@400;600&family=Caveat:wght@600;700&display=swap"
         />
       </head>
       <body>

@@ -364,7 +364,7 @@ export default function InkLayer({
     for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
     ctx.setLineDash([6, 5]);
     ctx.lineWidth = 1.5 / view.current.k;
-    ctx.strokeStyle = "#1235c2";
+    ctx.strokeStyle = "#0a6fb8";
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = "rgba(35,71,217,0.06)";

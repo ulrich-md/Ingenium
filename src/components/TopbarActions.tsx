@@ -16,6 +16,7 @@ export default function TopbarActions() {
         !inApp && <Link href="/app" className="btn primary sm">Mi Kwanta</Link>
       ) : (
         <>
+          {path !== "/precios" && <Link href="/precios" className="btn ghost sm hide-xs">Precios</Link>}
           <Link href="/entrar" className="btn ghost sm">Entrar</Link>
           <Link href="/diagnostico" className="btn primary sm">Diagnóstico gratis</Link>
         </>

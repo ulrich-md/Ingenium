@@ -2,8 +2,33 @@ import Link from "next/link";
 import { EnergyLevels } from "@/components/Brand";
 import HeroSheet from "@/components/HeroSheet";
 import Icon from "@/components/Icon";
+import { IlloDiagnostic, IlloJump, IlloPlan, IlloTablet, IlloTimer, UNIT_ILLO } from "@/components/Illos";
+import { UNIT_NAME, type Unit } from "@/lib/scoring";
 
-const PREVENTA = process.env.NEXT_PUBLIC_PREVENTA_URL;
+/** The IB Physics syllabus (first assessment 2025), by unit. NS-only topics are marked. */
+const SYLLABUS: Record<Unit, string[]> = {
+  A: ["Cinemática", "Fuerzas y momento lineal", "Trabajo, energía y potencia", "Cuerpo rígido (NS)", "Relatividad (NS)"],
+  B: ["Energía térmica", "Efecto invernadero", "Modelos de gases", "Termodinámica (NS)", "Circuitos"],
+  C: ["Movimiento armónico simple", "Modelo de ondas", "Fenómenos ondulatorios", "Ondas estacionarias", "Efecto Doppler"],
+  D: ["Gravitación", "Campos eléctricos y magnéticos", "Movimiento en campos", "Inducción (NS)"],
+  E: ["Estructura del átomo", "Física cuántica (NS)", "Desintegración radiactiva", "Fisión", "Fusión y estrellas"],
+};
+
+const STEPS = [
+  { Illo: IlloDiagnostic, t: "Haz el diagnóstico", d: "10 de opción múltiple y 3 de desarrollo. En 15 minutos sabes tu nivel del 1 al 7." },
+  { Illo: IlloPlan, t: "Recibe tu plan", d: "12 semanas ordenadas por lo que más te cuesta, unidad por unidad." },
+  { Illo: IlloTablet, t: "Resuelve hojas de examen", d: "A mano con el Apple Pencil o tecleadas, y las comparas con el esquema de marcas paso a paso." },
+  { Illo: IlloTimer, t: "Haz simulacros", d: "Prueba 1 y 2 con tiempo real y sin pistas. Al final ves tu nota estimada." },
+];
+
+const FAQ = [
+  { q: "¿Kwanta es del Bachillerato Internacional?", a: "No. Las preguntas son originales, escritas con el formato y el estilo del examen. Kwanta no está afiliado con la Organización del Bachillerato Internacional." },
+  { q: "¿Necesito un iPad?", a: "No. En computadora resuelves las mismas hojas tecleando un paso por renglón, con barra de símbolos. En el teléfono repasas con opción múltiple tipo Prueba 1A." },
+  { q: "¿Sirve para NM y NS?", a: "Sí. El diagnóstico y los simulacros tienen versión NM y NS, y los temas solo de NS vienen marcados." },
+  { q: "¿Cómo se corrigen las hojas?", a: "Con el esquema de marcas, paso a paso: ves qué marca vale cada renglón (M1 por el método, A1 por la respuesta) y en qué paso se te fue." },
+  { q: "¿Dónde se guarda mi progreso?", a: "Por ahora en tu navegador, en el dispositivo donde estudias. Desde Inicio puedes guardar una copia en Archivos o iCloud." },
+  { q: "¿Cuánto cuesta?", a: "El diagnóstico es gratis y no necesita cuenta. Los planes con todo el contenido están en la página de precios." },
+];
 
 export default function Home() {
   return (
@@ -18,7 +43,7 @@ export default function Home() {
           </p>
           <div className="cta">
             <Link className="btn primary lg" href="/diagnostico">Haz el diagnóstico gratis <Icon name="arrow" /></Link>
-            <a className="btn lg" href="#precios">Ver precios</a>
+            <Link className="btn lg" href="/precios">Ver precios</Link>
           </div>
           <ul className="facts">
             <li><Icon name="check" size={16} /> 15 minutos, sin crear cuenta</li>
@@ -27,6 +52,23 @@ export default function Home() {
           </ul>
         </div>
         <HeroSheet />
+      </section>
+
+      <section className="wrap section">
+        <div className="sec-head">
+          <p className="eyebrow">Así funciona</p>
+          <h2>Cuatro pasos, cada semana</h2>
+        </div>
+        <ol className="howto">
+          {STEPS.map(({ Illo, t, d }, i) => (
+            <li key={t} className="card howto-step">
+              <Illo className="howto-art" />
+              <span className="howto-n">{i + 1}</span>
+              <h3>{t}</h3>
+              <p className="muted">{d}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section className="wrap section split">
@@ -39,7 +81,29 @@ export default function Home() {
       </section>
 
       <section className="wrap section">
-        <div style={{ display: "grid", gap: 8 }}>
+        <div className="sec-head">
+          <p className="eyebrow">Todo el programa</p>
+          <h2>Las 5 unidades de Física IB</h2>
+        </div>
+        <div className="units">
+          {(Object.keys(SYLLABUS) as Unit[]).map((u) => {
+            const Illo = UNIT_ILLO[u];
+            return (
+              <article key={u} className="unit-tile" style={{ background: `var(--t${u})` }}>
+                <Illo className="unit-art" />
+                <span className="unitrow"><span className="ubadge sm" style={{ background: `var(--u${u})` }}>{u}</span> Unidad {u}</span>
+                <h3>{UNIT_NAME[u]}</h3>
+                <ul className="unit-topics">
+                  {SYLLABUS[u].map((t) => <li key={t}>{t}</li>)}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="wrap section">
+        <div className="sec-head">
           <p className="eyebrow">Un Kwanta para cada pantalla</p>
           <h2>Cada dispositivo hace lo que mejor sabe hacer</h2>
         </div>
@@ -71,42 +135,38 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="wrap section" id="precios">
-        <div style={{ display: "grid", gap: 8 }}>
-          <p className="eyebrow">Precios de fundador</p>
-          <h2>Elige cómo llegar al 7</h2>
+      <section className="wrap section faq-sec">
+        <div className="sec-head">
+          <p className="eyebrow">Preguntas frecuentes</p>
+          <h2>Lo que nos preguntan antes de empezar</h2>
         </div>
-        <div className="prices">
-          <div className="card price-card">
-            <span className="pill">Gratis</span>
-            <h3>Diagnóstico</h3>
-            <span className="price">$0</span>
-            <p className="muted">10 de opción múltiple y 3 de desarrollo. Nota proyectada y plan de 12 semanas.</p>
-            <Link className="btn" href="/diagnostico">Empezar</Link>
+        <div className="faq">
+          {FAQ.map((f) => (
+            <details key={f.q} className="faq-item">
+              <summary>{f.q}<Icon name="caret" size={18} className="faq-caret" /></summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="wrap section">
+        <div className="endband">
+          <div className="endband-text">
+            <h2>Empieza por saber en qué nivel estás</h2>
+            <p>El diagnóstico es gratis, dura 15 minutos y te deja tu plan de 12 semanas.</p>
+            <div className="cta">
+              <Link className="btn onbrand lg" href="/diagnostico">Haz el diagnóstico gratis <Icon name="arrow" /></Link>
+              <Link className="btn ink lg" href="/precios">Ver precios</Link>
+            </div>
           </div>
-          <div className="card price-card">
-            <span className="pill">Hasta tu examen</span>
-            <h3>Pase Física</h3>
-            <span className="price">$89 <small>USD · fundadores $59</small></span>
-            <p className="muted">Teoría A–E, banco de hojas de examen, simulacros de Prueba 1 y 2, videos por tema y tutor.</p>
-          </div>
-          <div className="card price-card featured">
-            <span className="pill lime">Cupo 25 · febrero</span>
-            <h3>Sprint al 7</h3>
-            <span className="price">$349 <small>USD · 12 semanas</small></span>
-            <p>Todo el Pase, más una clase semanal en vivo con un coach que sacó 7 y 4 simulacros corregidos sobre tu hoja. Garantía: si cumples el plan y no subes un nivel, te devolvemos el dinero.</p>
-            {PREVENTA ? (
-              <a className="btn lime" href={PREVENTA} target="_blank" rel="noopener">Apartar lugar · Mercado Pago</a>
-            ) : (
-              <Link className="btn lime" href="/diagnostico">Primero, haz el diagnóstico <Icon name="arrow" /></Link>
-            )}
-          </div>
+          <IlloJump className="endband-art" />
         </div>
       </section>
 
       <footer className="wrap foot">
         <span>Kwanta · Física IB en español. Las preguntas son originales: Kwanta no está afiliado con la Organización del Bachillerato Internacional.</span>
-        <span>MVP: tu progreso se guarda solo en este navegador. <Link href="/privacidad">Aviso de privacidad</Link>.</span>
+        <span>MVP: tu progreso se guarda solo en este navegador. <Link href="/precios">Precios</Link> · <Link href="/privacidad">Aviso de privacidad</Link>.</span>
       </footer>
     </>
   );

@@ -58,7 +58,7 @@ export default function Dashboard() {
           <span className="eyebrow">Nota proyectada</span>
           {res ? (
             <>
-              <span className="grade"><span className="limehl">{res.grade}</span><small> / 7</small></span>
+              <span className="grade"><span className="markhl">{res.grade}</span><small> / 7</small></span>
               <EnergyLevels grade={res.grade} />
               <Link className="tile-link" href="/diagnostico">Ver diagnóstico <Icon name="caret" size={14} /></Link>
             </>
@@ -161,10 +161,10 @@ function LevelsArt() {
   return (
     <svg className="hs-art" viewBox="0 0 220 160" aria-hidden="true">
       {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-        <line key={i} x1={20 + i * 6} x2={210} y1={150 - i * 22} y2={150 - i * 22} stroke="#fff" strokeOpacity={0.1 + i * 0.03} strokeWidth="2" strokeLinecap="round" />
+        <line key={i} x1={20 + i * 6} x2={210} y1={150 - i * 22} y2={150 - i * 22} stroke="#fff" strokeOpacity={0.35 + i * 0.07} strokeWidth="3" strokeLinecap="round" />
       ))}
-      <path d="M70 128 Q 120 70 176 20" fill="none" stroke="#c6f432" strokeOpacity="0.55" strokeWidth="2" strokeDasharray="5 5" />
-      <circle cx="182" cy="18" r="8" fill="#c6f432" />
+      <path d="M70 128 Q 120 70 172 24" fill="none" stroke="#0d1b2a" strokeOpacity="0.55" strokeWidth="2.5" strokeDasharray="5 6" strokeLinecap="round" />
+      <circle cx="182" cy="18" r="10" fill="#ffc23d" stroke="#0d1b2a" strokeWidth="3" />
     </svg>
   );
 }
@@ -199,14 +199,14 @@ function NextStep({ d, res, onNote, onPractice }: { d: { notes: Note[]; sets: Pr
           <span className="hs-eyebrow">Tu siguiente paso · {i + 1} de {STEPS.length}</span>
           <h2>{step.t}</h2>
           <p>{step.d}</p>
-          {href ? <Link className="btn lime" href={href}>{step.cta} <Icon name="arrow" /></Link> : <button className="btn lime" type="button" onClick={action}>{step.cta} <Icon name="arrow" /></button>}
+          {href ? <Link className="btn onbrand lg" href={href}>{step.cta} <Icon name="arrow" /></Link> : <button className="btn onbrand lg" type="button" onClick={action}>{step.cta} <Icon name="arrow" /></button>}
         </div>
       ) : (
         <div className="ns-body">
           <span className="hs-eyebrow">Vas al día</span>
           <h2>Repite el ciclo cada semana</h2>
           <p>Notas de cada clase → ejercicios de esa clase → un simulacro cada dos semanas.</p>
-          <button className="btn lime" type="button" onClick={onNote}>Nueva nota de clase <Icon name="arrow" /></button>
+          <button className="btn onbrand lg" type="button" onClick={onNote}>Nueva nota de clase <Icon name="arrow" /></button>
         </div>
       )}
     </section>
