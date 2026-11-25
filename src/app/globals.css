@@ -122,6 +122,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .progress i.done { background: var(--ok); }
 .progress i.cur { background: var(--brand-ink); }
 .step-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.sh-exits { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.homelink { display: inline-flex; align-items: center; gap: 6px; }
 
 /* MCQ */
 .mcq { max-width: 760px; width: 100%; margin: 0 auto; display: grid; gap: 16px; }

@@ -6,6 +6,7 @@
  * Kwanta builds exam-style exercises.
  */
 import Link from "next/link";
+import HomeLink from "./HomeLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { detectConcepts, TOPICS, topicById } from "@/lib/generators";
@@ -157,7 +158,7 @@ function NoteEditor({ id }: { id: string }) {
   return (
     <div className="wrap diag">
       <div className="step-head notehead">
-        <Link href="/app/notas" className="btn ghost sm">← Notas</Link>
+        <span className="sh-exits"><HomeLink /><Link href="/app/notas" className="btn ghost sm">← Notas</Link></span>
         <span className="nh-save"><SaveStatus /></span>
         <button className="btn sm" type="button" aria-expanded={drawer} onClick={() => setDrawer(true)}>
           {!note.title ? "Ponle título y tema" : note.concepts.length ? `Crear ejercicios (${note.concepts.length} temas)` : "Tema y ejercicios"}
