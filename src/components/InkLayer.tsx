@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { cleanPath, effectivePressure, kindOf, NIB_START, nibFactor, rawPath, type Pen } from "@/lib/inkGeom";
 import { store } from "@/lib/storage";
-import { Floating } from "./Camera";
+import { Floating, INK_CANCEL } from "./Camera";
 
 export type { Pen } from "@/lib/inkGeom";
 export type Tool = Pen | "hl" | "erase" | "lasso";
@@ -414,7 +414,30 @@ export default function InkLayer({
     return () => clearInterval(t);
   }, []);
 
-  // Fingers scroll and zoom natively; the Pencil and a palm during a gesture must not.
+  // A second finger landed while one finger was drawing: that was a two-finger pan, not ink.
+  useEffect(() => {
+    const cancel = () => {
+      if (frame.current) { cancelAnimationFrame(frame.current); frame.current = 0; }
+      if (cur.current) {
+        const st = cur.current;
+        cur.current = null;
+        wipe(liveCanvasFor(st));
+        wipe(baseCanvasFor(st));
+        liveBox.current = null;
+        baked.current = 0;
+      }
+      if (lasso.current) { lasso.current = null; wipe(live.current); }
+      if (erasing.current) {
+        const changed = erasing.current.changed;
+        erasing.current = null;
+        if (changed) { strokes.current = undoS.current.pop() ?? strokes.current; redraw(); } else undoS.current.pop();
+      }
+    };
+    window.addEventListener(INK_CANCEL, cancel);
+    return () => window.removeEventListener(INK_CANCEL, cancel);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The Pencil and a palm during a gesture must not scroll (fingers move the sheet: Camera.tsx).
   useEffect(() => {
     const el = box.current;
     if (!el) return;

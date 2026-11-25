@@ -15,12 +15,13 @@ import { createPortal } from "react-dom";
 
 export const CAMERA_EVENT = "kw-camera"; // detail: zoom
 export const CAMERA_CMD = "kw-camera-cmd"; // detail: "in" | "out" | "reset"
+/** Two fingers landed while one was drawing ("Dedo: escribe"): the ink drops that stroke. */
+export const INK_CANCEL = "kw-ink-cancel";
 export type CameraCmd = "in" | "out" | "reset";
 
 const ZMIN = 1, ZMAX = 4;
 const SLOP = 8; // px a finger may wander before it counts as a pan (taps stay taps)
 const PALM_MS = 500; // touches this soon after the Pencil lifts are the resting hand
-const PALM_SIZE = 44; // contact larger than this (px) is a palm, where Safari reports it
 
 export const cameraCmd = (op: CameraCmd) => window.dispatchEvent(new CustomEvent<CameraCmd>(CAMERA_CMD, { detail: op }));
 
@@ -41,6 +42,8 @@ export function useCamera(active: boolean) {
     let penUpAt = -1e9;
     let panOrigin: { x: number; y: number; t: number } | null = null;
     const touches = new Map<number, { x: number; y: number }>();
+    // fingers the ink took (finger drawing): a second finger turns them into a two-finger pan
+    const inkTouches = new Map<number, { x: number; y: number }>();
     let pan: { x: number; y: number; moved: boolean } | null = null;
     let pinch: { d: number; mx: number; my: number; x: number; y: number; z: number } | null = null;
     let samples: { x: number; y: number; t: number }[] = [];
@@ -90,15 +93,26 @@ export function useCamera(active: boolean) {
       if (e.pointerType !== "touch" || penDown) return;
       // palm: lands right after the Pencil lifts between words, or is a big contact
       if (e.timeStamp - penUpAt < PALM_MS) return;
-      if (e.width > PALM_SIZE || e.height > PALM_SIZE) return;
-      if (e.defaultPrevented) return; // the ink took it (finger drawing, dragging a selection)
       if (!main.contains(e.target as Node)) return; // floating UI (pen bar, panels)
+      if (e.defaultPrevented && touches.size + inkTouches.size === 0) {
+        // the ink took it (finger drawing, dragging a selection); remember it in case a second finger comes
+        inkTouches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        return;
+      }
       stopGlide();
+      if (inkTouches.size) {
+        // two fingers always move the sheet, even when one finger writes
+        window.dispatchEvent(new Event(INK_CANCEL));
+        for (const [id, t] of inkTouches) touches.set(id, t);
+        inkTouches.clear();
+      }
       touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (touches.size === 1) { panOrigin = { x, y, t: e.timeStamp }; pan = { x: e.clientX, y: e.clientY, moved: false }; samples = [{ x: e.clientX, y: e.clientY, t: e.timeStamp }]; }
       else if (touches.size === 2) startPinch();
     };
     const onMove = (e: PointerEvent) => {
+      const it = inkTouches.get(e.pointerId);
+      if (it) { it.x = e.clientX; it.y = e.clientY; return; }
       const t = touches.get(e.pointerId);
       if (!t) return;
       t.x = e.clientX; t.y = e.clientY;
@@ -126,6 +140,7 @@ export function useCamera(active: boolean) {
     };
     const onUp = (e: PointerEvent) => {
       if (e.pointerType === "pen") { penDown = false; penUpAt = e.timeStamp; return; }
+      inkTouches.delete(e.pointerId);
       if (!touches.has(e.pointerId)) return;
       touches.delete(e.pointerId);
       if (pinch && touches.size < 2) {
