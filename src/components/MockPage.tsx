@@ -17,6 +17,7 @@ import { gradeFromShare } from "@/lib/scoring";
 import { useDevice } from "./Device";
 import SheetStep from "./SheetStep";
 import { Floating } from "./Camera";
+import HomeLink from "./HomeLink";
 
 export default function MockPage() {
   const id = useSearchParams().get("id");
@@ -192,7 +193,10 @@ function Runner({ id }: { id: string }) {
       <div className="wrap diag">
         <div className="step-head">
           <span className="eyebrow">Corrige tu mock · pregunta {m.idx + 1} de {sheets.length}</span>
-          <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda; sigues después donde lo dejaste">Salir</button>
+          <span className="sh-exits">
+            <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda; sigues después donde lo dejaste">Salir</button>
+            <HomeLink />
+          </span>
         </div>
         <SheetStep
           key={sh.id + "r"}
@@ -214,7 +218,8 @@ function Runner({ id }: { id: string }) {
     <div className="wrap diag">
       <div className="step-head">
         <span className="eyebrow">Mock Prueba 2 · {m.level} · pregunta {m.idx + 1} de {sheets.length}</span>
-        <span style={{ display: "flex", gap: 8 }}>
+        <span className="sh-exits">
+          <HomeLink />
           <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda y el reloj se detiene hasta que vuelvas">Salir</button>
           <button className="btn sm" type="button" onClick={() => setConfirm(true)}>Entregar</button>
         </span>

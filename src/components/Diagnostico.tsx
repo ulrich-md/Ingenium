@@ -5,6 +5,7 @@
  * Progress lives in this browser only (no account in the MVP).
  */
 import Link from "next/link";
+import HomeLink from "./HomeLink";
 import { useEffect, useState } from "react";
 import { LETTERS, MCQS, SHEETS, SHEET_MAX } from "@/lib/content";
 import { share, UNIT_NAME, UNITS, type Unit } from "@/lib/scoring";
@@ -190,7 +191,10 @@ export default function Diagnostico() {
       <div className="diag wrap">
         <div className="step-head">
           <span className="eyebrow">Hoja {s.sheet + 1} de {SHEETS.length} · {sh.topic}</span>
-          <button className="btn ghost sm" type="button" onClick={() => up({ stage: "sheets" })}>Volver</button>
+          <span className="sh-exits">
+            <button className="btn ghost sm" type="button" onClick={() => up({ stage: "sheets" })}>Volver</button>
+            <HomeLink />
+          </span>
         </div>
         <SheetStep
           key={sh.id + mode}

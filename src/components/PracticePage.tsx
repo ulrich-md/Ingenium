@@ -1,6 +1,7 @@
 "use client";
 /** Practice: exercise sets built from class notes or from a chosen topic. */
 import Link from "next/link";
+import HomeLink from "./HomeLink";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { generateSet, TOPICS, topicById } from "@/lib/generators";
@@ -121,6 +122,7 @@ function Runner({ id }: { id: string }) {
           {set.idx > 0 && <button className="btn ghost sm" type="button" onClick={() => up({ idx: set.idx - 1 })}>Anterior</button>}
           {set.noteId && <Link className="btn ghost sm" href={`/app/notas?id=${set.noteId}`}>Ver mi nota</Link>}
           <Link className="btn ghost sm" href="/app/practica">Salir</Link>
+          <HomeLink />
         </div>
       </div>
       <div className="progress" aria-hidden="true">
