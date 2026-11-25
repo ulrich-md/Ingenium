@@ -6,6 +6,7 @@
  *   other floating UI live outside it, so they never grow or drift;
  * - one finger pans (with inertia), two fingers pinch-zoom around their midpoint, 100–400 %;
  * - the Pencil writes; while it is down, fingers (a resting palm) are ignored;
+ * - a quick tap with two fingers undoes, with three fingers redoes (INK_TAP);
  * - a trackpad or mouse: wheel pans, pinch (ctrl + wheel) zooms.
  * Ink coordinates need nothing special: InkLayer maps through getBoundingClientRect, which
  * already includes the transform, and its live canvases are portaled out of the content.
@@ -17,11 +18,14 @@ export const CAMERA_EVENT = "kw-camera"; // detail: zoom
 export const CAMERA_CMD = "kw-camera-cmd"; // detail: "in" | "out" | "reset"
 /** Two fingers landed while one was drawing ("Dedo: escribe"): the ink drops that stroke. */
 export const INK_CANCEL = "kw-ink-cancel";
+/** A quick two- or three-finger tap on the sheet (detail: 2 = undo, 3 = redo). */
+export const INK_TAP = "kw-ink-tap";
 export type CameraCmd = "in" | "out" | "reset";
 
 const ZMIN = 1, ZMAX = 4;
 const SLOP = 8; // px a finger may wander before it counts as a pan (taps stay taps)
 const PALM_MS = 500; // touches this soon after the Pencil lifts are the resting hand
+const TAP_MS = 300; // a multi-finger tap: every finger down and up within this time
 
 export const cameraCmd = (op: CameraCmd) => window.dispatchEvent(new CustomEvent<CameraCmd>(CAMERA_CMD, { detail: op }));
 
@@ -48,6 +52,8 @@ export function useCamera(active: boolean) {
     let pinch: { d: number; mx: number; my: number; x: number; y: number; z: number } | null = null;
     let samples: { x: number; y: number; t: number }[] = [];
     let swallowClick = 0;
+    // the fingers of the current gesture, to tell a two- or three-finger tap from a pinch
+    let tap: { t: number; n: number; moved: boolean; x: number; y: number; z: number; starts: Map<number, { x: number; y: number }> } | null = null;
 
     const clamp = () => {
       const vw = main.clientWidth, vh = main.clientHeight;
@@ -85,6 +91,7 @@ export function useCamera(active: boolean) {
     const onDown = (e: PointerEvent) => {
       if (e.pointerType === "pen") {
         penDown = true;
+        tap = null;
         // the palm often lands just before the Pencil: drop the pan it started and put the sheet back
         if (pan && panOrigin && e.timeStamp - panOrigin.t < 600) { x = panOrigin.x; y = panOrigin.y; apply(); }
         touches.clear(); pan = null; pinch = null; panOrigin = null; stopGlide();
@@ -100,6 +107,13 @@ export function useCamera(active: boolean) {
         return;
       }
       stopGlide();
+      if (!tap) {
+        // the first finger may be one the ink took (finger drawing)
+        tap = { t: e.timeStamp, n: 0, moved: false, x, y, z, starts: new Map() };
+        for (const [id, t] of inkTouches) tap.starts.set(id, { ...t });
+      }
+      tap.starts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      tap.n = Math.max(tap.n, tap.starts.size);
       if (inkTouches.size) {
         // two fingers always move the sheet, even when one finger writes
         window.dispatchEvent(new Event(INK_CANCEL));
@@ -111,6 +125,8 @@ export function useCamera(active: boolean) {
       else if (touches.size === 2) startPinch();
     };
     const onMove = (e: PointerEvent) => {
+      const s0 = tap?.starts.get(e.pointerId);
+      if (tap && s0 && Math.hypot(e.clientX - s0.x, e.clientY - s0.y) > SLOP) tap.moved = true;
       const it = inkTouches.get(e.pointerId);
       if (it) { it.x = e.clientX; it.y = e.clientY; return; }
       const t = touches.get(e.pointerId);
@@ -143,6 +159,18 @@ export function useCamera(active: boolean) {
       inkTouches.delete(e.pointerId);
       if (!touches.has(e.pointerId)) return;
       touches.delete(e.pointerId);
+      if (tap && touches.size === 0 && inkTouches.size === 0) {
+        const g = tap;
+        tap = null;
+        if (g.n >= 2 && !g.moved && e.timeStamp - g.t < TAP_MS && e.type === "pointerup") {
+          // a tap, not a pinch: put the sheet back exactly where it was and undo / redo
+          x = g.x; y = g.y; z = g.z; pinch = null; pan = null; samples = [];
+          apply();
+          swallowClick = e.timeStamp;
+          window.dispatchEvent(new CustomEvent<number>(INK_TAP, { detail: Math.min(3, g.n) }));
+          return;
+        }
+      }
       if (pinch && touches.size < 2) {
         pinch = null;
         // the finger left behind continues as a pan, without a jump

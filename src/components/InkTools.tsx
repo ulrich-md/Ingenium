@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { store } from "@/lib/storage";
 import type { InkHandle, Pen, Tool } from "./InkLayer";
-import { cameraCmd, Floating, useCameraZoom } from "./Camera";
+import { cameraCmd, Floating, useCameraZoom, INK_TAP } from "./Camera";
 import { ICONS } from "./toolIcons";
 
 export const PEN_COLORS = [
@@ -130,6 +130,13 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const [fix, setFix] = useState<HTMLDivElement | null>(null);
   const zoom = useRef(1);
 
+  // two-finger tap undoes, three-finger tap redoes (Camera.tsx tells taps from pinches)
+  useEffect(() => {
+    const on = (e: Event) => ((e as CustomEvent<number>).detail === 3 ? ink.current?.redo() : ink.current?.undo());
+    window.addEventListener(INK_TAP, on);
+    return () => window.removeEventListener(INK_TAP, on);
+  }, [ink]);
+
   /* Pinch-zoom (the sheet uses the browser's native zoom) magnifies everything that is
      position: fixed. Like the notes apps, the bar must keep its size and stay on screen,
      so this layer follows the visual viewport and undoes its scale. */
@@ -246,6 +253,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
               <button type="button" className="btn sm ghost" aria-label="Acercar" onClick={() => cameraCmd("in")} disabled={camZoom >= 3.99}>+</button>
             </div>
           </div>
+          <p className="ip-tips">Toca con dos dedos para deshacer y con tres para rehacer. Para una línea recta, deja el lápiz quieto al final del trazo.</p>
           <div className="ip-row ip-actions">
             <button type="button" className="btn sm ghost" aria-pressed={t.finger} onClick={() => t.setFinger(!t.finger)}>{t.finger ? "Dedo: escribe" : "Dedo: desplaza"}</button>
             <button type="button" className="btn sm ghost" onClick={() => { (onClear ? onClear() : ink.current?.clear()); setPanel(false); }}>Borrar hoja</button>
@@ -261,8 +269,8 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
           <Icon name="grip" size={18} />
         </button>
         <div className="ib-undo">
-          <button type="button" onClick={() => ink.current?.undo()} aria-label="Deshacer" title="Deshacer"><Icon name="undo" size={24} /></button>
-          <button type="button" onClick={() => ink.current?.redo()} aria-label="Rehacer" title="Rehacer"><Icon name="redo" size={24} /></button>
+          <button type="button" onClick={() => ink.current?.undo()} aria-label="Deshacer" title="Deshacer (o toca con dos dedos)"><Icon name="undo" size={24} /></button>
+          <button type="button" onClick={() => ink.current?.redo()} aria-label="Rehacer" title="Rehacer (o toca con tres dedos)"><Icon name="redo" size={24} /></button>
         </div>
         <i className="ib-sep" aria-hidden="true" />
         {t.mini ? (

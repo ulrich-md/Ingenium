@@ -9,11 +9,11 @@ const loopy = () => {
   return { k: "fountain" as const, s: 3, p };
 };
 
-test("fountain pen: harder is thicker, faster is thinner", () => {
-  assert.ok(effectivePressure("fountain", 0.9, 0.4) > effectivePressure("fountain", 0.3, 0.4));
-  assert.ok(effectivePressure("fountain", 0.5, 0.2) > effectivePressure("fountain", 0.5, 1.6));
-  // a ballpoint barely changes
-  assert.ok(Math.abs(effectivePressure("ball", 0.9, 0.4) - effectivePressure("ball", 0.2, 0.4)) < 0.2);
+test("ink pens keep a constant width; the pencil follows pressure", () => {
+  for (const k of ["fountain", "ball", "marker"] as const) {
+    assert.equal(effectivePressure(k, 0.9, 0.2), effectivePressure(k, 0.1, 1.6));
+  }
+  assert.ok(effectivePressure("pencil", 0.9, 0.4) > effectivePressure("pencil", 0.3, 0.4));
 });
 
 test("clean path has no self-crossings left (the union of the union is itself)", () => {
@@ -34,13 +34,29 @@ test("a tap is a dot, and the fast path always returns something", () => {
   assert.ok(rawPath(loopy()).length > 100);
 });
 
-test("pens feel different: the fountain pen follows the stroke direction, the ballpoint does not", async () => {
-  const { nibFactor } = await import("./inkGeom.ts");
-  const across = nibFactor(Math.PI / 4); // down-right, across a 45° nib
-  const along = nibFactor(-Math.PI / 4); // up-right, along the nib
-  assert.ok(effectivePressure("fountain", 0.5, 0.4, across) > effectivePressure("fountain", 0.5, 0.4, along) * 1.5);
-  assert.equal(effectivePressure("ball", 0.5, 0.4, across), effectivePressure("ball", 0.5, 0.4, along));
-  // the pencil is the most pressure-sensitive
-  const range = (k: "pencil" | "ball") => effectivePressure(k, 0.95, 0.4) - effectivePressure(k, 0.15, 0.4);
-  assert.ok(range("pencil") > 0.6 && range("ball") < 0.1);
+test("fountain and ball outlines have the same width all along, whatever the pressure", () => {
+  for (const k of ["fountain", "ball"] as const) {
+    const p: number[] = [];
+    // a straight horizontal stroke with pressure going from light to hard
+    for (let i = 0; i < 120; i++) p.push(100 + i * 2, 100, i < 60 ? 0.1 : 0.95);
+    const ring = outline({ k, s: 3, p });
+    // half-width at points well inside the stroke (away from the round caps)
+    const widthAt = (x: number) => {
+      const ys = ring.filter(([px]) => Math.abs(px - x) < 2).map(([, y]) => y);
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    assert.ok(Math.abs(widthAt(140) - widthAt(300)) < 0.15, `${k}: ${widthAt(140)} vs ${widthAt(300)}`);
+  }
+});
+
+test("a live piece from the middle of a pencil stroke has no taper at its ends", () => {
+  const p: number[] = [];
+  for (let i = 0; i < 60; i++) p.push(100 + i * 2, 100, 0.6);
+  const width = (ring: number[][], x: number) => {
+    const ys = ring.filter(([px]) => Math.abs(px - x) < 1.5).map(([, y]) => y);
+    return ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
+  };
+  const mid = outline({ k: "pencil", s: 3, p }, [], false, false);
+  const whole = outline({ k: "pencil", s: 3, p });
+  assert.ok(width(mid, 101) > width(whole, 101) * 2);
 });

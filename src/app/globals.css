@@ -332,6 +332,7 @@ body.has-inkbar[data-inkdock="top"] main { padding-top: 84px; }
 .inkpanel.dock-right { right: 92px; top: 50%; transform: translateY(-50%); }
 .ip-row { display: grid; gap: 8px; }
 .ip-lab { font: 600 0.72rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ip-tips { margin: 0; font-size: 0.82rem; line-height: 1.4; color: var(--muted); max-width: 34ch; }
 .ip-sizes { display: flex; gap: 8px; }
 .ip-sizes button { flex: 1; height: 48px; border-radius: 12px; border: 1.5px solid var(--line2); background: #fff; cursor: pointer; display: grid; place-items: center; }
 .ip-sizes button[aria-pressed="true"] { border-color: var(--vec); background: var(--vec-soft); }

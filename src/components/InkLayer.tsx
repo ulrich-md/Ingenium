@@ -3,7 +3,9 @@
  * Apple Pencil ink over a sheet (iPad only), built the way notes apps do it.
  *
  * - Input: coalesced Pencil samples (240 Hz on iPadOS 18.2+), pressure shaped per pen
- *   and mixed with speed (faster = thinner), see lib/inkGeom.
+ *   (ink pens keep a constant width, the pencil follows pressure), see lib/inkGeom.
+ * - Hold the Pencil still at the end of a roughly straight stroke and it becomes a straight
+ *   line; keep moving to aim it (vectors, axes, force diagrams).
  * - While writing: the whole stroke outline (smoothed, variable width) is redrawn on a
  *   screen-sized canvas whose resolution follows pinch-zoom, plus the Pencil's predicted
  *   points so the ink stays on the tip. Only the stroke's area is cleared.
@@ -16,7 +18,7 @@
  * Strokes are stored in units of 1/1000 of the sheet width.
  */
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { cleanPath, effectivePressure, kindOf, NIB_START, nibFactor, rawPath, type Pen } from "@/lib/inkGeom";
+import { cleanPath, effectivePressure, kindOf, rawPath, type Pen } from "@/lib/inkGeom";
 import { store } from "@/lib/storage";
 import { Floating, INK_CANCEL } from "./Camera";
 
@@ -85,6 +87,30 @@ function cleanInWorker(st: InkStroke, done: (d: string) => void): boolean {
 /** Live strokes: the settled part is baked once in chunks, each frame redraws only the tip. */
 const CHUNK = 40, OVER = 6;
 
+/** Hold to straighten: still for this long (moving less than HOLD_PX on screen). */
+const HOLD_MS = 550, HOLD_PX = 4;
+/** Is this stroke meant as a line? Long enough, close to its chord, no going back and forth. */
+export function looksStraight(p: number[]): boolean {
+  const n = p.length / 3;
+  if (n < 4) return false;
+  const x0 = p[0], y0 = p[1], x1 = p[p.length - 3], y1 = p[p.length - 2];
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  if (len < 30) return false;
+  let walked = 0, dev = 0;
+  for (let i = 3; i < p.length; i += 3) {
+    walked += Math.hypot(p[i] - p[i - 3], p[i + 1] - p[i - 2]);
+    dev = Math.max(dev, Math.abs((x1 - x0) * (y0 - p[i + 1]) - (x0 - p[i]) * (y1 - y0)) / len);
+  }
+  return walked <= len * 1.25 && dev <= Math.max(4, len * 0.12);
+}
+/** Evenly spaced points of a straight line (perfect-freehand needs more than the two ends). */
+function linePoints(x0: number, y0: number, x1: number, y1: number, pr: number): number[] {
+  const n = Math.max(2, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3));
+  const out: number[] = [];
+  for (let i = 0; i <= n; i++) out.push(r1(x0 + ((x1 - x0) * i) / n), r1(y0 + ((y1 - y0) * i) / n), pr);
+  return out;
+}
+
 function bounds(list: InkStroke[]): Box {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const st of list) {
@@ -140,7 +166,11 @@ export default function InkLayer({
   const undoS = useRef<InkStroke[][]>([]);
   const redoS = useRef<InkStroke[][]>([]);
   const cur = useRef<InkStroke | null>(null);
-  const last = useRef<{ x: number; y: number; t: number; v: number; nib: number } | null>(null);
+  const last = useRef<{ x: number; y: number; t: number; v: number } | null>(null);
+  // hold to straighten: where the Pencil last stopped, and the line once it snapped
+  const hold = useRef<{ x: number; y: number; t: number } | null>(null);
+  const line = useRef<{ x0: number; y0: number; pr: number } | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveBox = useRef<Box | null>(null);
   const erasing = useRef<{ changed: boolean } | null>(null);
   const lasso = useRef<number[] | null>(null);
@@ -290,7 +320,7 @@ export default function InkLayer({
       const bctx = ctxOf(baseCanvasFor(st));
       if (bctx) {
         toUnits(bctx);
-        fillPath(bctx, rawPath({ ...st, p: st.p.slice(from * 3, to * 3) }, [], false), st.c);
+        fillPath(bctx, rawPath({ ...st, p: st.p.slice(from * 3, to * 3) }, [], false, from === 0), st.c);
       }
       baked.current = to;
     }
@@ -302,7 +332,7 @@ export default function InkLayer({
       ctx.clearRect(x0, y0, x1 - x0, y1 - y0);
     }
     toUnits(ctx);
-    fillPath(ctx, rawPath(tip, predicted, false), st.c);
+    fillPath(ctx, rawPath(tip, predicted, false, from === 0), st.c);
     const all = predicted.length ? { ...tip, p: [...tip.p, ...predicted.flat()] } : tip;
     const [bx0, by0, bx1, by1] = bounds([all]);
     const pad = st.s * 2 + 4;
@@ -418,6 +448,7 @@ export default function InkLayer({
   useEffect(() => {
     const cancel = () => {
       if (frame.current) { cancelAnimationFrame(frame.current); frame.current = 0; }
+      stopHold();
       if (cur.current) {
         const st = cur.current;
         cur.current = null;
@@ -554,23 +585,42 @@ export default function InkLayer({
     return x >= x0 - 6 && x <= x1 + 6 && y >= y0 - 6 && y <= y1 + 6;
   };
 
-  /** Pressure for one sample: device pressure shaped per pen, mixed with speed. */
+  /** Pressure for one sample: device pressure shaped per pen (only the pencil uses it). */
   const samplePressure = (st: InkStroke, ev: PointerEvent, x: number, y: number) => {
     const raw = ev.pointerType === "pen" && ev.pressure > 0 ? ev.pressure : 0.5;
     const l = last.current;
     let v = l?.v ?? 0.5;
-    let nib = l?.nib ?? NIB_START;
-    if (l) {
-      const dt = Math.max(1, ev.timeStamp - l.t);
-      const dist = Math.hypot(x - l.x, y - l.y);
-      v = l.v * 0.75 + (dist / dt) * 0.25;
-      // the fountain pen's width follows the direction of travel (smoothed, so it never jumps)
-      if (dist > 0.4) nib = nib * 0.65 + nibFactor(Math.atan2(y - l.y, x - l.x)) * 0.35;
-    }
-    last.current = { x, y, t: ev.timeStamp, v, nib };
+    if (l) v = l.v * 0.75 + (Math.hypot(x - l.x, y - l.y) / Math.max(1, ev.timeStamp - l.t)) * 0.25;
+    last.current = { x, y, t: ev.timeStamp, v };
     const dg = debug.current;
     if (dg && ev.pointerType === "pen") { dg.pmin = Math.min(dg.pmin, raw); dg.pmax = Math.max(dg.pmax, raw); }
-    return effectivePressure(st.hl ? "hl" : st.k ?? "fountain", raw, v, nib);
+    return effectivePressure(st.hl ? "hl" : st.k ?? "fountain", raw, v);
+  };
+
+  /* ---------- hold to straighten ---------- */
+  const stopHold = () => {
+    if (holdTimer.current) { clearInterval(holdTimer.current); holdTimer.current = null; }
+    hold.current = null;
+    line.current = null;
+  };
+  /** Redraw the live stroke from scratch (its points were replaced, not appended). */
+  const restartLive = (st: InkStroke) => {
+    wipe(baseCanvasFor(st));
+    wipe(liveCanvasFor(st));
+    liveBox.current = null;
+    baked.current = 0;
+    drawLive(st, []);
+  };
+  const checkHold = () => {
+    const st = cur.current, h = hold.current;
+    if (!st || !h || line.current || performance.now() - h.t < HOLD_MS) return;
+    if (!looksStraight(st.p)) { hold.current = { ...h, t: Infinity }; return; } // not a line: stop asking until it moves
+    let pr = 0;
+    for (let i = 2; i < st.p.length; i += 3) pr += st.p[i];
+    line.current = { x0: st.p[0], y0: st.p[1], pr: r2(pr / (st.p.length / 3)) };
+    st.p = linePoints(st.p[0], st.p[1], h.x, h.y, line.current.pr);
+    if (frame.current) { cancelAnimationFrame(frame.current); frame.current = 0; }
+    restartLive(st);
   };
 
   const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -602,6 +652,9 @@ export default function InkLayer({
     baked.current = 0;
     st.p.push(r1(x), r1(y), r2(samplePressure(st, e.nativeEvent, x, y)));
     cur.current = st;
+    stopHold();
+    hold.current = { x, y, t: performance.now() };
+    holdTimer.current = setInterval(checkHold, 80);
     const alpha = st.hl ? String(HL_ALPHA) : kindOf(st) === "pencil" ? String(PENCIL_ALPHA) : "1";
     const g = st.hl ? hlGroup.current : inkGroup.current;
     if (g) g.style.opacity = alpha;
@@ -631,11 +684,24 @@ export default function InkLayer({
     }
     const t0 = performance.now();
     const st = cur.current!;
+    const ln = line.current;
+    if (ln) {
+      // a snapped line: the Pencil aims its end
+      const [x, y] = pos(list[list.length - 1]);
+      st.p = linePoints(ln.x0, ln.y0, x, y, ln.pr);
+      if (!frame.current) frame.current = requestAnimationFrame(() => { frame.current = 0; if (cur.current) restartLive(cur.current); });
+      return;
+    }
     for (const ev of list) {
       const [x, y] = pos(ev);
       const n = st.p.length;
       if (n >= 3 && Math.hypot(x - st.p[n - 3], y - st.p[n - 2]) < 0.35) continue; // drop jitter
       st.p.push(r1(x), r1(y), r2(samplePressure(st, ev, x, y)));
+    }
+    // still moving? (on screen pixels, so it feels the same at any zoom)
+    const h = hold.current, n3 = st.p.length;
+    if (h && Math.hypot(st.p[n3 - 3] - h.x, st.p[n3 - 2] - h.y) * view.current.k > HOLD_PX) {
+      hold.current = { x: st.p[n3 - 3], y: st.p[n3 - 2], t: performance.now() };
     }
     const pe = typeof ne.getPredictedEvents === "function" ? ne.getPredictedEvents() : [];
     const lastP = st.p[st.p.length - 1];
@@ -686,6 +752,7 @@ export default function InkLayer({
       return;
     }
     const st = cur.current;
+    stopHold();
     if (!st) return;
     cur.current = null;
     snapshot();

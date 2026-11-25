@@ -4,13 +4,15 @@
  * On submit (or when time runs out): the computer marks typed answers itself;
  * on the iPad the student marks each sheet with the markscheme. Then a result
  * with an approximate IB grade.
+ * The student can leave at any time: the mock is saved and its clock stops until they
+ * come back (it is practice at home, not the real exam).
  */
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { markTyped } from "@/lib/check";
 import { SHEET_MAX } from "@/lib/content";
-import { getMock, listMocks, mockSheets, newMock, saveMock, MOCK_SIZE, type Mock } from "@/lib/mocks";
+import { getMock, listMocks, mockLeft, mockSheets, newMock, pauseMock, resumeMock, saveMock, MOCK_SIZE, type Mock } from "@/lib/mocks";
 import { gradeFromShare } from "@/lib/scoring";
 import { useDevice } from "./Device";
 import SheetStep from "./SheetStep";
@@ -38,7 +40,7 @@ function Home() {
   return (
     <div className="wrap diag">
       <h1 style={{ fontSize: "clamp(1.8rem,5vw,2.4rem)" }}>Mocks</h1>
-      <p className="muted" style={{ maxWidth: "64ch" }}>Practica en condiciones de examen: tiempo real, sin pistas y sin ver correcciones hasta entregar. Al final ves tu nota estimada.</p>
+      <p className="muted" style={{ maxWidth: "64ch" }}>Practica en condiciones de examen: tiempo real, sin pistas y sin ver correcciones hasta entregar. Al final ves tu nota estimada. Puedes salir cuando quieras: se guarda y el reloj se detiene hasta que vuelvas.</p>
       {mode === "telefono" ? (
         <div className="callout"><b>Los mocks se hacen en iPad o computadora</b><span>Son hojas de examen completas, como la Prueba 2.</span></div>
       ) : (
@@ -66,7 +68,7 @@ function Home() {
             return (
               <Link key={m.id} href={`/app/mock?id=${m.id}`} className="card row-card">
                 <b>Prueba 2 · {m.level} · {new Date(m.started).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}</b>
-                <span className="muted">{m.phase === "done" ? `${sc.got}/${sc.max} marcas · nota estimada ${sc.grade}` : m.phase === "review" ? "Falta corregir" : "En curso"}</span>
+                <span className="muted">{m.phase === "done" ? `${sc.got}/${sc.max} marcas · nota estimada ${sc.grade}` : m.phase === "review" ? "Falta corregir · sigue donde lo dejaste" : `En pausa · te quedan ${mmss(mockLeft(m))}`}</span>
               </Link>
             );
           })}
@@ -87,7 +89,28 @@ function Runner({ id }: { id: string }) {
   const [m, setM] = useState<Mock | null | undefined>(undefined);
   const [now, setNow] = useState(Date.now());
   const [confirm, setConfirm] = useState(false);
-  useEffect(() => setM(getMock(id)), [id]);
+  // coming back: the time away does not count; leaving (any way): the clock stops
+  useEffect(() => {
+    const found = getMock(id);
+    if (!found) { setM(null); return; }
+    const r = resumeMock(found);
+    if (r !== found) saveMock(r);
+    setM(r);
+  }, [id]);
+  const live = useRef<Mock | null | undefined>(undefined);
+  live.current = m;
+  useEffect(() => {
+    const pause = () => { const x = live.current; if (x && x.phase === "running") saveMock(pauseMock(x)); };
+    // back from the browser's page cache: what is saved has the pause, the screen does not
+    const back = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      const x = getMock(id);
+      if (x) { const r = resumeMock(x); saveMock(r); setM(r); setNow(Date.now()); }
+    };
+    window.addEventListener("pagehide", pause);
+    window.addEventListener("pageshow", back);
+    return () => { window.removeEventListener("pagehide", pause); window.removeEventListener("pageshow", back); pause(); };
+  }, [id]);
   const sheets = useMemo(() => (m ? mockSheets(m) : []), [m?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const up = (f: (x: Mock) => Mock) => setM((x) => { const n = f(x as Mock); saveMock(n); return n; });
@@ -122,7 +145,7 @@ function Runner({ id }: { id: string }) {
   /* ---------- result ---------- */
   if (m.phase === "done") {
     const sc = mockScore(m);
-    const used = Math.min(m.minutes * 60_000, (m.submitted ?? m.endsAt) - m.started);
+    const used = Math.min(m.minutes * 60_000, (m.submitted ?? m.endsAt) - m.started - (m.away ?? 0));
     const byTopic = new Map<string, { got: number; max: number }>();
     sheets.forEach((s) => {
       const k = s.topic.split(" · ")[0];
@@ -161,12 +184,16 @@ function Runner({ id }: { id: string }) {
   const sh = sheets[Math.min(m.idx, sheets.length - 1)];
   const last = m.idx >= sheets.length - 1;
   const left = m.endsAt - now;
+  const exit = () => router.push("/app/mock");
 
   /* ---------- review (iPad: mark with the markscheme) ---------- */
   if (m.phase === "review") {
     return (
       <div className="wrap diag">
-        <div className="step-head"><span className="eyebrow">Corrige tu mock · pregunta {m.idx + 1} de {sheets.length}</span></div>
+        <div className="step-head">
+          <span className="eyebrow">Corrige tu mock · pregunta {m.idx + 1} de {sheets.length}</span>
+          <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda; sigues después donde lo dejaste">Salir</button>
+        </div>
         <SheetStep
           key={sh.id + "r"}
           sheet={sh} mode={mode}
@@ -187,7 +214,10 @@ function Runner({ id }: { id: string }) {
     <div className="wrap diag">
       <div className="step-head">
         <span className="eyebrow">Mock Prueba 2 · {m.level} · pregunta {m.idx + 1} de {sheets.length}</span>
-        <button className="btn sm" type="button" onClick={() => setConfirm(true)}>Entregar</button>
+        <span style={{ display: "flex", gap: 8 }}>
+          <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda y el reloj se detiene hasta que vuelvas">Salir</button>
+          <button className="btn sm" type="button" onClick={() => setConfirm(true)}>Entregar</button>
+        </span>
       </div>
       <div className="progress" aria-hidden="true">{sheets.map((s, i) => <i key={s.id} className={i < m.idx ? "done" : i === m.idx ? "cur" : ""} />)}</div>
       {confirm && (
@@ -207,7 +237,7 @@ function Runner({ id }: { id: string }) {
         onTyped={(t) => up((x) => ({ ...x, typed: { ...x.typed, [sh.id]: t } }))}
         awarded={undefined} onAwarded={() => {}}
         marked={false} onMarked={() => {}}
-        exam={{ info: "Modo examen: sin pistas ni correcciones hasta entregar. Puedes ir y volver entre preguntas.", onPrev: m.idx > 0 ? () => up((x) => ({ ...x, idx: x.idx - 1 })) : undefined }}
+        exam={{ info: "Modo examen: sin pistas ni correcciones hasta entregar. Puedes ir y volver entre preguntas, y salir cuando quieras (el reloj se detiene).", onPrev: m.idx > 0 ? () => up((x) => ({ ...x, idx: x.idx - 1 })) : undefined }}
         nextLabel={last ? "Entregar mock" : "Siguiente pregunta →"}
         onNext={() => (last ? setConfirm(true) : up((x) => ({ ...x, idx: x.idx + 1 })))}
       />
