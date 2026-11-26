@@ -7,6 +7,7 @@
  */
 import Link from "next/link";
 import HomeLink from "./HomeLink";
+import { exportPdf } from "@/lib/exportPdf";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { detectConcepts, TOPICS, topicById } from "@/lib/generators";
@@ -218,6 +219,7 @@ function NoteEditor({ id }: { id: string }) {
           </button>
           {!note.concepts.length && <p className="muted" style={{ fontSize: ".82rem" }}>Marca al menos un tema para crear ejercicios.</p>}
           {mode === "telefono" && <p className="muted" style={{ fontSize: ".82rem" }}>Los ejercicios se resuelven en iPad o computadora.</p>}
+          <button className="btn sm ghost" type="button" onClick={() => { setDrawer(false); exportPdf(note.title || "Nota de clase"); }}>Descargar PDF</button>
           {confirmDel ? (
             <div className="drawer-del" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <button className="btn sm" type="button" style={{ borderColor: "var(--bad)", color: "var(--bad)" }} onClick={() => { deleteNote(note.id); router.push("/app/notas"); }}>Sí, borrar nota</button>

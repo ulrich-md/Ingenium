@@ -20,6 +20,7 @@ import { IlloChoices, IlloTimer } from "./Illos";
 import SheetStep from "./SheetStep";
 import { Floating } from "./Camera";
 import HomeLink from "./HomeLink";
+import Calculator from "./Calculator";
 
 export default function MockPage() {
   const id = useSearchParams().get("id");
@@ -98,6 +99,7 @@ function Runner({ id }: { id: string }) {
   const [m, setM] = useState<Mock | null | undefined>(undefined);
   const [now, setNow] = useState(Date.now());
   const [confirm, setConfirm] = useState(false);
+  const [calc, setCalc] = useState(false);
   // coming back: the time away does not count; leaving (any way): the clock stops
   useEffect(() => {
     const found = getMock(id);
@@ -227,6 +229,7 @@ function Runner({ id }: { id: string }) {
       <div className="step-head">
         <span className="eyebrow">Simulacro · Prueba 2 · {m.level} · pregunta {m.idx + 1} de {sheets.length}</span>
         <span className="sh-exits">
+          <button className="btn sm ghost" type="button" aria-pressed={calc} onClick={() => setCalc((v) => !v)}>Calculadora</button>
           <HomeLink />
           <button className="btn sm ghost" type="button" onClick={exit} title="Se guarda y el reloj se detiene hasta que vuelvas">Salir</button>
           <button className="btn sm" type="button" onClick={() => setConfirm(true)}>Entregar</button>
@@ -254,6 +257,7 @@ function Runner({ id }: { id: string }) {
         nextLabel={last ? "Entregar simulacro" : "Siguiente pregunta →"}
         onNext={() => (last ? setConfirm(true) : up((x) => ({ ...x, idx: x.idx + 1 })))}
       />
+      {calc && <Calculator onClose={() => setCalc(false)} />}
       <Floating><div className={"clock" + (left < 5 * 60_000 ? " warn" : "")} role="timer" aria-live="off">⏱ {mmss(left)}</div></Floating>
     </div>
   );

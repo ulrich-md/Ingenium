@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts src/lib/inkGeom.test.ts src/lib/shapes.test.ts src/lib/bank.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts src/lib/inkGeom.test.ts src/lib/shapes.test.ts src/lib/calc.test.ts src/lib/bank.test.ts",
     "test:bank": "node --experimental-strip-types --test src/lib/bank.test.ts"
   },
   "dependencies": {
