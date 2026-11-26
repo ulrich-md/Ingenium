@@ -1,12 +1,13 @@
 "use client";
 /**
  * iPad writing palette, in the style of the notes apps students already use:
- * a floating pill at the bottom with drawn pens that rise when selected, three
+ * a floating pill (drag it by its grip anywhere on screen; near an edge it docks there)
+ * with drawn pens that rise when selected, three
  * quick colors, and a panel (tap the active pen or "más") for thickness, all
  * colors, finger drawing and clearing the sheet. Each pen remembers its own
  * color and thickness.
  */
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { store } from "@/lib/storage";
 import type { InkHandle, Pen, Tool } from "./InkLayer";
 import { cameraCmd, Floating, useCameraZoom, INK_TAP } from "./Camera";
@@ -32,8 +33,12 @@ const NAMES: Record<Tool, string> = {
   fountain: "Pluma estilográfica", ball: "Bolígrafo", pencil: "Lápiz", marker: "Plumón", hl: "Resaltador", erase: "Borrador", lasso: "Lazo",
 };
 
-export type Dock = "bottom" | "top" | "left" | "right";
-interface Saved { tool: Tool; last: Inked; finger: boolean; dock: Dock; mini: boolean; set: Record<Inked, { c: string; i: number }> }
+/** an edge of the screen, or "free": wherever the student left it */
+export type Dock = "bottom" | "top" | "left" | "right" | "free";
+/** where the bar's grip is, as fractions of the screen's width and height (the bar is
+ *  placed so that the grip stays where the finger let go of it) */
+export interface At { x: number; y: number }
+interface Saved { tool: Tool; last: Inked; finger: boolean; dock: Dock; at?: At; mini: boolean; set: Record<Inked, { c: string; i: number }> }
 const DEFAULTS: Saved = {
   tool: "fountain", last: "fountain", finger: false, dock: "bottom", mini: false,
   set: {
@@ -49,7 +54,7 @@ export interface InkTools {
   colorOf: (t: Inked) => string; setColor: (c: string) => void;
   sizeIdx: number; setSizeIdx: (i: number) => void;
   finger: boolean; setFinger: (f: boolean) => void;
-  dock: Dock; setDock: (d: Dock) => void;
+  dock: Dock; at?: At; setPlace: (d: Dock, at: At) => void;
   /** collapsed bar: only undo, the pen in use and its color */
   mini: boolean; setMini: (m: boolean) => void;
   selected: number; setSelected: (n: number) => void;
@@ -89,7 +94,7 @@ export function useInkTools({ exam = false }: { exam?: boolean } = {}): InkTools
     sizeIdx: conf.i,
     setSizeIdx: (i) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], i } } })),
     finger: s.finger, setFinger: (finger) => up((p) => ({ ...p, finger })),
-    dock: s.dock, setDock: (dock) => up((p) => ({ ...p, dock })),
+    dock: s.dock, at: s.at, setPlace: (dock, at) => up((p) => ({ ...p, dock, at })),
     mini: s.mini, setMini: (mini) => up((p) => ({ ...p, mini })),
     color,
     size: SIZES[inked][conf.i] ?? SIZES[inked][1],
@@ -119,12 +124,19 @@ const TOOL_COLOR: Partial<Record<Tool, string>> = { erase: "#7b8494", lasso: "#0
 
 export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<InkHandle | null>; onClear?: () => void }) {
   const [panel, setPanel] = useState(false);
-  const [drag, setDrag] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const bar = useRef<HTMLDivElement>(null);
+  const panelEl = useRef<HTMLDivElement>(null);
+  const hintEl = useRef<HTMLDivElement>(null);
+  /** where the bar was let go (layer px), to glide from there to its new place */
+  const flip = useRef<{ x: number; y: number } | null>(null);
+  const [, setTick] = useState(0);
   const isHl = t.inked === "hl";
   const palette = t.palette;
   const quick = palette.slice(0, 3);
   const vertical = t.dock === "left" || t.dock === "right";
+  const layout = useRef<() => void>(() => {});
   const camZoom = useCameraZoom();
   // a state ref: the layer mounts a render later, inside a portal (Floating)
   const [fix, setFix] = useState<HTMLDivElement | null>(null);
@@ -183,46 +195,129 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
     if (t.tool === "erase" || t.tool === "lasso") t.setTool(t.inked);
   };
 
-  /* drag the bar by its grip; on release it sticks to the nearest edge */
+  /* ---------- placing the bar, its panel and hint ---------- */
+  /** a screen rect in the bar's layer (which undoes any browser zoom, see above) */
+  const toLayer = (r: DOMRect) => {
+    const vv = window.visualViewport, z = zoom.current;
+    const ox = vv && z !== 1 ? vv.offsetLeft : 0, oy = vv && z !== 1 ? vv.offsetTop : 0;
+    return { l: (r.left - ox) * z, t: (r.top - oy) * z, w: r.width * z, h: r.height * z };
+  };
+  const M = 12; // margin from the screen edges
+  const clampC = (c: number, size: number, total: number) =>
+    size + 2 * M >= total ? total / 2 : Math.min(total - M - size / 2, Math.max(M + size / 2, c));
+  /** start of a bar of `size` whose grip (at `g` from its start) should be at `at`; centered without `at` */
+  const clampS = (at: number | undefined, g: number, size: number, total: number) =>
+    at === undefined || size + 2 * M >= total ? (total - size) / 2 : Math.min(total - M - size, Math.max(M, at * total - g));
+  layout.current = () => {
+    const el = bar.current, layer = fix;
+    if (!el || !layer) return;
+    const W = layer.clientWidth, H = layer.clientHeight;
+    const bw = el.offsetWidth, bh = el.offsetHeight;
+    const st = el.style;
+    const g = el.querySelector<HTMLElement>(".ib-grip");
+    const gx = g ? g.offsetLeft + g.offsetWidth / 2 : 0, gy = g ? g.offsetTop + g.offsetHeight / 2 : 0;
+    // the CSS of each dock keeps the distance to its edge; here only the position along it
+    st.left = st.top = st.right = st.bottom = "";
+    st.transform = "none";
+    if (t.dock === "bottom" || t.dock === "top") st.left = `${clampS(t.at?.x, gx, bw, W)}px`;
+    else if (t.dock === "left" || t.dock === "right") st.top = `${clampS(t.at?.y, gy, bh, H)}px`;
+    else {
+      st.left = `${clampS(t.at?.x ?? 0.5, gx, bw, W)}px`;
+      st.top = `${clampS(t.at?.y ?? 0.5, gy, bh, H)}px`;
+      st.right = st.bottom = "auto";
+    }
+    // glide from where the finger let go
+    const f = flip.current;
+    if (f) {
+      flip.current = null;
+      const r = toLayer(el.getBoundingClientRect());
+      const dx = f.x - (r.l + r.w / 2), dy = f.y - (r.t + r.h / 2);
+      st.transition = "none";
+      st.translate = `${dx}px ${dy}px`;
+      void el.offsetWidth;
+      st.transition = "translate .28s cubic-bezier(.2,.9,.25,1)";
+      st.translate = "0px 0px";
+      const done = () => { st.transition = ""; st.translate = ""; el.removeEventListener("transitionend", done); };
+      el.addEventListener("transitionend", done);
+    }
+    // the panel and the hint open next to the bar, on the side with room
+    const b = toLayer(el.getBoundingClientRect());
+    const bx = b.l + b.w / 2, by = b.t + b.h / 2;
+    for (const p of [panelEl.current, hintEl.current]) {
+      if (!p) continue;
+      const pw = p.offsetWidth, ph = p.offsetHeight, G = 12;
+      let left: number, top: number;
+      if (vertical) {
+        top = clampC(by, ph, H) - ph / 2;
+        left = bx < W / 2 ? b.l + b.w + G : b.l - G - pw;
+      } else {
+        left = clampC(bx, pw, W) - pw / 2;
+        top = by > H / 2 ? b.t - G - ph : b.t + b.h + G;
+      }
+      Object.assign(p.style, { left: `${left}px`, top: `${Math.max(M, Math.min(H - ph - M, top))}px`, right: "auto", bottom: "auto", transform: "none" });
+    }
+  };
+  useLayoutEffect(() => layout.current());
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const again = () => setTick((n) => n + 1);
+    const ro = new ResizeObserver(() => layout.current());
+    ro.observe(el);
+    window.addEventListener("resize", again);
+    return () => { ro.disconnect(); window.removeEventListener("resize", again); };
+  }, [fix]);
+
+  /* drag the bar by its grip, anywhere; let go near an edge and it docks there */
+  const SNAP = 56;
   const grip = {
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
       try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
       setPanel(false);
       dragRef.current = { x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
-      setDrag(dragRef.current);
+      const el = bar.current;
+      if (el) { el.style.transition = "none"; el.style.translate = "0px 0px"; }
+      setDragging(true);
     },
     onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
-      const d = dragRef.current;
-      if (!d) return;
-      // the bar lives in the un-zoomed layer, so page pixels count `zoom` times more
-      dragRef.current = { ...d, dx: (e.clientX - d.x) * zoom.current, dy: (e.clientY - d.y) * zoom.current };
-      setDrag(dragRef.current);
+      const d = dragRef.current, el = bar.current;
+      if (!d || !el) return;
+      // the bar lives in the un-zoomed layer, so page pixels count `zoom` times more;
+      // moved directly (no re-render), so it stays under the finger
+      d.dx = (e.clientX - d.x) * zoom.current;
+      d.dy = (e.clientY - d.y) * zoom.current;
+      el.style.translate = `${d.dx}px ${d.dy}px`;
     },
     onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
-      const d = dragRef.current;
+      const d = dragRef.current, el = bar.current, layer = fix;
       if (!d) return;
       dragRef.current = null;
+      setDragging(false);
       const moved = Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 6;
-      setDrag(null);
-      if (!moved) return;
-      // nearest edge of what is on screen (the visual viewport), also while zoomed in
-      const vv = window.visualViewport;
-      const W = vv ? vv.width : window.innerWidth, H = vv ? vv.height : window.innerHeight;
-      const x = e.clientX - (vv?.offsetLeft ?? 0), y = e.clientY - (vv?.offsetTop ?? 0);
-      const dist: [Dock, number][] = [["left", x], ["right", W - x], ["top", y], ["bottom", H - y]];
-      dist.sort((a, b) => a[1] - b[1]);
-      t.setDock(dist[0][0]);
+      if (!moved || !el || !layer) { if (el) { el.style.translate = ""; el.style.transition = ""; } return; }
+      const W = layer.clientWidth, H = layer.clientHeight;
+      const r = toLayer(el.getBoundingClientRect());
+      const cx = r.l + r.w / 2, cy = r.t + r.h / 2;
+      flip.current = { x: cx, y: cy };
+      el.style.translate = "";
+      // the finger near an edge: the bar docks there (vertical on the sides); anywhere else it stays put
+      const vv = window.visualViewport, z = zoom.current;
+      const px = (e.clientX - (vv && z !== 1 ? vv.offsetLeft : 0)) * z, py = (e.clientY - (vv && z !== 1 ? vv.offsetTop : 0)) * z;
+      const edges: [Dock, number][] = [["left", px], ["right", W - px], ["top", py], ["bottom", H - py]];
+      edges.sort((a, b) => a[1] - b[1]);
+      const at = { x: Math.min(1, Math.max(0, px / W)), y: Math.min(1, Math.max(0, py / H)) };
+      const dock: Dock = edges[0][1] < SNAP ? edges[0][0] : "free";
+      t.setPlace(dock, at);
+      if (dock === t.dock && at.x === t.at?.x && at.y === t.at?.y) layout.current();
     },
   };
-
-  const style = drag ? { translate: `${drag.dx}px ${drag.dy}px`, transition: "none" } : undefined;
 
   return (
     <Floating>
     <div className="inkfix" ref={setFix}>
       {panel && (
-        <div className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
+        <div ref={panelEl} className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
           <div className="ip-row">
             <span className="ip-lab">{NAMES[t.inked]} · grosor</span>
             <div className="ip-sizes">
@@ -262,10 +357,10 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
         </div>
       )}
       {t.tool === "lasso" && (
-        <div className={`inkhint dock-${t.dock}`}>{t.selected ? `${t.selected} trazos seleccionados: arrástralos o toca un color` : "Rodea trazos con el lápiz para seleccionarlos"}</div>
+        <div ref={hintEl} className={`inkhint dock-${t.dock}`}>{t.selected ? `${t.selected} trazos seleccionados: arrástralos o toca un color` : "Rodea trazos con el lápiz para seleccionarlos"}</div>
       )}
-      <div className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${drag ? " dragging" : ""}${t.mini ? " mini" : ""}`} style={style} role="toolbar" aria-label="Herramientas de escritura">
-        <button type="button" className="ib-grip" aria-label="Mover la barra (arrástrala a cualquier borde)" title="Arrastra para mover" {...grip}>
+      <div ref={bar} className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${dragging ? " dragging" : ""}${t.mini ? " mini" : ""}`} role="toolbar" aria-label="Herramientas de escritura">
+        <button type="button" className="ib-grip" aria-label="Mover la barra (arrástrala a donde quieras)" title="Arrastra para mover" {...grip}>
           <Icon name="grip" size={18} />
         </button>
         <div className="ib-undo">
