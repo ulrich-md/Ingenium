@@ -79,9 +79,9 @@ export const extra: Record<string, Concept[]> = {
             { t: "ground", x1: 100, y1: y0, x2: 200, y2: y0, side: -1 },
             { t: "spring", x1: 150, y1: y0, x2: 150, y2: ye, coils: 10, width: 14 },
             { t: "rect", x: 125, y: ye, w: 50, h: 28, fill: "light" }, { t: "text", x: 150, y: ye + 19, s: "m", italic: true },
-            { t: "line", x1: 70, y1: ye - 40, x2: 140, y2: ye - 40, dash: true, w: 1 }, { t: "text", x: 32, y: ye - 36, s: "longitud", anchor: "start", size: 11 },
-            { t: "line", x1: 70, y1: ye, x2: 125, y2: ye, dash: true, w: 1 },
-            dim(90, ye - 40, 90, ye), { t: "text", x: 82, y: ye - 16, s: "e", italic: true, anchor: "end" },
+            { t: "line", x1: 84, y1: ye - 40, x2: 140, y2: ye - 40, dash: true, w: 1 }, { t: "text", x: 8, y: ye - 36, s: "sin estirar", anchor: "start", size: 11 },
+            { t: "line", x1: 84, y1: ye, x2: 125, y2: ye, dash: true, w: 1 },
+            dim(104, ye - 40, 104, ye), { t: "text", x: 98, y: ye - 16, s: "e", italic: true, anchor: "end" },
             { t: "line", x1: 175, y1: ye, x2: 262, y2: ye, dash: true, w: 1 }, { t: "text", x: 268, y: ye + 4, s: "equilibrio", anchor: "start", size: 11 },
             { t: "line", x1: 175, y1: ye - ya, x2: 235, y2: ye - ya, dash: true, w: 1 },
             dim(222, ye - ya, 222, ye), { t: "text", x: 232, y: ye - ya / 2 + 4, s: "A", italic: true, anchor: "start" },
@@ -189,7 +189,7 @@ export const extra: Record<string, Concept[]> = {
               method("v = λ/T (o v = fλ)", /v\s*=\s*λ|λ\s*\/\s*T|λ\s*\/|f\s*λ|fλ|λ\s*f/i, f, "v = λ/T"),
               val("A1", `v = ${fmt(v)} m s⁻¹`, v),
             ], ["v = λ / T", `v = ${fmt(lam)} / ${fmt(T)}`, `v = ${fmt(v)} m s⁻¹`]),
-            part("(d)", `La onda pasa a otra cuerda, en la que su rapidez es ${fmt(k)} veces la anterior. Calcule la longitud de onda en la segunda cuerda.`, [
+            part("(d)", `La onda pasa a otra cuerda, en la que su rapidez es ${f2(k)} veces la anterior. Calcule la longitud de onda en la segunda cuerda.`, [
               val("A1", `λ' = ${fmt(k)} λ = ${fmt(lam2)} m (la frecuencia no cambia)`, lam2),
             ], ["La frecuencia es la misma, así que λ es proporcional a v: λ' = λ v' / v", `λ' = ${fmt(k)} × ${fmt(lam)} = ${fmt(lam2)} m`]),
             part("(e)", "Explique por qué, al cambiar de cuerda, cambia la longitud de onda pero no la frecuencia.", [
@@ -226,7 +226,7 @@ export const extra: Record<string, Concept[]> = {
             w: 390, h: 210, alt: `Gráfica de la intensidad relativa de la luz que sale de una red de difracción en función del ángulo: un máximo central y máximos simétricos, el primero en ${th1}°`,
             items: [{
               t: "graph", x: 55, y: 28, w: 315, h: 150, xr: [-60, 60], yr: [0, 1.15],
-              xlabel: "θ / °", ylabel: "intensidad relativa", xticks: [-60, -40, -20, 0, 20, 40, 60], yticks: [0.5, 1], grid: true,
+              xlabel: "θ / °", ylabel: "intensidad relativa", xticks: [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60], yticks: [0.5, 1], grid: true,
               series: [{ pts: curve(I, -60, 60, 720) }],
             }],
           },
@@ -275,22 +275,22 @@ export const extra: Record<string, Concept[]> = {
         ];
         return {
           fig: { w: 380, h: 175, alt: "Fibra óptica: un rayo entra por la cara plana con ángulo α respecto del eje, se refracta con ángulo β y rebota por reflexión total en la frontera entre el núcleo (n₁) y el revestimiento (n₂)", items },
-          stem: `Una fibra óptica tiene un núcleo de índice de refracción n₁ = ${f2(n1)} rodeado de un revestimiento de índice n₂ = ${f2(n2)}. Un rayo de luz entra desde el aire por el extremo plano de la fibra con un ángulo α respecto del eje y viaja por el núcleo con reflexión total interna.`,
+          stem: `Una fibra óptica tiene un núcleo de índice de refracción n₁ = ${fmt(n1)} rodeado de un revestimiento de índice n₂ = ${fmt(n2)}. Un rayo de luz entra desde el aire por el extremo plano de la fibra con un ángulo α respecto del eje y viaja por el núcleo con reflexión total interna.`,
           data: "c = 3,0 × 10⁸ m s⁻¹",
           parts: [
             part("(a)", "Calcule el ángulo crítico en la frontera entre el núcleo y el revestimiento.", [
               method("sen θc = n₂ / n₁", /sin|sen|n\s*2\s*\/\s*n\s*1|n₂\s*\/\s*n₁/i, n2 / n1, "sen θc = n₂/n₁"),
               val("A1", `θc = ${fmt(thc)}°`, thc),
-            ], ["sen θc = n₂ / n₁", `sen θc = ${f2(n2)} / ${f2(n1)} = ${fmt(n2 / n1)}`, `θc = ${fmt(thc)}°`]),
+            ], ["sen θc = n₂ / n₁", `sen θc = ${fmt(n2)} / ${fmt(n1)} = ${fmt(n2 / n1)}`, `θc = ${fmt(thc)}°`]),
             part("(b)", "Calcule el máximo valor de α para el que el rayo todavía sufre reflexión total en la frontera.", [
               method("En el extremo, β = 90° − θc (el rayo incide en la frontera con θc)", /90\s*[-−]\s*θ|90°\s*[-−]|β\s*=/i, beta, "β = 90° − θc"),
               method("Ley de Snell en el extremo: sen α = n₁ sen β", /sin|sen/i, sa, "sen α = n₁ sen β"),
               val("A1", `α máx = ${fmt(al)}°`, al),
-            ], ["En la frontera el ángulo de incidencia es θc, por lo que β = 90° − θc", `β = 90° − ${fmt(thc)}° = ${fmt(beta)}°`, `sen α = n₁ sen β = ${f2(n1)} × sen ${fmt(beta)}° = ${fmt(sa)}`, `α máx = ${fmt(al)}°`]),
+            ], ["En la frontera el ángulo de incidencia es θc, por lo que β = 90° − θc", `β = 90° − ${fmt(thc)}° = ${fmt(beta)}°`, `sen α = n₁ sen β = ${fmt(n1)} × sen ${fmt(beta)}° = ${fmt(sa)}`, `α máx = ${fmt(al)}°`]),
             part("(c)", `El rayo axial viaja a lo largo del eje y otro rayo, con el ángulo máximo, rebota en zigzag con β = ${fmt(beta)}° respecto del eje. Calcule la diferencia entre los tiempos que tardan en recorrer ${f2(L)} km de fibra.`, [
               method("Δt = (L n₁/c)(1/sen θc − 1): el camino del rayo en zigzag es L / sen θc", /L\s*n|n\s*L|1\s*\/\s*sin|1\s*\/\s*sen|L\s*\/\s*sin|L\s*\/\s*sen|c\s*\/\s*n|n\s*1\s*\/\s*n\s*2|n₁\s*\/\s*n₂/i, t0, "Δt = (L n₁/c)(1/sen θc − 1)"),
               valAny("A1", `Δt = ${fmt(dt * 1e9)} ns`, [dt, dt * 1e9, dt * 1e6]),
-            ], ["Rayo axial: t₀ = L n₁ / c", `t₀ = ${fmt(L * 1e3)} × ${f2(n1)} / 3,0×10⁸ = ${fmt(t0)} s`, "El rayo en zigzag recorre L / sen θc, luego Δt = t₀ (1 / sen θc − 1) = t₀ (n₁ / n₂ − 1)", `Δt = ${fmt(t0)} × (${f2(n1)} / ${f2(n2)} − 1) = ${fmt(dt)} s = ${fmt(dt * 1e9)} ns`], 5),
+            ], ["Rayo axial: t₀ = L n₁ / c", `t₀ = ${fmt(L * 1e3)} × ${fmt(n1)} / 3,0×10⁸ = ${fmt(t0)} s`, "El rayo en zigzag recorre L / sen θc, luego Δt = t₀ (1 / sen θc − 1) = t₀ (n₁ / n₂ − 1)", `Δt = ${fmt(t0)} × (${fmt(n1)} / ${fmt(n2)} − 1) = ${fmt(dt)} s = ${fmt(dt * 1e9)} ns`], 5),
             part("(d)", "Sugiera por qué esta diferencia de tiempos limita la rapidez con la que se pueden transmitir pulsos de luz por la fibra.", [
               reason("Los rayos con distintos ángulos siguen trayectorias de distinta longitud y llegan en tiempos distintos", "trayectorias de distinta longitud", "tiempos distintos", "distintos tiempos", "distinto tiempo", "diferente tiempo", "tiempos diferentes", "caminos distintos", "trayectorias distintas", "camino mas largo", "trayectoria mas larga", "mas tiempo", "momentos distintos"),
               reason("El pulso se ensancha y puede solaparse con el siguiente, por lo que no se distinguen", "el pulso se ensancha y se solapa", "ensancha", "solapa", "superpon", "se mezclan", "se confunden", "distorsion", "dispersion", "se extiende", "traslapa"),
@@ -332,7 +332,7 @@ export const extra: Record<string, Concept[]> = {
               method("En el modo fundamental λ = 2L", /λ\s*=\s*2|2\s*[·×*]?\s*L|2\s*[·×*]\s*0/i, lam, "λ = 2L"),
               val("A1", `v = fλ = ${fmt(v)} m s⁻¹`, v),
             ], ["En el modo fundamental L = λ / 2, así que λ = 2L", `λ = 2 × ${f2(L)} = ${fmt(lam)} m`, `v = f λ = ${f1} × ${fmt(lam)} = ${fmt(v)} m s⁻¹`]),
-            part("(b)", `Se presiona la cuerda con un dedo de modo que solo vibra la fracción ${fmt(p)} de su longitud, con la misma tensión. Calcule la nueva frecuencia fundamental.`, [
+            part("(b)", `Se presiona la cuerda con un dedo de modo que solo vibra la fracción ${f2(p)} de su longitud, con la misma tensión. Calcule la nueva frecuencia fundamental.`, [
               val("A1", `f' = f / ${fmt(p)} = ${fmt(f2c)} Hz`, f2c),
             ], ["v no cambia (misma tensión) y f = v / 2L, así que f es inversamente proporcional a L", `f' = ${f1} / ${fmt(p)} = ${fmt(f2c)} Hz`]),
             part("(c)", "Con la longitud original, la tensión de la cuerda se cuadruplica (la masa por unidad de longitud no cambia). Calcule la nueva frecuencia fundamental.", [
@@ -397,7 +397,7 @@ export const extra: Record<string, Concept[]> = {
         const fa = (f0 * v) / (v - u), fb = (f0 * v) / (v + u), lamA = (v - u) / f0;
         return {
           fig: ambulanceFig(),
-          stem: `Una ambulancia cuya sirena emite un tono de ${f0} Hz avanza a ${u} m s⁻¹ en línea recta hacia un observador A en reposo, que tiene detrás a otro observador B también en reposo (figura).`,
+          stem: `Una ambulancia cuya sirena emite un tono de ${f0} Hz avanza a ${u} m s⁻¹ en línea recta hacia un observador A, en reposo, y se aleja de otro observador B, también en reposo (figura).`,
           data: "Rapidez del sonido en el aire: 340 m s⁻¹",
           parts: [
             part("(a)", "Calcule la frecuencia del sonido que percibe el observador A.", [

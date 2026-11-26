@@ -274,6 +274,130 @@ export const extra: Record<string, Concept[]> = {
       },
     },
     {
+      id: "x_redesidenticas", level: 3, label: "Red de resistores idénticos: equivalente, corrientes y cortocircuito", keywords: ["serie y paralelo", "resistores identicos", "resistencia equivalente", "cortocircuito", "razon de corrientes"],
+      make: (r) => {
+        const R = pick(r, [4, 6, 8, 12]), V = pick(r, [5, 7.5, 15]);
+        const Req = (5 * R) / 3, Req2 = 1.5 * R;
+        const circuit = (short: boolean): FigItem[] => {
+          const it: FigItem[] = [
+            { t: "comp", kind: "cell", x1: 40, y1: 40, x2: 40, y2: 170, label: `${V} V` },
+            { t: "comp", kind: "resistor", x1: 40, y1: 40, x2: 170, y2: 40, label: "R" },
+            { t: "line", x1: 170, y1: 40, x2: 290, y2: 40 }, { t: "line", x1: 40, y1: 170, x2: 290, y2: 170 },
+            { t: "comp", kind: "resistor", x1: 200, y1: 40, x2: 200, y2: 105, label: "R" },
+            { t: "comp", kind: "resistor", x1: 200, y1: 105, x2: 200, y2: 170, label: "R" },
+            { t: "comp", kind: "resistor", x1: 290, y1: 40, x2: 290, y2: 170, label: "R" },
+            { t: "dot", x: 200, y: 40 }, { t: "dot", x: 200, y: 170 }, txt(216, 100, "Q", "start"),
+          ];
+          if (short) it.push({ t: "line", x1: 200, y1: 105, x2: 170, y2: 105 }, { t: "line", x1: 170, y1: 105, x2: 170, y2: 170 }, { t: "dot", x: 200, y: 105 }, { t: "dot", x: 170, y: 170 });
+          return it;
+        };
+        return {
+          fig: { w: 340, h: 200, alt: "Una pila en serie con un resistor R, y después dos ramas en paralelo: una con dos resistores R en serie y otra con un solo resistor R", items: circuit(false) },
+          stem: `En el circuito, los cuatro resistores son idénticos, de resistencia R = ${R} Ω. La pila, de ${V} V, tiene resistencia interna despreciable.`,
+          parts: [
+            part("(a)", "Calcule la resistencia equivalente del circuito conectada a la pila.", [
+              method("Dos resistores en serie (2R) en paralelo con R: 1/R_p = 1/2R + 1/R", /1\s*\/\s*R|2\s*R|serie|paralelo|R_?p/i, (2 * R) / 3, "combinación paralelo de 2R y R"),
+              val("A1", `R_eq = ${fmt(Req)} Ω`, Req),
+            ], ["Rama 1: R + R = 2R. Las dos ramas en paralelo: R_p = (2R × R) / (2R + R) = 2R/3", `R_p = ${fmt((2 * R) / 3)} Ω`, `R_eq = R + R_p = ${R} + ${fmt((2 * R) / 3)} = ${fmt(Req)} Ω`]),
+            part("(b)", "Determine la razón entre la corriente en la rama de dos resistores y la corriente en la rama de un resistor.", [
+              fac("I₁ / I₂ = R / 2R = 0,50", 0.5, /1\s*\/\s*2/),
+            ], ["Las dos ramas tienen la misma diferencia de potencial, luego I ∝ 1/R", "I₁ / I₂ = R / (2R) = 0,50"]),
+            part("(c)", "Un cable une ahora el punto Q con el extremo inferior del circuito, como muestra el diagrama. Determine la nueva resistencia equivalente.", [
+              method("El resistor inferior de la rama 1 queda cortocircuitado (no pasa corriente por él)", /cortocircuit|corto|no pasa|sin corriente|1\s*\/\s*R|R\s*\/\s*2|paralelo/i, R / 2, "un resistor cortocircuitado"),
+              val("A1", `R_eq = ${fmt(Req2)} Ω`, Req2),
+            ], ["El cable cortocircuita el resistor inferior de la rama 1; quedan dos resistores R en paralelo: R_p = R/2", `R_eq = R + R/2 = ${R} + ${fmt(R / 2)} = ${fmt(Req2)} Ω`]),
+            { ...part("(d)", "Una pila de fem ε alimenta directamente un resistor hecho de un alambre. Otro resistor, del mismo material y de la misma sección pero de triple longitud, se conecta a una pila de fem 2ε. Determine la razón entre la potencia del segundo y la del primero.", [
+              method("R ∝ L, así que R₂ = 3R₁; y P = ε²/R", /ε\s*²|ε\^2|V\^2|V²|R\s*∝|3R/i, 4 / 3, "P = ε²/R, R ∝ L"),
+              fac("P₂ / P₁ = 2² / 3 = 1,33", 4 / 3, /4\s*\/\s*3/),
+            ], ["R = ρL/A: con L triple, R₂ = 3R₁. P = ε²/R", "P₂ / P₁ = (2ε)² / (3R₁) × R₁ / ε² = 4 / 3 = 1,33"]) },
+          ].map((p, i) => (i === 2 ? { ...p, fig: { w: 340, h: 200, alt: "El mismo circuito con un cable que une el punto Q con el conductor inferior", items: circuit(true) } } : p)),
+        };
+      },
+    },
+    {
+      id: "x_pilavoltamperimetro", level: 3, label: "Pila real con voltímetro y amperímetro: resistencia interna y resistividad", keywords: ["resistencia interna", "voltimetro", "amperimetro", "resistencia en paralelo", "resistividad"],
+      make: (r) => {
+        const eps = pick(r, [6, 9]), Ima = pick(r, [25, 40]), ri = pick(r, [10, 20, 30]), RA = 50.0;
+        const I = Ima * 1e-3, V = eps - I * ri, R = eps / I - ri - RA, L = pick(r, [1.5, 2.0, 2.5]), k = R / L;
+        const circuit = (extra: boolean): FigItem[] => {
+          const it: FigItem[] = [
+            { t: "comp", kind: "voltmeter", x1: 50, y1: 40, x2: 50, y2: 170, label: "V" },
+            { t: "line", x1: 50, y1: 40, x2: 130, y2: 40 }, { t: "line", x1: 50, y1: 170, x2: 130, y2: 170 },
+            { t: "comp", kind: "cell", x1: 130, y1: 40, x2: 130, y2: 170, label: "ε, r" },
+            { t: "comp", kind: "ammeter", x1: 130, y1: 40, x2: 230, y2: 40, label: "A" },
+            { t: "line", x1: 230, y1: 40, x2: 300, y2: 40 }, { t: "line", x1: 130, y1: 170, x2: 300, y2: 170 },
+            { t: "comp", kind: "resistor", x1: 300, y1: 40, x2: 300, y2: 170, label: "R" },
+            { t: "dot", x: 130, y: 40 }, { t: "dot", x: 130, y: 170 },
+          ];
+          if (extra) it.push({ t: "line", x1: 300, y1: 40, x2: 360, y2: 40 }, { t: "line", x1: 300, y1: 170, x2: 360, y2: 170 }, { t: "comp", kind: "resistor", x1: 360, y1: 40, x2: 360, y2: 170, label: "R′" }, { t: "dot", x: 300, y: 40 }, { t: "dot", x: 300, y: 170 });
+          return it;
+        };
+        const unit = /Ω\s*(\^\s*)?\(?\s*(m\s*\^?\s*-\s*1|\/\s*m)|ohm\w*\s*(\/|por)\s*metro/i;
+        return {
+          fig: { w: 400, h: 200, alt: "Una pila con resistencia interna, un amperímetro y un resistor R en serie, y un voltímetro conectado en los terminales de la pila", items: circuit(false) },
+          stem: `Una pila de fem ε = ${fmt(eps)} V y resistencia interna r alimenta un resistor R. En serie hay un amperímetro cuya resistencia es ${fmt(RA)} Ω. Un voltímetro ideal está conectado en los terminales de la pila. El voltímetro marca ${fmt(V)} V y el amperímetro ${fmt(Ima)} mA.`,
+          parts: [
+            part("(a)", "Calcule la resistencia interna de la pila.", [
+              method("Los «voltios perdidos» son ε − V = I r", /ε\s*[−-]\s*V|I\s*r|Ir|V\s*=\s*ε/i, eps - V, "ε − V = I r"),
+              val("A1", `r = ${fmt(ri)} Ω`, ri),
+            ], ["V = ε − I r", `r = (ε − V) / I = (${fmt(eps)} − ${fmt(V)}) / ${fmt(I)}`, `r = ${fmt(ri)} Ω`]),
+            part("(b)", "Determine la resistencia de R.", [
+              val("A1", `R = ε/I − r − R_A = ${fmt(R)} Ω`, R),
+            ], [`ε = I (R + R_A + r)`, `R = ε / I − r − R_A = ${fmt(eps)} / ${fmt(I)} − ${fmt(ri)} − ${fmt(RA)}`, `R = ${fmt(R)} Ω`]),
+            { ...part("(c)", "Se conecta ahora un segundo resistor R′ en paralelo con R, como muestra el diagrama. Explique cómo cambian la lectura del amperímetro y la del voltímetro.", [
+              reason("La resistencia total del circuito disminuye (R y R′ en paralelo)", "resistencia total menor", "resistencia total disminuye", "resistencia total del circuito disminuye", "resistencia menor", "resistencia total menor", "resistencia equivalente disminuye", "resistencia disminuye", "menor resistencia", "disminuye la resistencia", "resistencia total baja"),
+              reason("Por tanto la corriente total aumenta: la lectura del amperímetro aumenta", "el amperímetro aumenta", "amperimetro aumenta", "amperímetro aumenta", "corriente aumenta", "corriente total aumenta", "aumenta la corriente", "lectura del amperimetro aumenta"),
+              reason("Aumenta la caída de potencial dentro de la pila (I r mayor)", "I r mayor, más voltios perdidos", "voltios perdidos", "caida", "caída", "I r", "ir mayor", "dentro de la pila", "resistencia interna"),
+              reason("El voltímetro mide ε − I r, así que su lectura disminuye", "el voltímetro disminuye", "voltimetro disminuye", "voltímetro disminuye", "lectura disminuye", "lectura del voltimetro disminuye", "disminuye la lectura", "mide menos", "diferencia de potencial disminuye"),
+            ], ["Dos resistores en paralelo dan una resistencia menor: la resistencia total del circuito disminuye", "Con ε constante, la corriente total aumenta: el amperímetro marca más", "Con más corriente aumentan los voltios perdidos en la resistencia interna, I r", "El voltímetro lee V = ε − I r, de modo que su lectura disminuye"]), fig: { w: 400, h: 200, alt: "El circuito anterior con un segundo resistor R′ en paralelo con R", items: circuit(true) } },
+            part("(d)", `El resistor R es un alambre uniforme de longitud ${fmt(L)} m y sección A, hecho de un material de resistividad ρ. Muestre que R = kL y calcule k, con su unidad.`, [
+              method("R = ρL/A, con k = ρ/A", /ρ\s*L\s*\/\s*A|R\s*=\s*ρ|k\s*=\s*ρ|ρ\s*\/\s*A/i, k, "R = ρL/A, k = ρ/A"),
+              { code: "A1", text: `k = R / L = ${fmt(k)} Ω m⁻¹`, miss: "valor y unidad de k", test: (l, n) => near(n, k) && unit.test(normalize(l)) },
+            ], ["R = ρL/A = (ρ/A) L, con k = ρ/A constante para el alambre", `k = R / L = ${fmt(R)} / ${fmt(L)} = ${fmt(k)} Ω m⁻¹`]),
+          ],
+        };
+      },
+    },
+    {
+      id: "x_componentenoohmico", level: 3, label: "Componente no óhmico con resistencia variable: gráfica I–V, resistencia y potencia", keywords: ["no ohmico", "grafica i-v", "resistencia variable", "potencia total", "fem"],
+      make: (r) => {
+        const eps = pick(r, [9, 12]), It = pick(r, [15, 30, 75]);
+        const Vs = [0, 1, 2, 3, 4, 5, 6], Is = Vs.map((v) => 2.5 * v * (v + 1));
+        const Vx = Vs[Is.indexOf(It)], Rv = (eps - Vx) / (It * 1e-3), P = eps * It * 1e-3;
+        const pts = Vs.map((v, i): [number, number] => [v, Is[i]]);
+        const xr: [number, number] = [0, 6.6], yr: [number, number] = [0, 115];
+        return {
+          fig: {
+            w: 360, h: 215, alt: "Gráfica de la corriente en un componente X frente a la diferencia de potencial: curva que sube cada vez más deprisa; 30 mA a 3 V y 75 mA a 5 V",
+            items: [{ t: "graph", x: 58, y: 22, w: 270, h: 150, xr, yr, xlabel: "V / V", ylabel: "I / mA", xticks: [1, 2, 3, 4, 5, 6], yticks: [15, 30, 45, 60, 75, 90, 105], grid: true, series: [{ pts, smooth: true }, { pts, dots: true }] }],
+          },
+          stem: `La gráfica muestra la característica I–V de un componente X. El componente se conecta en serie con una resistencia variable y una pila de fem ${eps} V y resistencia interna despreciable. Se ajusta la resistencia variable hasta que la corriente es ${It} mA.`,
+          parts: [
+            part("(a)", "Use la gráfica para determinar la diferencia de potencial en X.", [val("A1", `V_X = ${Vx} V`, Vx)], [`Se lee en la gráfica con I = ${It} mA`, `V_X = ${Vx} V`]),
+            { ...part("(b)", "Calcule la resistencia de la resistencia variable.", [
+              method("ε = V_X + I R", /ε\s*=|V_?X\s*\+|I\s*R|ε\s*[−-]\s*V/i, eps - Vx, "ε = V_X + I R"),
+              val("A1", `R = ${fmt(Rv)} Ω`, Rv),
+            ], [`ε = V_X + I R`, `R = (ε − V_X) / I = (${eps} − ${Vx}) / ${fmt(It * 1e-3)}`, `R = ${fmt(Rv)} Ω`]), fig: {
+              w: 340, h: 190, alt: "Circuito en serie: una pila, el componente X y una resistencia variable",
+              items: [
+                { t: "comp", kind: "cell", x1: 40, y1: 40, x2: 40, y2: 150, label: `${eps} V` },
+                { t: "line", x1: 40, y1: 40, x2: 100, y2: 40 }, { t: "comp", kind: "thermistor", x1: 100, y1: 40, x2: 220, y2: 40, label: "X" }, { t: "line", x1: 220, y1: 40, x2: 300, y2: 40 },
+                { t: "comp", kind: "variable", x1: 300, y1: 40, x2: 300, y2: 150 }, txt(316, 98, "R", "start"),
+                { t: "line", x1: 40, y1: 150, x2: 300, y2: 150 },
+              ],
+            } },
+            part("(c)", "Calcule la potencia total que suministra la pila.", [
+              method("P = ε I", /P\s*=\s*ε\s*I|ε\s*I|ε\s*×\s*I/i, P, "P = εI"),
+              val("A1", `P = ${fmt(P)} W`, P),
+            ], [`P = ε I = ${eps} × ${fmt(It * 1e-3)}`, `P = ${fmt(P)} W`]),
+            part("(d)", "Indique por qué X no es un componente óhmico.", [
+              reason("La gráfica no es una recta que pase por el origen: I no es proporcional a V (V/I cambia)", "I no proporcional a V", "no es una recta", "no es recta", "no es lineal", "no lineal", "curva", "no es proporcional", "no proporcional", "cambia", "no es constante", "no constante"),
+            ], ["Su gráfica I–V es una curva: la corriente no es proporcional a la diferencia de potencial y V/I (su resistencia) cambia"]),
+          ],
+        };
+      },
+    },
+    {
       id: "x_bombillafilamento", level: 3, label: "Lámpara de filamento: gráfica I–V, resistencia y resistividad", keywords: ["lampara", "filamento", "grafica i-v", "resistividad", "potencia"],
       make: (r) => {
         const I12 = pick(r, [0.4, 0.6, 0.8]), L = pick(r, [0.020, 0.025, 0.030]), rho = 7.0e-7;

@@ -15,6 +15,7 @@ const valT = (code: Rule["code"], text: string, target: number, tol: number, mis
 /** a ratio / factor, also accepted as a fraction ("1/4") or in words */
 const ratio = (code: Rule["code"], text: string, f: number, frac: string, ...words: string[]): Rule =>
   ({ code, text, miss: code, test: (l, n) => near(n, f, TOL) || normalize(l).replace(/\s/g, "").includes(frac) || hasAny(l, ...words) });
+const cm = (x: number) => String(x).replace(".", ",");
 const gam = (b: number) => 1 / Math.sqrt(1 - b * b);
 
 export const extra: Record<string, Concept[]> = {
@@ -188,13 +189,13 @@ export const extra: Record<string, Concept[]> = {
             ],
           },
           parts: [
-            part("(a)", "Determine la razón entre la rapidez lineal de A y la de B, v_A / v_B.", [
-              ratio("A1", `v = ωr con la misma ω: v_A / v_B = ${fs}`, f, fs.replace("/", "") === "" ? fs : fs),
-            ], ["Misma ω en todo el disco; v = ω r", `v_A / v_B = r_A / r_B = ${fs} = ${fmt(f)}`]),
-            part("(b)", "Determine la razón entre las aceleraciones centrípetas, a_A / a_B.", [
+            part("(a)", "Determine la razón entre la rapidez lineal de A y la de B, vA / vB.", [
+              ratio("A1", `v = ωr con la misma ω: vA / vB = ${fs}`, f, fs.replace("/", "") === "" ? fs : fs),
+            ], ["Misma ω en todo el disco; v = ω r", `vA / vB = r_A / r_B = ${fs} = ${fmt(f)}`]),
+            part("(b)", "Determine la razón entre las aceleraciones centrípetas, aA / aB.", [
               method("a = ω²r: con la misma ω, a es proporcional a r", /ω\s*²\s*r|a\s*∝|proporcional|r\s*_?\s*A\s*\/\s*r/i, f, "a = ω²r"),
-              ratio("A1", `a_A / a_B = ${fs}`, f, fs),
-            ], ["a = ω² r  →  a ∝ r", `a_A / a_B = ${fs} = ${fmt(f)}`]),
+              ratio("A1", `aA / aB = ${fs}`, f, fs),
+            ], ["a = ω² r  →  a ∝ r", `aA / aB = ${fs} = ${fmt(f)}`]),
             part("(c)", "Calcule la aceleración centrípeta de B.", [
               method("ω = 2π / T (o v = 2πr / T)", /2\s*π|ω\s*=|v\s*=/i, w, "ω = 2π / T"),
               val("A1", `a = ω²r = ${fmt(ac)} m s⁻²`, ac),
@@ -286,7 +287,7 @@ export const extra: Record<string, Concept[]> = {
         const M = pick(r, [800, 1000, 1200]), v = pick(r, [1.5, 2.5, 3.0, 4.0]), eps = pick(r, [0.70, 0.75, 0.80, 0.85]), a = pick(r, [0.8, 1.2, 1.5]);
         const T = M * g, Po = T * v, Pi = Po / eps, T2 = M * (g + a);
         return {
-          stem: `Un motor eléctrico sube una cabina de ascensor con su carga, de masa total ${M} kg, mediante un cable. La cabina sube con rapidez constante de ${v} m s⁻¹. El rendimiento del motor y del mecanismo es ${Math.round(eps * 100)} % (g = 9,8 m s⁻²).`,
+          stem: `Un motor eléctrico sube una cabina de ascensor con su carga, de masa total ${M} kg, mediante un cable. La cabina sube con rapidez constante de ${cm(v)} m s⁻¹. El rendimiento del motor y del mecanismo es ${Math.round(eps * 100)} % (g = 9,8 m s⁻²).`,
           fig: {
             w: 300, h: 225, alt: "Cabina de ascensor colgada de un cable que pasa por una polea movida por un motor, con su peso hacia abajo y la rapidez hacia arriba",
             items: [
@@ -307,15 +308,15 @@ export const extra: Record<string, Concept[]> = {
             part("(b)", "Calcule la potencia útil que el cable entrega a la cabina.", [
               method("P = Tv", /P\s*=\s*[FT]\s*v|[FT]\s*v|T\s*×|F\s*×/i, Po, "P = Tv"),
               val("A1", `P útil = ${fmt(Po)} W`, Po),
-            ], ["P = F v = T v", `P = ${fmt(T)} × ${v}`, `P útil = ${fmt(Po)} W`]),
+            ], ["P = F v = T v", `P = ${fmt(T)} × ${cm(v)}`, `P útil = ${fmt(Po)} W`]),
             part("(c)", "Calcule la potencia eléctrica que consume el motor.", [
               method("rendimiento = P útil / P eléctrica", /rendimiento|eficiencia|ε|útil\s*\/|P\s*_?(ent|in|el)/i, Po, "rendimiento = P útil / P entrada"),
               val("A1", `P eléctrica = ${fmt(Pi)} W`, Pi),
             ], ["rendimiento = P útil / P eléctrica", `P eléctrica = ${fmt(Po)} / ${f2(eps)}`, `P eléctrica = ${fmt(Pi)} W`]),
-            part("(d)", `Al arrancar, la cabina sube con una aceleración de ${a} m s⁻². Determine entonces la tensión del cable.`, [
+            part("(d)", `Al arrancar, la cabina sube con una aceleración de ${cm(a)} m s⁻². Determine entonces la tensión del cable.`, [
               method("Segunda ley de Newton: T − Mg = Ma", /T\s*[-−]\s*M\s*g|M\s*\(\s*g\s*\+|m\s*a/i, M * a, "T − Mg = Ma"),
               val("A1", `T = M(g + a) = ${fmt(T2)} N`, T2),
-            ], ["T − M g = M a", `T = M (g + a) = ${M} × (9,8 + ${a})`, `T = ${fmt(T2)} N`]),
+            ], ["T − M g = M a", `T = M (g + a) = ${M} × (9,8 + ${cm(a)})`, `T = ${fmt(T2)} N`]),
             part("(e)", "Con la misma carga, el ascensor sube a velocidad constante al doble de rapidez. Deduzca en qué factor cambia la potencia útil.", [
               ratio("A1", "P = Tv con T constante: la potencia se multiplica por 2", 2, "x2", "dos veces", "2 veces"),
             ], ["T no cambia (aceleración cero) y P = T v", "Con 2v: P' = 2 P  →  factor 2"]),
@@ -393,7 +394,7 @@ export const extra: Record<string, Concept[]> = {
               reason("Parte de la energía potencial perdida se convierte en energía cinética de rotación", "parte de la energía pasa a rotación", "rotacion", "gira", "giro"),
               reason("Queda menos energía cinética de traslación, luego la rapidez del centro es menor", "menos energía para la traslación", "traslacion", "menos energia", "menor energia", "menor rapidez", "menos rapido"),
             ], ["La pérdida de energía potencial es la misma, pero parte se convierte en energía cinética de rotación", "Queda menos energía para la traslación, así que v es menor que √(2gh)"]),
-            part("(e)", "Un cilindro hueco de pared delgada (I = mR²), con la misma masa y el mismo radio, rueda desde la misma altura. Calcule la razón entre su rapidez y la del cilindro macizo, v_hueco / v_macizo.", [
+            part("(e)", "Un cilindro hueco de pared delgada (I = mR²), con la misma masa y el mismo radio, rueda desde la misma altura. Calcule la razón entre su rapidez y la del cilindro macizo, v(hueco) / v(macizo).", [
               valT("A1", `v_hueco = √(gh), razón = ${fmt(q)}`, q, TOL),
             ], ["m g h = ½ m v² + ½ m v² = m v²  →  v_hueco = √(g h)", `v_hueco = ${fmt(vh)} m s⁻¹`, `razón = ${fmt(vh)} / ${fmt(v)} = ${fmt(q)}`]),
           ],
