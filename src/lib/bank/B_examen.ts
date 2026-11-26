@@ -87,13 +87,13 @@ export const extra: Record<string, Concept[]> = {
           fig: {
             w: 380, h: 150, alt: `Una estrella y dos planetas alineados: el planeta A a una distancia d de la estrella y el planeta B a una distancia ${k}d`,
             items: [
-              { t: "circle", cx: x0, cy: 70, r: 16, fill: "light" }, txt(x0, 108, "estrella"), txt(x0, 124, "(luminosidad L)"),
+              { t: "circle", cx: x0, cy: 70, r: 16, fill: "light" }, txt(x0, 40, "estrella (L)"),
               { t: "circle", cx: xa, cy: 70, r: 6, fill: "dark" }, txt(xa, 56, "A"),
               { t: "circle", cx: xb, cy: 70, r: 8, fill: "dark" }, txt(xb, 54, "B"),
               { t: "line", x1: x0 + 16, y1: 92, x2: xa, y2: 92, arrow: "both" }, txt((x0 + xa) / 2 + 8, 108, "d"),
-              { t: "line", x1: xa + 6, y1: 84, x2: xa + 6, y2: 96, gray: true },
+              { t: "line", x1: xa, y1: 78, x2: xa, y2: 96, gray: true },
               { t: "line", x1: x0, y1: 140, x2: xb, y2: 140, arrow: "both" }, txt((x0 + xb) / 2, 134, `${k}d`),
-              { t: "line", x1: x0, y1: 88, x2: x0, y2: 142, gray: true }, { t: "line", x1: xb, y1: 78, x2: xb, y2: 142, gray: true },
+              { t: "line", x1: x0, y1: 86, x2: x0, y2: 142, gray: true }, { t: "line", x1: xb, y1: 78, x2: xb, y2: 142, gray: true },
             ],
           },
           stem: `Una estrella de luminosidad L = ${fmt(3.83e26)} W tiene dos planetas, A y B, en órbitas circulares. El planeta A orbita a una distancia d = ${fmt(d)} m y el planeta B a ${k}d. Ambos tienen el mismo albedo.`,
@@ -105,10 +105,10 @@ export const extra: Record<string, Concept[]> = {
             part("(b)", "Deduzca la intensidad que llega al planeta B, en función de S.", [
               fac(`I_B = S / ${k * k} = ${fmt(fI)} S`, fI, new RegExp(`\\/\\s*${k * k}(?!\\d)`), new RegExp(`1\\s*\\/\\s*${k * k}(?!\\d)`), new RegExp(`\\b${k * k}\\s*veces\\s*menor`, "i")),
             ], [`La intensidad es inversamente proporcional a d²: I_B = S × (d / ${k}d)²`, `I_B = S / ${k * k} = ${fmt(fI)} S`]),
-            part("(c)", "Deduzca la razón T_B / T_A entre las temperaturas de equilibrio de los dos planetas.", [
+            part("(c)", "Deduzca la razón T(B) / T(A) entre las temperaturas de equilibrio de los dos planetas.", [
               method("Con el mismo albedo, σT⁴ es proporcional a la intensidad: T ∝ I^¼", /\^\s*\(?1\s*\/\s*4|T\^4|T⁴|∝|\(\s*1\s*\/\s*\d+\s*\)\s*\^|√|cuarta|ra[ií]z/i, fT, "σT⁴ proporcional a I"),
-              fac(`T_B / T_A = ${fmt(fT)}`, fT, new RegExp(`1\\s*\\/\\s*√\\s*${k}(?!\\d)`), new RegExp(`√\\s*${k}\\s*\\)?\\s*\\/\\s*${k}`)),
-            ], ["En equilibrio σT⁴ = I (1 − α) / 4, y con el mismo albedo T⁴ ∝ I", `T_B / T_A = (I_B / S)^¼ = (1 / ${k * k})^¼ = ${fmt(fT)}`]),
+              fac(`T(B) / T(A) = ${fmt(fT)}`, fT, new RegExp(`1\\s*\\/\\s*√\\s*${k}(?!\\d)`), new RegExp(`√\\s*${k}\\s*\\)?\\s*\\/\\s*${k}`)),
+            ], ["En equilibrio σT⁴ = I (1 − α) / 4, y con el mismo albedo T⁴ ∝ I", `T(B) / T(A) = (I_B / S)^¼ = (1 / ${k * k})^¼ = ${fmt(fT)}`]),
             part("(d)", "El hielo del planeta A se derrite y su albedo disminuye. Explique cómo cambia la temperatura de equilibrio de A.", [
               reason("Con menor albedo el planeta refleja menos y absorbe más radiación", "menos reflexión, más absorción", "refleja menos", "absorbe mas", "absorbe más", "mayor absorcion", "mas energia", "más energía"),
               reason("Debe emitir más para igualar a lo absorbido, así que su temperatura de equilibrio aumenta", "aumenta la temperatura hasta igualar emisión y absorción", "aumenta", "sube", "calienta", "mayor temperatura", "emitir mas", "emitir más"),
