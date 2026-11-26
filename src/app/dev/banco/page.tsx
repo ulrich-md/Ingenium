@@ -6,12 +6,30 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import ExamSheet from "@/components/ExamSheet";
+import FigView from "@/components/FigView";
 import { generateSet, TOPICS } from "@/lib/generators";
 
 function Bank() {
   const q = useSearchParams();
   const u = q.get("u"), seed = Number(q.get("seed") ?? 1), only = q.get("c");
   const list = TOPICS.filter((t) => !u || t.unit === u);
+  if (q.get("figs")) {
+    // only the diagrams, in a grid (to review them all at a glance)
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, padding: 12, background: "#fff" }}>
+        {list.flatMap((t) => t.concepts.map((c) => {
+          const [sh] = generateSet(t.id, [c.id], seed, 1, `dev-${t.id}-${c.id}`);
+          const figs = [sh.fig, ...sh.parts.map((p) => p.fig)].filter(Boolean);
+          return figs.map((f, i) => (
+            <div key={t.id + c.id + i} style={{ border: "1px solid #ddd", padding: 6 }}>
+              <div style={{ font: "600 11px sans-serif" }}>{t.id}.{c.id}</div>
+              <FigView fig={f!} />
+            </div>
+          ));
+        }))}
+      </div>
+    );
+  }
   return (
     <div className="wrap diag" style={{ display: "grid", gap: 28, maxWidth: 900 }}>
       <h1>Banco de preguntas · {list.reduce((a, t) => a + t.concepts.length, 0)} conceptos en {list.length} subtemas</h1>

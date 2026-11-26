@@ -34,9 +34,22 @@ function symbol(kind: CompKind): React.ReactNode {
     case "lamp": return <><circle cx={0} cy={0} r={11} fill="#fff" /><line x1={-7.8} y1={-7.8} x2={7.8} y2={7.8} /><line x1={-7.8} y1={7.8} x2={7.8} y2={-7.8} /></>;
     case "switch": return <><rect x={-14} y={-14} width={28} height={16} fill="#fff" stroke="none" /><circle cx={-12} cy={0} r={2} fill={INK} /><circle cx={12} cy={0} r={2} fill={INK} /><line x1={-12} y1={0} x2={10} y2={-11} /></>;
     case "ammeter": case "voltmeter":
-      return <><circle cx={0} cy={0} r={11} fill="#fff" /><text x={0} y={4.5} textAnchor="middle" fontSize={13} {...T} stroke="none">{kind === "ammeter" ? "A" : "V"}</text></>;
+      return <circle cx={0} cy={0} r={11} fill="#fff" />; // its letter is drawn upright (see "comp")
     case "diode": return <><rect x={-9} y={-10} width={18} height={20} fill="#fff" stroke="none" /><path d="M-8 -9L8 0L-8 9Z" fill={INK} /><line x1={8} y1={-9} x2={8} y2={9} /></>;
   }
+}
+
+/** Tick labels that fit: one that would touch the previous label is left out (the tick stays). */
+function spaced(ticks: number[], at: (v: number) => number, size: (v: number) => number): number[] {
+  const out: number[] = [];
+  let last: { p: number; s: number } | null = null;
+  for (const v of [...ticks].sort((a, b) => at(a) - at(b))) {
+    const p = at(v), s = size(v);
+    if (last && Math.abs(p - last.p) < (s + last.s) / 2) continue;
+    out.push(v);
+    last = { p, s };
+  }
+  return out;
 }
 
 function item(it: FigItem, i: number): React.ReactNode {
@@ -117,6 +130,7 @@ function item(it: FigItem, i: number): React.ReactNode {
         <g key={k} stroke={INK} strokeWidth={1.6}>
           <line x1={it.x1} y1={it.y1} x2={it.x2} y2={it.y2} />
           <g transform={`translate(${cx} ${cy}) rotate(${a})`}>{symbol(it.kind)}</g>
+          {(it.kind === "ammeter" || it.kind === "voltmeter") && <text x={cx} y={cy + 4.5} textAnchor="middle" fontSize={13} {...T} stroke="none">{it.kind === "ammeter" ? "A" : "V"}</text>}
           {it.label && (
             <text x={vertical ? cx + 22 : cx} y={vertical ? cy + 4 : cy - 18} fontSize={12} textAnchor={vertical ? "start" : "middle"} {...T} stroke="none">{it.label}</text>
           )}
@@ -142,12 +156,6 @@ function item(it: FigItem, i: number): React.ReactNode {
           <line x1={x0} y1={y + h} x2={x0} y2={y - 8} stroke={INK} strokeWidth={1.4} />
           {heads(x, y0, x + w + 8, y0, "end", k + "xa", 7)}
           {heads(x0, y + h, x0, y - 8, "end", k + "ya", 7)}
-          <g {...T} fontSize={11}>
-            {xt.map((v) => <text key={"tx" + v} x={X(v)} y={y0 + 14} textAnchor="middle">{lab(v)}</text>)}
-            {yt.map((v) => <text key={"ty" + v} x={x0 - 6} y={Y(v) + 4} textAnchor="end">{lab(v)}</text>)}
-            <text x={x + w + 10} y={y0 + 28} textAnchor="end" fontSize={12}>{it.xlabel}</text>
-            <text x={x0 + 6} y={y - 12} textAnchor="start" fontSize={12}>{it.ylabel}</text>
-          </g>
           {it.series.map((s, j) => {
             const pts = s.pts.map(([a, b]) => `${X(a)},${Y(b)}`).join(" ");
             return (
@@ -160,15 +168,32 @@ function item(it: FigItem, i: number): React.ReactNode {
               </g>
             );
           })}
+          <g {...T} fontSize={11} stroke="#fff" strokeWidth={3} paintOrder="stroke" strokeLinejoin="round">
+            {spaced(xt, X, (v) => lab(v).length * 6.2 + 4).map((v) => <text key={"tx" + v} x={X(v)} y={y0 + 14} textAnchor="middle">{lab(v)}</text>)}
+            {spaced(yt, Y, () => 12).map((v) => <text key={"ty" + v} x={x0 - 6} y={Y(v) + 4} textAnchor="end">{lab(v)}</text>)}
+            <text x={x + w + 10} y={y0 + 28} textAnchor="end" fontSize={12}>{it.xlabel}</text>
+            <text x={x0 + 6} y={y - 12} textAnchor="start" fontSize={12}>{it.ylabel}</text>
+          </g>
         </g>
       );
     }
   }
 }
 
+/** Room the figure needs above y = 0 (a graph's axis title sits above its plot area). */
+function topRoom(fig: Fig): number {
+  let top = 0;
+  for (const it of fig.items) {
+    if (it.t === "graph") top = Math.min(top, it.y - 26);
+    if (it.t === "text") top = Math.min(top, it.y - (it.size ?? 13) - 2);
+  }
+  return Math.ceil(-top);
+}
+
 export default function FigView({ fig }: { fig: Fig }) {
+  const pad = topRoom(fig);
   return (
-    <svg className="fig specfig" viewBox={`0 0 ${fig.w} ${fig.h}`} role="img" aria-label={fig.alt} style={{ maxWidth: Math.min(560, fig.w * 1.25) }}>
+    <svg className="fig specfig" viewBox={`0 ${-pad} ${fig.w} ${fig.h + pad}`} role="img" aria-label={fig.alt} style={{ maxWidth: Math.min(560, fig.w * 1.25) }}>
       <defs>
         <marker id="fig-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill={INK} /></marker>
         <marker id="fig-ahs" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill={INK} /></marker>

@@ -45,7 +45,7 @@ for (const t of topics) {
       for (let seed = 1; seed <= SEEDS; seed++) {
         const [sh] = generateSet(t.id, [c.id], seed, 1);
         const where = `${t.id}.${c.id} seed ${seed}`;
-        stems.add(sh.stem + sh.parts.map((p) => p.prompt).join());
+        stems.add(sh.stem + (sh.data ?? "") + sh.parts.map((p) => p.prompt).join() + JSON.stringify(sh.fig ?? ""));
         const all = [sh.stem, sh.data ?? "", ...sh.parts.flatMap((p) => [p.prompt, ...(p.solution ?? []), ...p.rules.map((r) => r.text)])].join(" ");
         assert.ok(!BAD.test(all), `${where}: text has NaN/undefined: ${all.match(BAD)?.[0]} in ${all.slice(0, 300)}`);
         assert.ok(sh.parts.length >= 1 && sh.parts.length <= 5, `${where}: parts`);
