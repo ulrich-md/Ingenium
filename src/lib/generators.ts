@@ -4,28 +4,61 @@
  */
 import type { Sheet } from "./content.ts";
 import { hasAny } from "./numbers.ts";
-import { rng, pick, type Topic } from "./bank/kit.ts";
+import { rng, pick, type Concept, type Level, type Topic } from "./bank/kit.ts";
 import { topics as A } from "./bank/A.ts";
 import { topics as B } from "./bank/B.ts";
 import { topics as C } from "./bank/C.ts";
 import { topics as D } from "./bank/D.ts";
 import { topics as E } from "./bank/E.ts";
 
-export { fmt, G, rng, type Concept, type Topic } from "./bank/kit.ts";
+export { fmt, G, rng, LEVEL_NAME, type Concept, type Level, type Topic } from "./bank/kit.ts";
 
 export const TOPICS: Topic[] = [...A, ...B, ...C, ...D, ...E];
 
 export const topicById = (id: string) => TOPICS.find((t) => t.id === id);
 
-/** Build n exam sheets from the chosen concepts (cycling through them). */
-export function generateSet(topicId: string, conceptIds: string[], seed: number, n = 4, idPrefix = "x"): Sheet[] {
+/** A concept's level: its own, or from its marks (≤3 Básico, 4 Intermedio, ≥5 Examen). */
+const levels = new WeakMap<Concept, Level>();
+export function levelOf(c: Concept): Level {
+  if (c.level) return c.level;
+  let l = levels.get(c);
+  if (!l) {
+    const marks = c.make(rng(1)).parts.reduce((a, p) => a + p.marks, 0);
+    l = marks <= 3 ? 1 : marks <= 4 ? 2 : 3;
+    levels.set(c, l);
+  }
+  return l;
+}
+
+/** How a practice set picks its sheets: "prog" from Básico up to Examen, or one level. */
+export type LevelChoice = "prog" | Level;
+
+/**
+ * Build n exam sheets from the chosen concepts.
+ * Without `level` (sets made before levels existed): cycling through the concepts in order.
+ * "prog": from the easiest to the hardest, spread over the whole range.
+ * 1–3: only concepts of that level (the nearest level when the topic has none).
+ */
+export function generateSet(topicId: string, conceptIds: string[], seed: number, n = 4, idPrefix = "x", level?: LevelChoice): Sheet[] {
   const topic = topicById(topicId);
   if (!topic) return [];
   const chosen = topic.concepts.filter((c) => conceptIds.includes(c.id));
-  const list = chosen.length ? chosen : topic.concepts;
+  let list = chosen.length ? chosen : topic.concepts;
+  let order: Concept[];
+  if (level === "prog") {
+    const sorted = [...list].sort((a, b) => levelOf(a) - levelOf(b));
+    order = Array.from({ length: n }, (_, i) => sorted[n === 1 ? 0 : Math.round((i * (sorted.length - 1)) / (n - 1))]);
+  } else {
+    if (level) {
+      for (const d of [0, 1, -1, 2, -2]) {
+        const at = list.filter((c) => levelOf(c) === level + d);
+        if (at.length) { list = at; break; }
+      }
+    }
+    order = Array.from({ length: n }, (_, i) => list[i % list.length]);
+  }
   const r = rng(seed);
-  return Array.from({ length: n }, (_, i) => {
-    const c = list[i % list.length];
+  return order.map((c, i) => {
     const q = c.make(r);
     return {
       id: `${idPrefix}-${i}`,
@@ -37,6 +70,7 @@ export function generateSet(topicId: string, conceptIds: string[], seed: number,
       stem: q.stem,
       data: q.data,
       fig: q.fig,
+      level: levelOf(c),
       parts: q.parts,
     };
   });

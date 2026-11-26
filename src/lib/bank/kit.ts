@@ -101,9 +101,15 @@ export function part(label: string, prompt: string, rules: Rule[], solution: str
 }
 
 /* ---------- topics and concepts ---------- */
+/** 1 Básico (one idea, one or two steps, numbers given in SI), 2 Intermedio, 3 Examen. */
+export type Level = 1 | 2 | 3;
+export const LEVEL_NAME: Record<Level, string> = { 1: "Básico", 2: "Intermedio", 3: "Examen" };
+
 export interface Concept {
   id: string;
   label: string;
+  /** difficulty; without it, it is worked out from the marks (≤3 Básico, 4 Intermedio, ≥5 Examen) */
+  level?: Level;
   /** words that, if typed in class notes, suggest this concept */
   keywords: string[];
   make: (r: R) => { stem: string; data?: string; fig?: Fig; parts: Part[] };

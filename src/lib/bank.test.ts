@@ -12,6 +12,7 @@ import { markTyped } from "./check.ts";
 import { generateSet, TOPICS } from "./generators.ts";
 import { FORMULAS } from "./formulas.ts";
 import type { Fig } from "./fig.ts";
+import { hintsFor } from "./hints.ts";
 
 const only = process.env.BANK;
 const topics = TOPICS.filter((t) => !only || t.unit === only);
@@ -59,6 +60,9 @@ for (const t of topics) {
           const full = markTyped(p.solution!, p.rules);
           assert.equal(full.score, p.marks, `${w}: the solution must earn every mark. Missing: ${p.rules.filter((_, i) => !full.awarded[i]).map((r) => r.code + " " + r.text).join(" / ")}. Solution: ${p.solution!.join(" | ")}`);
           assert.equal(markTyped(["", ""], p.rules).score, 0, `${w}: a blank earns nothing`);
+          // the practice hints never give the final answer away
+          const lastA1 = p.rules.map((r, i) => (r.code === "A1" ? i : -1)).filter((i) => i >= 0).pop();
+          if (lastA1 !== undefined) assert.ok(!markTyped(hintsFor(p).flatMap((h) => h.split("\n")), p.rules).awarded[lastA1], `${w}: the hints give the answer away`);
           // the final answer must not be given away by the question itself (except "show that");
           // a number of the question can match the answer by chance now and then
           if (!/muestre|demuestre/i.test(p.prompt)) {

@@ -896,3 +896,30 @@ body[data-inkdock="bottom"] .zoomwin { bottom: calc(92px + env(safe-area-inset-b
 
 .hltag { margin-left: 6px; font: 700 0.68rem var(--body); font-style: normal; padding: 1px 6px; border-radius: 999px; background: #16181d; color: #fff; vertical-align: 1px; }
 .topic .tcount { display: block; font-size: 0.74rem; opacity: 0.7; font-weight: 500; }
+
+/* ---------- levels ---------- */
+.lvdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+.lvdot.l1 { background: #22a06b; } .lvdot.l2 { background: #e2a03f; } .lvdot.l3 { background: #c9372c; }
+.lvseg { margin-bottom: 4px; }
+.lvseg button { font-size: 0.84rem; }
+.lvtag { margin-left: 8px; font: 700 0.7rem var(--body); letter-spacing: 0; text-transform: none; padding: 2px 8px; border-radius: 999px; vertical-align: 1px; }
+.lvtag.l1 { background: #dcfce7; color: #15803d; } .lvtag.l2 { background: #fef3c7; color: #a16207; } .lvtag.l3 { background: #fee2e2; color: #b91c1c; }
+
+/* ---------- hints (practice) ---------- */
+.hintbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hintbar .hb-lab { font: 600 0.86rem var(--body); color: var(--muted); margin-right: 2px; }
+.hintbar .btn.on { border-color: var(--vec); color: var(--vec); }
+.hintbox { background: #fffbeb; border: 1.5px solid #f5d77a; border-radius: 14px; padding: 10px 14px; display: grid; gap: 6px; }
+.hintbox .hb-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.hintbox ol { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; white-space: pre-line; font-size: 0.95rem; }
+
+/* ---------- worked example (WorkedExample.tsx) ---------- */
+.worked-marks { display: grid; gap: 14px; }
+.worked-marks .wm-part { display: grid; gap: 6px; }
+.wm-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wm-rules li { display: flex; gap: 10px; align-items: baseline; }
+.wm-code { flex: none; font: 700 0.78rem var(--mono); padding: 2px 7px; border-radius: 6px; background: #eef1f5; }
+.wm-code.c-M1 { background: #e0ecff; color: #1d4ed8; } .wm-code.c-A1 { background: #dcfce7; color: #15803d; } .wm-code.c-R1 { background: #fef3c7; color: #a16207; }
+.datosbox { background: #eff6ff; border-color: #bcd6fb; }
+.datosbox ul { margin: 2px 0 0; padding-left: 1.2em; display: grid; gap: 3px; font-size: 0.95rem; }
+.datosbox .db-lab { font: 700 0.74rem var(--body); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }

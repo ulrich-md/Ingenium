@@ -32,6 +32,10 @@ export interface PracticeSet {
   awarded: Record<string, (boolean | null)[][]>;
   marked: Record<string, boolean>;
   done: Record<string, boolean>;
+  /** how sheets are picked (sets made before levels: none, in concept order) */
+  lv?: "prog" | 1 | 2 | 3;
+  /** hints opened, per sheet and part */
+  hints?: Record<string, number[]>;
 }
 
 const NOTES = "kw-notes";
@@ -62,11 +66,11 @@ export const getSet = (id: string) => listSets().find((s) => s.id === id) ?? nul
 export function saveSet(s: PracticeSet) {
   store.set(SETS, [s, ...store.get<PracticeSet[]>(SETS, []).filter((x) => x.id !== s.id)]);
 }
-export function newSet(o: { title: string; topic: string; concepts: string[]; noteId?: string; n?: number }): PracticeSet {
+export function newSet(o: { title: string; topic: string; concepts: string[]; noteId?: string; n?: number; lv?: "prog" | 1 | 2 | 3 }): PracticeSet {
   const s: PracticeSet = {
     id: uid(), title: o.title, topic: o.topic, concepts: o.concepts, noteId: o.noteId,
     seed: Math.floor(Math.random() * 1e9), n: o.n ?? 4, created: Date.now(), idx: 0,
-    typed: {}, awarded: {}, marked: {}, done: {},
+    typed: {}, awarded: {}, marked: {}, done: {}, lv: o.lv ?? "prog",
   };
   saveSet(s);
   return s;

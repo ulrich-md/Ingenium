@@ -31,6 +31,8 @@ export interface Part {
   solution?: string[];
   /** A diagram for this part, under its prompt. */
   fig?: Fig;
+  /** Step-by-step hints for practice (what to use, how to start); see hintsFor() for the default. */
+  hints?: string[];
 }
 
 export interface Sheet {
@@ -44,6 +46,8 @@ export interface Sheet {
   figure?: "vt" | "gas" | "orbit";
   /** A diagram drawn from data (generated questions). */
   fig?: Fig;
+  /** 1 Básico, 2 Intermedio, 3 Examen (generated questions) */
+  level?: 1 | 2 | 3;
   data?: string;
   parts: Part[];
 }
