@@ -21,6 +21,8 @@ export interface Mock {
   typed: Record<string, string[][]>;
   awarded: Record<string, (boolean | null)[][]>;
   marked: Record<string, boolean>;
+  /** 2: drawn from the full bank (see generateMock); older mocks keep their questions */
+  v?: number;
 }
 
 const KEY = "kw-mocks";
@@ -29,7 +31,7 @@ export const MOCK_SIZE = { NM: 6, NS: 8 } as const;
 export const listMocks = () => store.get<Mock[]>(KEY, []).sort((a, b) => b.started - a.started);
 export const getMock = (id: string) => listMocks().find((m) => m.id === id) ?? null;
 export const saveMock = (m: Mock) => store.set(KEY, [m, ...store.get<Mock[]>(KEY, []).filter((x) => x.id !== m.id)]);
-export const mockSheets = (m: Mock) => generateMock(m.seed, m.n, m.id);
+export const mockSheets = (m: Mock) => generateMock(m.seed, m.n, m.id, m.v === 2 ? m.level : undefined);
 
 /** Coming back to a paused mock: the time away does not count. */
 export const resumeMock = (m: Mock, now = Date.now()): Mock =>
@@ -43,9 +45,9 @@ export function newMock(level: "NM" | "NS"): Mock {
   const id = uid();
   const seed = Math.floor(Math.random() * 1e9);
   const n = MOCK_SIZE[level];
-  const minutes = minutesFor(generateMock(seed, n, id));
+  const minutes = minutesFor(generateMock(seed, n, id, level));
   const now = Date.now();
-  const m: Mock = { id, level, seed, n, minutes, started: now, endsAt: now + minutes * 60_000, phase: "running", idx: 0, typed: {}, awarded: {}, marked: {} };
+  const m: Mock = { id, level, seed, n, minutes, started: now, endsAt: now + minutes * 60_000, phase: "running", idx: 0, typed: {}, awarded: {}, marked: {}, v: 2 };
   saveMock(m);
   return m;
 }

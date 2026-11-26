@@ -12,6 +12,7 @@ import type { RowNote } from "@/lib/check";
 import { SHEET_MAX, type Sheet } from "@/lib/content";
 import { prettify } from "@/lib/numbers";
 import { Figure } from "./Figures";
+import FigView from "./FigView";
 
 interface Props {
   sheet: Sheet;
@@ -103,6 +104,7 @@ export default function ExamSheet({ sheet, variant, typed, onType, onFocusInput,
       <p className="stem">{sheet.stem}</p>
       {sheet.data && <p className="data">{sheet.data}</p>}
       {sheet.figure && <Figure id={sheet.figure} />}
+      {sheet.fig && <FigView fig={sheet.fig} />}
 
       {sheet.parts.map((part, pi) => {
         const rows = variant === "sample" ? Math.max(part.rows, part.sample.rows.length)
@@ -116,6 +118,7 @@ export default function ExamSheet({ sheet, variant, typed, onType, onFocusInput,
               <span>{part.prompt}</span>
               <span className="mk">{total != null && <span className="tot" aria-label={`${total} de ${part.marks}`}>{total}</span>}[{part.marks}]</span>
             </div>
+            {part.fig && <FigView fig={part.fig} />}
             <div className="abox">
               {Array.from({ length: rows }, (_, ri) => {
                 const here = rowNotes.filter((n) => n.row === ri);

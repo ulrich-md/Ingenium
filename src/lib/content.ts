@@ -3,6 +3,7 @@
  * IB exam format and with the IB's Spanish command terms. No IB material.
  */
 import type { Rule } from "./check.ts";
+import type { Fig } from "./fig.ts";
 import { hasAny, near, normalize } from "./numbers.ts";
 import type { Unit } from "./scoring.ts";
 
@@ -28,6 +29,8 @@ export interface Part {
   sample: { rows: string[]; notes: SampleNote[] };
   /** Worked solution, one step per line (shown after marking). */
   solution?: string[];
+  /** A diagram for this part, under its prompt. */
+  fig?: Fig;
 }
 
 export interface Sheet {
@@ -39,6 +42,8 @@ export interface Sheet {
   paper: string;
   stem: string;
   figure?: "vt" | "gas" | "orbit";
+  /** A diagram drawn from data (generated questions). */
+  fig?: Fig;
   data?: string;
   parts: Part[];
 }
