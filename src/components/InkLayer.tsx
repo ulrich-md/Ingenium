@@ -18,7 +18,7 @@
  * Strokes are stored in units of 1/1000 of the sheet width.
  */
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { cleanPath, effectivePressure, kindOf, rawPath, type Pen } from "@/lib/inkGeom";
+import { cleanPath, effectivePressure, eraseStrokes, kindOf, rawPath, type Pen } from "@/lib/inkGeom";
 import { store } from "@/lib/storage";
 import { Floating, INK_CANCEL } from "./Camera";
 
@@ -44,7 +44,6 @@ export interface InkHandle {
 }
 
 const U = 1000;
-const ERASE_R = 9;
 const HL_ALPHA = 0.42;
 const PENCIL_ALPHA = 0.72; // graphite, lighter than ink
 const SEAM = 0.35; // thin same-color stroke that closes anti-aliasing seams
@@ -133,14 +132,37 @@ function inPoly(x: number, y: number, poly: number[]): boolean {
 
 const SVGNS = "http://www.w3.org/2000/svg";
 
+/**
+ * Ink layers on screen, for the zoom window (ZoomWindow.tsx): it shows a piece of a sheet
+ * magnified and writes into it. `start` begins a stroke from a Pencil touch on the window,
+ * with the window's own screen-to-sheet mapping; the rest of the gesture then comes to the
+ * layer itself (pointer capture), so strokes, erasing and undo work as on the sheet.
+ */
+export interface InkLayerApi {
+  key: string;
+  box: HTMLDivElement;
+  /** ids of the highlight and ink groups, for <use> */
+  gid: string;
+  /** sheet height in units */
+  height: () => number;
+  start: (ev: PointerEvent, view: { ox: number; oy: number; k: number }) => void;
+  last: () => InkStroke | undefined;
+}
+export const inkLayers = new Map<string, InkLayerApi>();
+export const INK_LAYERS = "kw-ink-layers";
+const gidOf = (key: string) => "kwg-" + key.replace(/[^a-zA-Z0-9-]/g, "-");
+
 export default function InkLayer({
-  storageKey, tool, color, size, fingerDraws, onStrokes, onSelect, ref,
+  storageKey, tool, color, size, fingerDraws, eraseMode = "stroke", eraseR = 10, onStrokes, onSelect, ref,
 }: {
   storageKey: string;
   tool: Tool;
   color: string;
   size: number;
   fingerDraws: boolean;
+  /** eraser: whole strokes or only the part it touches; its radius in sheet units */
+  eraseMode?: "stroke" | "part";
+  eraseR?: number;
   onStrokes?: (n: number) => void;
   onSelect?: (n: number) => void;
   ref?: Ref<InkHandle>;
@@ -172,7 +194,8 @@ export default function InkLayer({
   const line = useRef<{ x0: number; y0: number; pr: number } | null>(null);
   const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveBox = useRef<Box | null>(null);
-  const erasing = useRef<{ changed: boolean } | null>(null);
+  const erasing = useRef<{ changed: boolean; x: number; y: number } | null>(null);
+  const eraserEl = useRef<HTMLDivElement>(null);
   const lasso = useRef<number[] | null>(null);
   const sel = useRef<Set<number> | null>(null);
   const drag = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
@@ -256,12 +279,14 @@ export default function InkLayer({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- live (screen) layers ---------- */
-  const fitLive = () => {
+  /** set while a stroke is started from the zoom window: its mapping instead of the sheet's */
+  const viewOverride = useRef<{ ox: number; oy: number; k: number } | null>(null);
+  const fitLive = (k?: number) => {
     const cw = document.documentElement.clientWidth, ch = document.documentElement.clientHeight;
     // the sheet's own camera (Camera.tsx) and, outside it, any browser zoom
     const el = box.current;
     const cam = el && el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1;
-    const zoom = Math.max(1, (window.visualViewport?.scale ?? 1) * cam);
+    const zoom = Math.max(1, k && el?.offsetWidth ? k / (el.offsetWidth / U) : (window.visualViewport?.scale ?? 1) * cam);
     let d = Math.min(3, (window.devicePixelRatio || 1) * zoom);
     if (cw * ch * d * d > MAX_CANVAS_AREA) d = Math.sqrt(MAX_CANVAS_AREA / (cw * ch));
     const w = Math.round(cw * d), h = Math.round(ch * d);
@@ -286,9 +311,11 @@ export default function InkLayer({
     ctx.clearRect(0, 0, c.width, c.height);
   };
   const beginGesture = () => {
-    const d = fitLive();
-    const r = box.current!.getBoundingClientRect();
+    const o = viewOverride.current;
+    const d = fitLive(o?.k);
     const c = live.current?.getBoundingClientRect();
+    if (o) { view.current = { ...o, cx: c?.left ?? 0, cy: c?.top ?? 0, d }; return; }
+    const r = box.current!.getBoundingClientRect();
     view.current = { ox: r.left, oy: r.top, cx: c?.left ?? 0, cy: c?.top ?? 0, k: r.width / U, d };
   };
 
@@ -561,19 +588,31 @@ export default function InkLayer({
     return [(e.clientX - ox) / k, (e.clientY - oy) / k] as const;
   };
 
+  /** Erase along the way from the last eraser point (fast moves must not skip ink). */
   const eraseAt = (x: number, y: number) => {
-    const keep = strokes.current.filter((st) => {
-      for (let i = 0; i < st.p.length; i += 3) {
-        const dx = st.p[i] - x, dy = st.p[i + 1] - y;
-        if (dx * dx + dy * dy < (ERASE_R + st.s / 2) ** 2) return false;
-      }
-      return true;
-    });
-    if (keep.length !== strokes.current.length) {
-      strokes.current = keep;
-      erasing.current!.changed = true;
+    const e = erasing.current!;
+    const steps = Math.max(1, Math.ceil(Math.hypot(x - e.x, y - e.y) / Math.max(1, eraseR / 2)));
+    let list = strokes.current, changed = false;
+    for (let i = 1; i <= steps; i++) {
+      const next = eraseStrokes(list, e.x + ((x - e.x) * i) / steps, e.y + ((y - e.y) * i) / steps, eraseR, eraseMode);
+      if (next) { list = next; changed = true; }
+    }
+    e.x = x; e.y = y;
+    if (changed) {
+      strokes.current = list;
+      e.changed = true;
       redraw();
     }
+  };
+  /** The eraser's circle under the Pencil (also while hovering, on iPads that support it). */
+  const showEraser = (ev: { clientX: number; clientY: number } | null) => {
+    const el = eraserEl.current;
+    if (!el) return;
+    if (!ev) { el.style.display = "none"; return; }
+    const d = 2 * eraseR * (box.current ? box.current.getBoundingClientRect().width / U : 1);
+    el.style.display = "block";
+    el.style.width = el.style.height = `${d}px`;
+    el.style.transform = `translate(${ev.clientX - d / 2}px, ${ev.clientY - d / 2}px)`;
   };
 
   const canWrite = (e: React.PointerEvent) =>
@@ -642,8 +681,9 @@ export default function InkLayer({
     if (tool === "lasso") { lasso.current = [x, y]; return; }
     if (tool === "erase") {
       snapshot();
-      erasing.current = { changed: false };
+      erasing.current = { changed: false, x, y };
       eraseAt(x, y);
+      showEraser(e);
       return;
     }
     const st: InkStroke = tool === "hl" ? { c: color, hl: true, s: size, p: [] } : { c: color, k: tool, s: size, p: [] };
@@ -662,7 +702,10 @@ export default function InkLayer({
   };
 
   const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!drag.current && !lasso.current && !erasing.current && !cur.current) return;
+    if (!drag.current && !lasso.current && !erasing.current && !cur.current) {
+      if (tool === "erase" && e.pointerType === "pen") showEraser(e); // hover
+      return;
+    }
     const ne = e.nativeEvent;
     const evs = typeof ne.getCoalescedEvents === "function" ? ne.getCoalescedEvents() : [];
     const list = evs.length ? evs : [ne];
@@ -680,6 +723,7 @@ export default function InkLayer({
     }
     if (erasing.current) {
       for (const ev of list) { const [x, y] = pos(ev); eraseAt(x, y); }
+      showEraser(e);
       return;
     }
     const t0 = performance.now();
@@ -749,6 +793,7 @@ export default function InkLayer({
     if (erasing.current) {
       if (erasing.current.changed) save(); else undoS.current.pop();
       erasing.current = null;
+      showEraser(null);
       return;
     }
     const st = cur.current;
@@ -767,6 +812,30 @@ export default function InkLayer({
     save();
   };
 
+  // the zoom window finds this layer here (latest handlers through a ref)
+  const startRef = useRef<InkLayerApi["start"]>(() => {});
+  startRef.current = (ev, v) => {
+    viewOverride.current = v;
+    const fake = {
+      nativeEvent: ev, pointerType: ev.pointerType, pointerId: ev.pointerId, button: ev.button,
+      clientX: ev.clientX, clientY: ev.clientY, preventDefault: () => ev.preventDefault(),
+    } as unknown as React.PointerEvent<HTMLDivElement>;
+    try { onDown(fake); } finally { viewOverride.current = null; }
+  };
+  const heightRef = useRef(vbH);
+  heightRef.current = vbH;
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const api: InkLayerApi = {
+      key: storageKey, box: el, gid: gidOf(storageKey), height: () => heightRef.current,
+      start: (ev, v) => startRef.current(ev, v), last: () => strokes.current[strokes.current.length - 1],
+    };
+    inkLayers.set(storageKey, api);
+    window.dispatchEvent(new Event(INK_LAYERS));
+    return () => { if (inkLayers.get(storageKey) === api) inkLayers.delete(storageKey); window.dispatchEvent(new Event(INK_LAYERS)); };
+  }, [storageKey]);
+
   const vb = `0 0 ${U} ${vbH.toFixed(1)}`;
   return (
     <div
@@ -776,16 +845,18 @@ export default function InkLayer({
       onPointerMove={onMove}
       onPointerUp={onUp}
       onPointerCancel={onUp}
+      onPointerLeave={() => { if (!erasing.current) showEraser(null); }}
       style={{ cursor: tool === "erase" ? "cell" : tool === "lasso" ? "default" : "crosshair" }}
       aria-label="Zona de escritura con Apple Pencil"
     >
-      <svg ref={svgHL} className="inksvg" viewBox={vb} preserveAspectRatio="xMinYMin meet" aria-hidden="true"><g opacity={HL_ALPHA} /></svg>
-      <svg ref={svgInk} className="inksvg" viewBox={vb} preserveAspectRatio="xMinYMin meet" aria-hidden="true"><g /></svg>
+      <svg ref={svgHL} className="inksvg" viewBox={vb} preserveAspectRatio="xMinYMin meet" aria-hidden="true"><g id={gidOf(storageKey) + "-hl"} opacity={HL_ALPHA} /></svg>
+      <svg ref={svgInk} className="inksvg" viewBox={vb} preserveAspectRatio="xMinYMin meet" aria-hidden="true"><g id={gidOf(storageKey) + "-ink"} /></svg>
       {/* screen-sized live layers stay outside the camera's moving content */}
       <Floating>
         {/* each pair shares one opacity, so the baked part and the tip never double up */}
         <div ref={hlGroup} className="inklive-g hl"><canvas ref={liveHLBase} className="vp" /><canvas ref={liveHL} className="vp" /></div>
         <div ref={inkGroup} className="inklive-g ink"><canvas ref={liveBase} className="vp" /><canvas ref={live} className="vp" /></div>
+        <div ref={eraserEl} className="eraser-ring" aria-hidden="true" />
         {dbgOn && <div ref={debugEl} className="inkdebug" />}
       </Floating>
       {selBox && (

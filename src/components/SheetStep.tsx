@@ -61,6 +61,11 @@ export default function SheetStep({
     document.body.classList.add("marksheet");
     return () => document.body.classList.remove("marksheet");
   }, [marked, sheetOpen]);
+  // room added below the sheet ("+ Más espacio"), remembered per sheet
+  const spaceKey = `kw-space-${sheet.id}`;
+  const [space, setSpace] = useState(0);
+  useEffect(() => setSpace(store.get<number>(spaceKey, 0)), [spaceKey]);
+  const more = () => setSpace((v) => { const n = Math.min(4000, v + 400); store.set(spaceKey, n); return n; });
   const [showSol, setShowSol] = useState(false);
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
@@ -158,10 +163,11 @@ export default function SheetStep({
               <ExamSheet
                 sheet={sheet}
                 variant={mode === "ipad" ? "ink" : "typed"}
+                extra={space} onMore={marked ? undefined : more}
                 typed={typed}
                 onType={setRow}
                 onFocusInput={(el) => { lastInput.current = el; }}
-                overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
+                overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} eraseMode={tools.eraseMode} eraseR={tools.eraseR} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
               />
             </SheetFit>
           </div>
@@ -185,12 +191,13 @@ export default function SheetStep({
             <ExamSheet
               sheet={sheet}
               variant={mode === "ipad" ? "ink" : "typed"}
+                extra={space} onMore={marked ? undefined : more}
               typed={typed}
               onType={setRow}
               onFocusInput={(el) => { lastInput.current = el; }}
               notes={notes}
               totals={totals}
-              overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
+              overlay={mode === "ipad" ? <InkLayer ref={ink} storageKey={`kw-ink-${sheet.id}`} tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} eraseMode={tools.eraseMode} eraseR={tools.eraseR} onStrokes={onStrokes} onSelect={tools.setSelected} /> : null}
             />
           </SheetFit>
           {mode === "ipad" && marked && showSample && (

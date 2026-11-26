@@ -12,6 +12,7 @@ import { store } from "@/lib/storage";
 import type { InkHandle, Pen, Tool } from "./InkLayer";
 import { cameraCmd, Floating, useCameraZoom, INK_TAP } from "./Camera";
 import { ICONS } from "./toolIcons";
+import ZoomWindow from "./ZoomWindow";
 
 export const PEN_COLORS = [
   { c: "#121417", n: "Negro" }, { c: "#e5484d", n: "Rojo" }, { c: "#2f3fd8", n: "Azul" },
@@ -29,6 +30,14 @@ const SIZES: Record<Pen | "hl", number[]> = {
   hl: [12, 18, 26],
 };
 type Inked = Pen | "hl";
+/** thickness range of each pen for the slider (sheet units, 1/1000 of the page width) */
+const RANGE: Record<Inked, [number, number]> = {
+  fountain: [1, 7], ball: [0.7, 4], pencil: [1, 6], marker: [3, 14], hl: [8, 36],
+};
+/** eraser: whole strokes, or only the part it touches (radius in sheet units) */
+export type EraseMode = "stroke" | "part";
+const ERASE_RANGE: [number, number] = [3, 40];
+const MAX_MINE = 8;
 const NAMES: Record<Tool, string> = {
   fountain: "Pluma estilográfica", ball: "Bolígrafo", pencil: "Lápiz", marker: "Plumón", hl: "Resaltador", erase: "Borrador", lasso: "Lazo",
 };
@@ -38,7 +47,14 @@ export type Dock = "bottom" | "top" | "left" | "right" | "free";
 /** where the bar's grip is, as fractions of the screen's width and height (the bar is
  *  placed so that the grip stays where the finger let go of it) */
 export interface At { x: number; y: number }
-interface Saved { tool: Tool; last: Inked; finger: boolean; dock: Dock; at?: At; mini: boolean; set: Record<Inked, { c: string; i: number }> }
+interface Saved {
+  tool: Tool; last: Inked; finger: boolean; dock: Dock; at?: At; mini: boolean;
+  /** per pen: color, old size step (fino/medio/grueso) and the slider's thickness */
+  set: Record<Inked, { c: string; i: number; w?: number }>;
+  erase?: { mode: EraseMode; r: number };
+  /** colors the student made with the picker */
+  mine?: string[];
+}
 const DEFAULTS: Saved = {
   tool: "fountain", last: "fountain", finger: false, dock: "bottom", mini: false,
   set: {
@@ -52,7 +68,11 @@ export interface InkTools {
   /** pen whose settings the color dots edit (the active pen, or the last one before eraser/lasso) */
   inked: Inked;
   colorOf: (t: Inked) => string; setColor: (c: string) => void;
-  sizeIdx: number; setSizeIdx: (i: number) => void;
+  /** the pen's thickness and its slider range */
+  setSize: (w: number) => void; range: [number, number];
+  eraseMode: EraseMode; eraseR: number; setErase: (mode: EraseMode, r: number) => void; eraseRange: [number, number];
+  /** own colors (not in exam mode) */
+  mine: string[]; addMine: (c: string) => void; removeMine: (c: string) => void; exam: boolean;
   finger: boolean; setFinger: (f: boolean) => void;
   dock: Dock; at?: At; setPlace: (d: Dock, at: At) => void;
   /** collapsed bar: only undo, the pen in use and its color */
@@ -86,18 +106,27 @@ export function useInkTools({ exam = false }: { exam?: boolean } = {}): InkTools
   const isHl = inked === "hl";
   const palette = exam ? EXAM_COLORS : isHl ? HL_COLORS : PEN_COLORS;
   const color = exam && !EXAM_COLORS.some((x) => x.c === conf.c) ? EXAM_COLORS[0].c : conf.c;
+  const [lo, hi] = RANGE[inked];
+  const size = Math.min(hi, Math.max(lo, conf.w ?? SIZES[inked][conf.i] ?? SIZES[inked][1]));
+  const er = s.erase ?? { mode: "stroke" as EraseMode, r: 10 };
+  const mine = s.mine ?? [];
   return {
     tool, inked, selected, setSelected, pens: exam ? EXAM_PENS : PEN_TOOLS, palette,
     setTool: (tool) => up((p) => ({ ...p, tool, last: tool === "erase" || tool === "lasso" ? p.last : tool })),
     colorOf: (t) => (exam && !EXAM_COLORS.some((x) => x.c === s.set[t].c) ? EXAM_COLORS[0].c : s.set[t].c),
     setColor: (c) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], c } } })),
-    sizeIdx: conf.i,
-    setSizeIdx: (i) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], i } } })),
+    range: RANGE[inked],
+    setSize: (w) => up((p) => ({ ...p, set: { ...p.set, [inked]: { ...p.set[inked], w: Math.round(w * 10) / 10 } } })),
+    eraseMode: er.mode, eraseR: er.r, eraseRange: ERASE_RANGE,
+    setErase: (mode, r) => up((p) => ({ ...p, erase: { mode, r } })),
+    mine, exam,
+    addMine: (c) => up((p) => ({ ...p, mine: [c, ...(p.mine ?? []).filter((x) => x !== c)].slice(0, MAX_MINE) })),
+    removeMine: (c) => up((p) => ({ ...p, mine: (p.mine ?? []).filter((x) => x !== c) })),
     finger: s.finger, setFinger: (finger) => up((p) => ({ ...p, finger })),
     dock: s.dock, at: s.at, setPlace: (dock, at) => up((p) => ({ ...p, dock, at })),
     mini: s.mini, setMini: (mini) => up((p) => ({ ...p, mini })),
     color,
-    size: SIZES[inked][conf.i] ?? SIZES[inked][1],
+    size,
   };
 }
 
@@ -124,6 +153,9 @@ const TOOL_COLOR: Partial<Record<Tool, string>> = { erase: "#7b8494", lasso: "#0
 
 export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<InkHandle | null>; onClear?: () => void }) {
   const [panel, setPanel] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [zw, setZw] = useState(false);
+  useEffect(() => { if (!panel) setPicker(false); }, [panel]);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
   const bar = useRef<HTMLDivElement>(null);
@@ -184,7 +216,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   }, [t.dock]);
 
   const pickTool = (x: Tool) => {
-    if (x === t.tool && x !== "erase" && x !== "lasso") { setPanel((p) => !p); return; }
+    if (x === t.tool && x !== "lasso") { setPanel((p) => !p); return; }
     t.setTool(x);
     setPanel(false);
   };
@@ -318,34 +350,70 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
     <div className="inkfix" ref={setFix}>
       {panel && (
         <div ref={panelEl} className={`inkpanel dock-${t.dock}`} role="dialog" aria-label={`Opciones de ${NAMES[t.inked]}`}>
-          <div className="ip-row">
-            <span className="ip-lab">{NAMES[t.inked]} · grosor</span>
-            <div className="ip-sizes">
-              {SIZES[t.inked].map((s, i) => (
-                <button key={i} type="button" aria-pressed={t.sizeIdx === i} aria-label={["Fino", "Medio", "Grueso"][i]} onClick={() => t.setSizeIdx(i)}>
-                  <svg viewBox="0 0 80 20" width="80" height="20" aria-hidden="true">
-                    <path d={`M6 13 C 22 ${13 - s * 1.2}, 40 ${7 + s}, 74 8`} fill="none" stroke={t.color} strokeOpacity={isHl ? 0.6 : 1} strokeWidth={isHl ? s / 2.4 : s * 1.5} strokeLinecap="round" />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="ip-row">
-            <span className="ip-lab">Colores</span>
-            <div className="ip-colors">
-              {palette.map((p) => (
-                <button key={p.c} type="button" aria-label={`Color ${p.n}`} aria-pressed={t.color === p.c} onClick={() => pickColor(p.c)}>
-                  <span style={{ background: p.c }} />
-                </button>
-              ))}
-            </div>
-          </div>
+          {t.tool === "erase" ? (
+            <>
+              <div className="ip-row">
+                <span className="ip-lab">Borrador</span>
+                <div className="ip-seg" role="radiogroup" aria-label="Qué borra">
+                  <button type="button" role="radio" aria-checked={t.eraseMode === "stroke"} onClick={() => t.setErase("stroke", t.eraseR)}>Trazo entero</button>
+                  <button type="button" role="radio" aria-checked={t.eraseMode === "part"} onClick={() => t.setErase("part", t.eraseR)}>Solo lo que toca</button>
+                </div>
+              </div>
+              <div className="ip-row">
+                <span className="ip-lab">Tamaño</span>
+                <div className="ip-slider">
+                  <input type="range" min={t.eraseRange[0]} max={t.eraseRange[1]} step={1} value={t.eraseR} aria-label="Tamaño del borrador"
+                    onChange={(e) => t.setErase(t.eraseMode, Number(e.target.value))} />
+                  <span className="ip-eprev" aria-hidden="true"><i style={{ width: t.eraseR * 1.6, height: t.eraseR * 1.6 }} /></span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="ip-row">
+                <span className="ip-lab">{NAMES[t.inked]} · grosor {t.size.toFixed(1)}</span>
+                <div className="ip-slider">
+                  <input type="range" min={t.range[0]} max={t.range[1]} step={0.1} value={t.size} aria-label="Grosor"
+                    style={{ accentColor: isHl ? "#b59a00" : t.color }} onChange={(e) => t.setSize(Number(e.target.value))} />
+                </div>
+                <svg className="ip-prev" viewBox="0 0 300 44" aria-hidden="true">
+                  <path d="M14 30 C 70 6, 110 40, 160 22 S 250 10, 286 20" fill="none" stroke={t.color} strokeOpacity={isHl ? 0.45 : t.inked === "pencil" ? 0.75 : 1}
+                    strokeWidth={Math.min(40, t.size * 1.6)} strokeLinecap={isHl ? "butt" : "round"} strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="ip-row">
+                <span className="ip-lab">Colores</span>
+                <div className="ip-colors">
+                  {palette.map((p) => (
+                    <button key={p.c} type="button" aria-label={`Color ${p.n}`} aria-pressed={t.color === p.c} onClick={() => pickColor(p.c)}>
+                      <span style={{ background: p.c }} />
+                    </button>
+                  ))}
+                  {!t.exam && t.mine.map((c) => (
+                    <button key={"m" + c} type="button" className="mine" aria-label={`Mi color ${c}`} aria-pressed={t.color === c} onClick={() => pickColor(c)}>
+                      <span style={{ background: c }} />
+                    </button>
+                  ))}
+                  {!t.exam && (
+                    <button type="button" className="ip-add" aria-label="Crear un color" aria-expanded={picker} onClick={() => setPicker((v) => !v)}>
+                      <span>+</span>
+                    </button>
+                  )}
+                </div>
+                {!t.exam && t.mine.includes(t.color) && !picker && (
+                  <button type="button" className="ip-link" onClick={() => t.removeMine(t.color)}>Quitar este color de mis colores</button>
+                )}
+                {picker && <ColorPicker start={t.color} onPick={(c) => { t.addMine(c); pickColor(c); setPicker(false); }} onCancel={() => setPicker(false)} />}
+              </div>
+            </>
+          )}
           <div className="ip-row">
             <span className="ip-lab">Zoom de la hoja · también con dos dedos</span>
             <div className="ip-zoom">
               <button type="button" className="btn sm ghost" aria-label="Alejar" onClick={() => cameraCmd("out")} disabled={camZoom <= 1.01}>−</button>
               <button type="button" className="btn sm ghost" onClick={() => cameraCmd("reset")}>{Math.round(camZoom * 100)} %</button>
               <button type="button" className="btn sm ghost" aria-label="Acercar" onClick={() => cameraCmd("in")} disabled={camZoom >= 3.99}>+</button>
+              <button type="button" className="btn sm" aria-pressed={zw} onClick={() => { setZw((v) => !v); setPanel(false); }}>{zw ? "Cerrar ventana de zoom" : "Ventana de zoom"}</button>
             </div>
           </div>
           <p className="ip-tips">Toca con dos dedos para deshacer y con tres para rehacer. Para una línea recta, deja el lápiz quieto al final del trazo.</p>
@@ -406,6 +474,50 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
         )}
       </div>
     </div>
+    {zw && <ZoomWindow onClose={() => setZw(false)} />}
     </Floating>
+  );
+}
+
+/* ---------- own colors: a saturation/brightness square and a hue strip ---------- */
+const hsv2hex = (h: number, s: number, v: number) => {
+  const f = (n: number) => { const k = (n + h / 60) % 6; return v - v * s * Math.max(0, Math.min(k, 4 - k, 1)); };
+  return "#" + [f(5), f(3), f(1)].map((x) => Math.round(x * 255).toString(16).padStart(2, "0")).join("");
+};
+const hex2hsv = (hex: string): [number, number, number] => {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, mx ? d / mx : 0, mx];
+};
+
+function ColorPicker({ start, onPick, onCancel }: { start: string; onPick: (c: string) => void; onCancel: () => void }) {
+  const [[h, sat, val], setHsv] = useState<[number, number, number]>(() => hex2hsv(start));
+  const sq = useRef<HTMLDivElement>(null);
+  const c = hsv2hex(h, sat, val);
+  const fromSquare = (e: React.PointerEvent) => {
+    const r = sq.current!.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+    setHsv([h, x, 1 - y]);
+  };
+  return (
+    <div className="cpick">
+      <div ref={sq} className="cp-sq" style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${h} 100% 50%))` }}
+        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); fromSquare(e); }}
+        onPointerMove={(e) => { if (e.buttons || e.pressure > 0) fromSquare(e); }}
+        role="slider" aria-label="Claridad y saturación" aria-valuenow={Math.round(val * 100)}>
+        <i style={{ left: `${sat * 100}%`, top: `${(1 - val) * 100}%`, background: c }} />
+      </div>
+      <input className="cp-hue" type="range" min={0} max={359} value={Math.round(h)} aria-label="Tono" onChange={(e) => setHsv([Number(e.target.value), sat, val])} />
+      <div className="cp-foot">
+        <span className="cp-prev" style={{ background: c }} aria-hidden="true" />
+        <span className="mono cp-hex">{c.toUpperCase()}</span>
+        <span className="grow" />
+        <button type="button" className="btn sm ghost" onClick={onCancel}>Cancelar</button>
+        <button type="button" className="btn sm primary" onClick={() => onPick(c)}>Usar este color</button>
+      </div>
+    </div>
   );
 }

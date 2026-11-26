@@ -7,7 +7,7 @@
  *  - typed: each dotted line is a text input (computer)
  *  - sample: a handwritten example answer, read-only (demo of AI marking)
  */
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { RowNote } from "@/lib/check";
 import { SHEET_MAX, type Sheet } from "@/lib/content";
 import { prettify } from "@/lib/numbers";
@@ -23,6 +23,31 @@ interface Props {
   totals?: (number | null)[];
   overlay?: ReactNode;
   readOnly?: boolean;
+  /** ink only: extra room asked for below the default work space (px) */
+  extra?: number;
+  onMore?: () => void;
+}
+
+/** With ink the page is at least this tall (design px): a portrait iPad shows paper to
+ *  the bottom of the screen. Same in both orientations, so the ink always lines up. */
+const MIN_INK_PAGE = 1240;
+
+/** Work space after the last part. Added at the bottom only, so ink already written in
+ *  the boxes above never moves. */
+function WorkSpace({ extra = 0, onMore }: { extra?: number; onMore?: () => void }) {
+  const el = useRef<HTMLDivElement>(null);
+  const [h, setH] = useState(260);
+  useLayoutEffect(() => {
+    const e = el.current;
+    if (!e) return;
+    setH(Math.max(260, MIN_INK_PAGE - e.offsetTop - 40));
+  }, []);
+  return (
+    <div ref={el} className="workspace" style={{ height: h + extra }}>
+      <span className="ws-lab">Espacio extra · si no te alcanza un recuadro, sigue aquí e indica la parte, por ejemplo «(b) continúa»</span>
+      {onMore && <button type="button" className="ws-more" onClick={onMore}>+ Más espacio</button>}
+    </div>
+  );
 }
 
 function moveFocus(from: HTMLInputElement, dir: 1 | -1) {
@@ -31,7 +56,7 @@ function moveFocus(from: HTMLInputElement, dir: 1 | -1) {
   all[i + dir]?.focus();
 }
 
-export default function ExamSheet({ sheet, variant, typed, onType, onFocusInput, notes, totals, overlay, readOnly }: Props) {
+export default function ExamSheet({ sheet, variant, typed, onType, onFocusInput, notes, totals, overlay, readOnly, extra, onMore }: Props) {
   return (
     <div className={"paper" + (variant === "ink" ? " ink" : "")}>
       <div className="qh">
@@ -93,6 +118,7 @@ export default function ExamSheet({ sheet, variant, typed, onType, onFocusInput,
           </div>
         );
       })}
+      {variant === "ink" && <WorkSpace extra={extra} onMore={onMore} />}
       {overlay}
     </div>
   );

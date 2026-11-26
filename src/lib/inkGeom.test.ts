@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanPath, effectivePressure, outline, rawPath } from "./inkGeom.ts";
+import { cleanPath, effectivePressure, eraseStrokes, outline, rawPath } from "./inkGeom.ts";
 import polygonClipping, { type Ring } from "polygon-clipping";
 
 const loopy = () => {
@@ -59,4 +59,17 @@ test("a live piece from the middle of a pencil stroke has no taper at its ends",
   const mid = outline({ k: "pencil", s: 3, p }, [], false, false);
   const whole = outline({ k: "pencil", s: 3, p });
   assert.ok(width(mid, 101) > width(whole, 101) * 2);
+});
+
+test("the eraser: whole strokes, or only the part it touches", () => {
+  // a straight line with points far apart (as straightened lines are stored)
+  const line = { s: 2, p: [0, 100, 0.5, 60, 100, 0.5, 120, 100, 0.5] };
+  const other = { s: 2, p: [0, 300, 0.5, 50, 300, 0.5] };
+  assert.equal(eraseStrokes([line, other], 200, 200, 10, "stroke"), null);
+  assert.deepEqual(eraseStrokes([line, other], 60, 104, 10, "stroke"), [other]);
+  const cut = eraseStrokes([line], 60, 100, 10, "part")!;
+  assert.equal(cut.length, 2);
+  const xs = cut.map((st) => [st.p[0], st.p[st.p.length - 3]]);
+  // the gap is where the eraser was, and the ends are kept
+  assert.ok(xs[0][0] === 0 && xs[0][1] < 50 && xs[1][0] > 70 && xs[1][1] === 120);
 });

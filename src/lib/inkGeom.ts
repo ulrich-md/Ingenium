@@ -121,3 +121,46 @@ export function cleanPath(st: StrokeLike): string {
     return ringPath(poly);
   }
 }
+
+/** Squared distance from (x, y) to the segment a–b. */
+function segDist2(x: number, y: number, ax: number, ay: number, bx: number, by: number) {
+  const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
+  const t = l ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l)) : 0;
+  const px = ax + t * dx - x, py = ay + t * dy - y;
+  return px * px + py * py;
+}
+
+/**
+ * Erase around (x, y) with radius r. "stroke": strokes it touches go whole.
+ * "part": only what is under the eraser goes; the rest of each stroke is kept as pieces
+ * (points are filled in first, so long straight segments are cut in the right place).
+ * Returns null when nothing was touched.
+ */
+export function eraseStrokes<S extends { s: number; p: number[] }>(list: S[], x: number, y: number, r: number, mode: "stroke" | "part"): S[] | null {
+  let changed = false;
+  const out: S[] = [];
+  for (const st of list) {
+    const R2 = (r + st.s / 2) ** 2, p = st.p;
+    let hit = false;
+    for (let i = 0; i < p.length && !hit; i += 3) {
+      hit = i === 0 ? (p[0] - x) ** 2 + (p[1] - y) ** 2 < R2 : segDist2(x, y, p[i - 3], p[i - 2], p[i], p[i + 1]) < R2;
+    }
+    if (!hit) { out.push(st); continue; }
+    changed = true;
+    if (mode === "stroke") continue;
+    let piece: number[] = [];
+    const flush = () => { if (piece.length >= 6) out.push({ ...st, p: piece }); piece = []; };
+    const visit = (qx: number, qy: number, qp: number) => {
+      if ((qx - x) ** 2 + (qy - y) ** 2 < R2) flush(); else piece.push(qx, qy, qp);
+    };
+    for (let i = 0; i < p.length; i += 3) {
+      if (i) {
+        const ax = p[i - 3], ay = p[i - 2], n = Math.floor(Math.hypot(p[i] - ax, p[i + 1] - ay) / 1.2);
+        for (let j = 1; j < n; j++) visit(Math.round((ax + ((p[i] - ax) * j) / n) * 10) / 10, Math.round((ay + ((p[i + 1] - ay) * j) / n) * 10) / 10, p[i + 2]);
+      }
+      visit(p[i], p[i + 1], p[i + 2]);
+    }
+    flush();
+  }
+  return changed ? out : null;
+}

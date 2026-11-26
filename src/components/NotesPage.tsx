@@ -149,7 +149,7 @@ function NoteEditor({ id }: { id: string }) {
         <InkLayer
           ref={(h) => { inks.current[p] = h; if (p === 0 && !active.current) active.current = h; }}
           storageKey={`kw-ink-note-${note.id}-p${p}`}
-          tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} onSelect={tools.setSelected}
+          tool={tools.tool} color={tools.color} size={tools.size} fingerDraws={tools.finger} eraseMode={tools.eraseMode} eraseR={tools.eraseR} onSelect={tools.setSelected}
         />
       )}
     </div>
