@@ -77,3 +77,10 @@ for (const t of topics) {
     }
   });
 }
+
+test("extra questions go to subtopics that exist", async () => {
+  for (const u of ["A", "B", "C", "D", "E"]) for (const k of ["basico", "examen"]) {
+    const m = await import(`./bank/${u}_${k}.ts`);
+    for (const id of Object.keys(m.extra)) assert.ok(TOPICS.some((t) => t.id === id), `bank/${u}_${k}.ts: no subtopic "${id}"`);
+  }
+});

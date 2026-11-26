@@ -10,10 +10,25 @@ import { topics as B } from "./bank/B.ts";
 import { topics as C } from "./bank/C.ts";
 import { topics as D } from "./bank/D.ts";
 import { topics as E } from "./bank/E.ts";
+import { extra as Ab } from "./bank/A_basico.ts";
+import { extra as Ae } from "./bank/A_examen.ts";
+import { extra as Bb } from "./bank/B_basico.ts";
+import { extra as Be } from "./bank/B_examen.ts";
+import { extra as Cb } from "./bank/C_basico.ts";
+import { extra as Ce } from "./bank/C_examen.ts";
+import { extra as Db } from "./bank/D_basico.ts";
+import { extra as De } from "./bank/D_examen.ts";
+import { extra as Eb } from "./bank/E_basico.ts";
+import { extra as Ee } from "./bank/E_examen.ts";
 
 export { fmt, G, rng, LEVEL_NAME, type Concept, type Level, type Topic } from "./bank/kit.ts";
 
-export const TOPICS: Topic[] = [...A, ...B, ...C, ...D, ...E];
+/** Each subtopic with the extra questions of bank/X_basico.ts and bank/X_examen.ts. */
+const EXTRAS = [Ab, Ae, Bb, Be, Cb, Ce, Db, De, Eb, Ee];
+export const TOPICS: Topic[] = [...A, ...B, ...C, ...D, ...E].map((t) => ({
+  ...t,
+  concepts: [...t.concepts, ...EXTRAS.flatMap((x) => x[t.id] ?? [])],
+}));
 
 export const topicById = (id: string) => TOPICS.find((t) => t.id === id);
 
