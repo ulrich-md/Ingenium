@@ -60,7 +60,7 @@ function Home() {
                         <button key={x.id} type="button" role="radio" aria-checked={topic === x.id} className={"topic" + (topic === x.id ? " on" : "")}
                           style={{ background: topic === x.id ? `var(--t${x.unit})` : undefined }}
                           onClick={() => { setTopic(x.id); setChosen([]); }}>
-                          <span>{x.name}</span>
+                          <span>{x.name}{x.hl && <em className="hltag" title="Solo Nivel Superior">NS</em>}<small className="tcount">{x.concepts.length} tipos de ejercicio</small></span>
                           {topic === x.id && <Icon name="check" size={18} />}
                         </button>
                       ))}
