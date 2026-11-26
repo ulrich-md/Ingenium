@@ -61,7 +61,7 @@ export const extra: Record<string, Concept[]> = {
         const lev = (n: number) => `E${sbn(n)} = −13,6 / ${n}² = −${fmt(En(n))} eV`;
         return {
           stem: `La figura muestra los cuatro niveles de energía más bajos del átomo de hidrógeno. Un electrón pasa del nivel n = ${ni} al nivel n = ${nf} y emite un fotón.`,
-          data: "E ₙ = −13,6 / n² eV · h = 6,63 × 10⁻³⁴ J s · c = 3,00 × 10⁸ m s⁻¹ · 1 eV = 1,6 × 10⁻¹⁹ J",
+          data: "Eₙ = −13,6 / n² eV · h = 6,63 × 10⁻³⁴ J s · c = 3,00 × 10⁸ m s⁻¹ · 1 eV = 1,6 × 10⁻¹⁹ J",
           fig: { w: 340, h: 218, alt: `Cuatro niveles de energía del hidrógeno, de n = 1 a n = 4, con una flecha desde n = ${ni} hasta n = ${nf}`, items },
           parts: [
             part("(a)", "Calcule la energía del fotón emitido, en eV.", [
@@ -302,15 +302,24 @@ export const extra: Record<string, Concept[]> = {
         const Q = 144 * bBa + 89 * bKr - 235 * bU, tot = 144 * bBa + 89 * bKr;
         const Ef = 200 * MEV, Pth = Pe / eta, rate = (Pth * 1e6) / Ef, perDay = rate * 86400, mass = perDay * 235 * U_AMU;
         const px = (A: number) => 46 + (A / 250) * 270, py = (y: number) => 18 + (170 * (9 - y)) / 2;
-        const curve: [number, number][] = [[30, 8.4], [40, 8.6], [56, 8.8], [89, 8.8], [120, 8.6], [144, 8.4], [190, 8.0], [235, 7.6], [250, 7.5]];
+        const key: [number, number][] = [[30, 8.4], [56, 8.8], [89, 8.8], [144, 8.4], [190, 8.0], [235, 7.6], [250, 7.5]];
+        const curve: [number, number][] = [];
+        for (let j = 0; j < key.length - 1; j++) {
+          const P = [key[Math.max(0, j - 1)], key[j], key[j + 1], key[Math.min(key.length - 1, j + 2)]];
+          for (let u = 0; u < 1; u += 0.1) {
+            const c = (i: 0 | 1) => 0.5 * (2 * P[1][i] + (-P[0][i] + P[2][i]) * u + (2 * P[0][i] - 5 * P[1][i] + 4 * P[2][i] - P[3][i]) * u * u + (-P[0][i] + 3 * P[1][i] - 3 * P[2][i] + P[3][i]) * u ** 3);
+            curve.push([Number(c(0).toFixed(2)), Number(c(1).toFixed(3))]);
+          }
+        }
+        curve.push(key[key.length - 1]);
         const items: FigItem[] = [{
           t: "graph", x: 46, y: 18, w: 270, h: 170, xr: [0, 250], yr: [7, 9], xlabel: "número de nucleones A", ylabel: "Eb / A (MeV)",
           xticks: [0, 50, 100, 150, 200, 250], yticks: [7, 7.2, 7.4, 7.6, 7.8, 8, 8.2, 8.4, 8.6, 8.8, 9], grid: true,
-          series: [{ pts: curve, smooth: true }],
+          series: [{ pts: curve }],
         }];
-        for (const [A, y, s, dx, dy] of [[235, bU, "U-235", -4, -10], [144, bBa, "Ba-144", 8, -8], [89, bKr, "Kr-89", 0, 18]] as [number, number, string, number, number][]) {
+        for (const [A, y, s, dx, dy] of [[235, bU, "U-235", 8, -8], [144, bBa, "Ba-144", 8, -8], [89, bKr, "Kr-89", 0, -9]] as [number, number, string, number, number][]) {
           items.push({ t: "circle", cx: px(A), cy: py(y), r: 3.5, fill: "dark" });
-          items.push({ t: "text", x: px(A) + dx, y: py(y) + dy, s, size: 11, anchor: A === 235 ? "end" : "start" });
+          items.push({ t: "text", x: px(A) + dx, y: py(y) + dy, s, size: 11, anchor: A === 89 ? "middle" : "start" });
         }
         return {
           stem: `En una central nuclear, un núcleo de uranio-235 absorbe un neutrón y se fisiona: n + ${nu(235, 92, "U")} → ${nu(144, 56, "Ba")} + ${nu(89, 36, "Kr")} + 3 n. La gráfica muestra la energía de enlace por nucleón Eb / A en función del número de nucleones.`,
