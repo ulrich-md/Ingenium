@@ -321,10 +321,10 @@ export const extra: Record<string, Concept[]> = {
         const I = Ima * 1e-3, V = eps - I * ri, R = eps / I - ri - RA, L = pick(r, [1.5, 2.0, 2.5]), k = R / L;
         const circuit = (extra: boolean): FigItem[] => {
           const it: FigItem[] = [
-            { t: "comp", kind: "voltmeter", x1: 50, y1: 40, x2: 50, y2: 170, label: "V" },
+            { t: "comp", kind: "voltmeter", x1: 50, y1: 40, x2: 50, y2: 170 },
             { t: "line", x1: 50, y1: 40, x2: 130, y2: 40 }, { t: "line", x1: 50, y1: 170, x2: 130, y2: 170 },
             { t: "comp", kind: "cell", x1: 130, y1: 40, x2: 130, y2: 170, label: "ε, r" },
-            { t: "comp", kind: "ammeter", x1: 130, y1: 40, x2: 230, y2: 40, label: "A" },
+            { t: "comp", kind: "ammeter", x1: 130, y1: 40, x2: 230, y2: 40 },
             { t: "line", x1: 230, y1: 40, x2: 300, y2: 40 }, { t: "line", x1: 130, y1: 170, x2: 300, y2: 170 },
             { t: "comp", kind: "resistor", x1: 300, y1: 40, x2: 300, y2: 170, label: "R" },
             { t: "dot", x: 130, y: 40 }, { t: "dot", x: 130, y: 170 },

@@ -287,7 +287,7 @@ export const extra: Record<string, Concept[]> = {
               method("Ley de Snell en el extremo: sen α = n₁ sen β", /sin|sen/i, sa, "sen α = n₁ sen β"),
               val("A1", `α máx = ${fmt(al)}°`, al),
             ], ["En la frontera el ángulo de incidencia es θc, por lo que β = 90° − θc", `β = 90° − ${fmt(thc)}° = ${fmt(beta)}°`, `sen α = n₁ sen β = ${fmt(n1)} × sen ${fmt(beta)}° = ${fmt(sa)}`, `α máx = ${fmt(al)}°`]),
-            part("(c)", `El rayo axial viaja a lo largo del eje y otro rayo, con el ángulo máximo, rebota en zigzag con β = ${fmt(beta)}° respecto del eje. Calcule la diferencia entre los tiempos que tardan en recorrer ${f2(L)} km de fibra.`, [
+            part("(c)", `El rayo axial viaja a lo largo del eje y otro rayo, que entra con el ángulo máximo de la parte (b), rebota en zigzag. Calcule la diferencia entre los tiempos que tardan en recorrer ${f2(L)} km de fibra.`, [
               method("Δt = (L n₁/c)(1/sen θc − 1): el camino del rayo en zigzag es L / sen θc", /L\s*n|n\s*L|1\s*\/\s*sin|1\s*\/\s*sen|L\s*\/\s*sin|L\s*\/\s*sen|c\s*\/\s*n|n\s*1\s*\/\s*n\s*2|n₁\s*\/\s*n₂/i, t0, "Δt = (L n₁/c)(1/sen θc − 1)"),
               valAny("A1", `Δt = ${fmt(dt * 1e9)} ns`, [dt, dt * 1e9, dt * 1e6]),
             ], ["Rayo axial: t₀ = L n₁ / c", `t₀ = ${fmt(L * 1e3)} × ${fmt(n1)} / 3,0×10⁸ = ${fmt(t0)} s`, "El rayo en zigzag recorre L / sen θc, luego Δt = t₀ (1 / sen θc − 1) = t₀ (n₁ / n₂ − 1)", `Δt = ${fmt(t0)} × (${fmt(n1)} / ${fmt(n2)} − 1) = ${fmt(dt)} s = ${fmt(dt * 1e9)} ns`], 5),
