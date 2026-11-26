@@ -123,7 +123,7 @@ export function cleanPath(st: StrokeLike): string {
 }
 
 /** Squared distance from (x, y) to the segment a–b. */
-function segDist2(x: number, y: number, ax: number, ay: number, bx: number, by: number) {
+export function segDist2(x: number, y: number, ax: number, ay: number, bx: number, by: number) {
   const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy;
   const t = l ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l)) : 0;
   const px = ax + t * dx - x, py = ay + t * dy - y;

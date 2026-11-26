@@ -4,8 +4,9 @@
  *
  * - Input: coalesced Pencil samples (240 Hz on iPadOS 18.2+), pressure shaped per pen
  *   (ink pens keep a constant width, the pencil follows pressure), see lib/inkGeom.
- * - Hold the Pencil still at the end of a roughly straight stroke and it becomes a straight
- *   line; keep moving to aim it (vectors, axes, force diagrams).
+ * - Hold the Pencil still at the end of a stroke and it becomes a shape (lib/shapes): a
+ *   straight line or an arrow (keep moving to aim it: vectors, axes, force diagrams), a
+ *   triangle, a rectangle or a circle/ellipse.
  * - While writing: the whole stroke outline (smoothed, variable width) is redrawn on a
  *   screen-sized canvas whose resolution follows pinch-zoom, plus the Pencil's predicted
  *   points so the ink stays on the tip. Only the stroke's area is cleared.
@@ -18,7 +19,8 @@
  * Strokes are stored in units of 1/1000 of the sheet width.
  */
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
-import { cleanPath, effectivePressure, eraseStrokes, kindOf, rawPath, type Pen } from "@/lib/inkGeom";
+import { cleanPath, effectivePressure, eraseStrokes, kindOf, rawPath, segDist2, type Pen } from "@/lib/inkGeom";
+import { arrowPoints, linePoints, recognize } from "@/lib/shapes";
 import { store } from "@/lib/storage";
 import { Floating, INK_CANCEL } from "./Camera";
 
@@ -39,6 +41,8 @@ export interface InkHandle {
   undo(): void;
   redo(): void;
   clear(): void;
+  /** paste what was copied or cut (from any sheet or page); false when there is nothing */
+  paste(): boolean;
   /** Recolor the selected strokes; returns false when nothing is selected. */
   recolor(c: string, hl: boolean): boolean;
 }
@@ -88,27 +92,6 @@ const CHUNK = 40, OVER = 6;
 
 /** Hold to straighten: still for this long (moving less than HOLD_PX on screen). */
 const HOLD_MS = 550, HOLD_PX = 4;
-/** Is this stroke meant as a line? Long enough, close to its chord, no going back and forth. */
-export function looksStraight(p: number[]): boolean {
-  const n = p.length / 3;
-  if (n < 4) return false;
-  const x0 = p[0], y0 = p[1], x1 = p[p.length - 3], y1 = p[p.length - 2];
-  const len = Math.hypot(x1 - x0, y1 - y0);
-  if (len < 30) return false;
-  let walked = 0, dev = 0;
-  for (let i = 3; i < p.length; i += 3) {
-    walked += Math.hypot(p[i] - p[i - 3], p[i + 1] - p[i - 2]);
-    dev = Math.max(dev, Math.abs((x1 - x0) * (y0 - p[i + 1]) - (x0 - p[i]) * (y1 - y0)) / len);
-  }
-  return walked <= len * 1.25 && dev <= Math.max(4, len * 0.12);
-}
-/** Evenly spaced points of a straight line (perfect-freehand needs more than the two ends). */
-function linePoints(x0: number, y0: number, x1: number, y1: number, pr: number): number[] {
-  const n = Math.max(2, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3));
-  const out: number[] = [];
-  for (let i = 0; i <= n; i++) out.push(r1(x0 + ((x1 - x0) * i) / n), r1(y0 + ((y1 - y0) * i) / n), pr);
-  return out;
-}
 
 function bounds(list: InkStroke[]): Box {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
@@ -131,6 +114,30 @@ function inPoly(x: number, y: number, poly: number[]): boolean {
 }
 
 const SVGNS = "http://www.w3.org/2000/svg";
+
+/* ---------- clipboard, shared by every sheet and page ---------- */
+let clipboard: { from: string; strokes: InkStroke[] } | null = null;
+export const CLIP_EVENT = "kw-ink-clip";
+export const hasClip = () => !!clipboard?.strokes.length;
+const setClip = (from: string, list: InkStroke[]) => {
+  clipboard = { from, strokes: list.map((st) => ({ ...st, p: st.p.slice() })) };
+  window.dispatchEvent(new Event(CLIP_EVENT));
+};
+
+/** Move, scale and turn of the selection while a finger or the Pencil is on it. */
+interface Xf { dx: number; dy: number; s: number; rot: number }
+const NO_XF: Xf = { dx: 0, dy: 0, s: 1, rot: 0 };
+/** Apply a selection transform about (cx, cy) to a stroke (its width scales too). */
+function xfStroke(st: InkStroke, x: Xf, cx: number, cy: number): InkStroke {
+  const c = Math.cos(x.rot) * x.s, sn = Math.sin(x.rot) * x.s;
+  const p = st.p.slice();
+  for (let i = 0; i < p.length; i += 3) {
+    const ux = p[i] - cx, uy = p[i + 1] - cy;
+    p[i] = r1(cx + x.dx + ux * c - uy * sn);
+    p[i + 1] = r1(cy + x.dy + ux * sn + uy * c);
+  }
+  return { ...st, p, s: Math.round(st.s * x.s * 100) / 100 };
+}
 
 /**
  * Ink layers on screen, for the zoom window (ZoomWindow.tsx): it shows a piece of a sheet
@@ -191,14 +198,28 @@ export default function InkLayer({
   const last = useRef<{ x: number; y: number; t: number; v: number } | null>(null);
   // hold to straighten: where the Pencil last stopped, and the line once it snapped
   const hold = useRef<{ x: number; y: number; t: number } | null>(null);
-  const line = useRef<{ x0: number; y0: number; pr: number } | null>(null);
+  /** the shape the stroke snapped to; lines and arrows follow the Pencil until it lifts */
+  const line = useRef<{ x0: number; y0: number; pr: number; kind: "line" | "arrow" | "fixed" } | null>(null);
   const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveBox = useRef<Box | null>(null);
   const erasing = useRef<{ changed: boolean; x: number; y: number } | null>(null);
   const eraserEl = useRef<HTMLDivElement>(null);
   const lasso = useRef<number[] | null>(null);
   const sel = useRef<Set<number> | null>(null);
-  const drag = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  /** a gesture on the selection: move (inside it), scale (corner handle) or rotate (top handle) */
+  const drag = useRef<{ mode: "move" | "scale" | "rotate"; x: number; y: number; cx: number; cy: number } | null>(null);
+  const xf = useRef<Xf>(NO_XF);
+  const selG = useRef<SVGGElement[]>([]);
+  const selEl = useRef<HTMLDivElement>(null);
+  const selBarEl = useRef<HTMLDivElement>(null);
+  const xfFrame = useRef(0);
+  const [clip, setClipOn] = useState(false);
+  useEffect(() => {
+    const on = () => setClipOn(hasClip());
+    on();
+    window.addEventListener(CLIP_EVENT, on);
+    return () => window.removeEventListener(CLIP_EVENT, on);
+  }, []);
   // sheet origin and live-canvas origin (client px), px per unit, backing px per css px
   const view = useRef({ ox: 0, oy: 0, cx: 0, cy: 0, k: 1, d: 2 });
   const fingerRef = useRef(fingerDraws);
@@ -207,7 +228,10 @@ export default function InkLayer({
   const debug = useRef<{ ev: number; samples: number; ms: number; max: number; predicted: boolean; coalesced: boolean; pmin: number; pmax: number } | null>(null);
   const debugEl = useRef<HTMLDivElement>(null);
   const [selBox, setSelBox] = useState<Box | null>(null);
+  const selBoxRef = useRef<Box | null>(null);
   const [px, setPx] = useState(1);
+  const pxRef = useRef(1);
+  pxRef.current = px;
   const [vbH, setVbH] = useState(1400);
   const [dbgOn, setDbgOn] = useState(false);
 
@@ -269,13 +293,21 @@ export default function InkLayer({
   const appendStroke = (st: InkStroke) => {
     (st.hl ? svgHL : svgInk).current?.firstElementChild?.appendChild(pathEl(st));
   };
-  const redraw = useCallback((skip?: Set<number>) => {
+  /** Rebuild both layers; selected strokes go in their own group, which moves as one. */
+  const redraw = useCallback(() => {
     const gh = svgHL.current?.firstElementChild, gi = svgInk.current?.firstElementChild;
     if (!gh || !gi) return;
     const fh = document.createDocumentFragment(), fi = document.createDocumentFragment();
-    strokes.current.forEach((st, i) => { if (!skip?.has(i)) (st.hl ? fh : fi).appendChild(pathEl(st)); });
+    const sh = document.createElementNS(SVGNS, "g"), si = document.createElementNS(SVGNS, "g");
+    const s = sel.current;
+    strokes.current.forEach((st, i) => {
+      const inSel = !!s?.has(i);
+      (st.hl ? (inSel ? sh : fh) : (inSel ? si : fi)).appendChild(pathEl(st));
+    });
+    fh.appendChild(sh); fi.appendChild(si);
     gh.replaceChildren(fh);
     gi.replaceChildren(fi);
+    selG.current = [sh, si];
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- live (screen) layers ---------- */
@@ -398,28 +430,28 @@ export default function InkLayer({
     ctx.fill();
   };
 
-  const drawDragged = () => {
-    const c = live.current, ctx = ctxOf(c), dr = drag.current, s = sel.current;
-    if (!c || !ctx || !dr || !s) return;
-    wipe(c);
-    if (inkGroup.current) inkGroup.current.style.opacity = "1";
-    toUnits(ctx, dr.dx, dr.dy);
-    const all = strokes.current;
-    for (const hl of [true, false]) for (const i of s) {
-      const st = all[i];
-      if (!st || !!st.hl !== hl) continue;
-      ctx.globalAlpha = st.hl ? HL_ALPHA : kindOf(st) === "pencil" ? PENCIL_ALPHA : 1;
-      ctx.fillStyle = st.c;
-      ctx.fill(new Path2D(clean.current.get(st) ?? rawPath(st)), clean.current.has(st) ? "evenodd" : "nonzero");
-    }
-    ctx.globalAlpha = 1;
+  /** Show the selection transform: the SVG group and the dashed box follow, nothing is redrawn. */
+  const showXf = () => {
+    xfFrame.current = 0;
+    const b = selBoxRef.current;
+    if (!b) return;
+    const { dx, dy, s: k, rot } = xf.current;
+    const cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2;
+    const t = `translate(${cx + dx} ${cy + dy}) rotate(${(rot * 180) / Math.PI}) scale(${k}) translate(${-cx} ${-cy})`;
+    for (const g of selG.current) g.setAttribute("transform", t);
+    const el = selEl.current, px1 = pxRef.current;
+    if (el) el.style.transform = `translate(${dx * px1}px, ${dy * px1}px) rotate(${rot}rad) scale(${k})`;
   };
+  const scheduleXf = () => { if (!xfFrame.current) xfFrame.current = requestAnimationFrame(showXf); };
 
   const setSelection = useCallback((s: Set<number> | null) => {
     sel.current = s && s.size ? s : null;
-    setSelBox(sel.current ? bounds([...sel.current].map((i) => strokes.current[i])) : null);
+    const b = sel.current ? bounds([...sel.current].map((i) => strokes.current[i])) : null;
+    selBoxRef.current = b;
+    setSelBox(b);
     onSelect?.(sel.current?.size ?? 0);
-  }, [onSelect]);
+    redraw();
+  }, [onSelect, redraw]);
 
   /* ---------- load + size ---------- */
   useEffect(() => {
@@ -427,6 +459,7 @@ export default function InkLayer({
     undoS.current = [];
     redoS.current = [];
     sel.current = null;
+    selBoxRef.current = null;
     setSelBox(null);
     onStrokes?.(strokes.current.length);
     redraw();
@@ -528,19 +561,24 @@ export default function InkLayer({
     save();
   };
 
-  const duplicateSel = () => {
-    const s = sel.current;
-    if (!s) return;
+  /** Add strokes (moved by d) and select them. */
+  const insertSelected = (list: InkStroke[], d: number) => {
     snapshot();
     const start = strokes.current.length;
-    const copies = [...s].map((i) => {
-      const st = strokes.current[i];
-      return { ...st, p: st.p.map((v, j) => (j % 3 === 2 ? v : v + 18)) };
-    });
+    const copies = list.map((st) => ({ ...st, p: st.p.map((v, j) => (j % 3 === 2 ? v : r1(v + d))) }));
     strokes.current = [...strokes.current, ...copies];
     setSelection(new Set(copies.map((_, j) => start + j)));
-    redraw();
     save();
+  };
+  const selected = () => [...(sel.current ?? [])].sort((a, b) => a - b).map((i) => strokes.current[i]);
+  const duplicateSel = () => { if (sel.current) insertSelected(selected(), 18); };
+  const copySel = () => { if (sel.current) setClip(storageKey, selected()); };
+  const cutSel = () => { if (sel.current) { setClip(storageKey, selected()); deleteSel(); } };
+  const pasteClip = () => {
+    if (!clipboard?.strokes.length) return false;
+    // on the same sheet a little apart from the original; on another one, in the same place
+    insertSelected(clipboard.strokes, clipboard.from === storageKey ? 20 : 0);
+    return true;
   };
 
   useImperativeHandle(ref, () => ({
@@ -562,6 +600,7 @@ export default function InkLayer({
       redraw();
       save();
     },
+    paste() { return pasteClip(); },
     clear() {
       if (!strokes.current.length) return;
       snapshot();
@@ -653,13 +692,31 @@ export default function InkLayer({
   const checkHold = () => {
     const st = cur.current, h = hold.current;
     if (!st || !h || line.current || performance.now() - h.t < HOLD_MS) return;
-    if (!looksStraight(st.p)) { hold.current = { ...h, t: Infinity }; return; } // not a line: stop asking until it moves
-    let pr = 0;
-    for (let i = 2; i < st.p.length; i += 3) pr += st.p[i];
-    line.current = { x0: st.p[0], y0: st.p[1], pr: r2(pr / (st.p.length / 3)) };
-    st.p = linePoints(st.p[0], st.p[1], h.x, h.y, line.current.pr);
+    const shape = recognize(st.p, st.s);
+    if (!shape) { hold.current = { ...h, t: Infinity }; return; } // not a shape: stop asking until it moves
+    const pr = shape.p[2];
+    line.current = { x0: st.p[0], y0: st.p[1], pr, kind: shape.kind === "line" || shape.kind === "arrow" ? shape.kind : "fixed" };
+    st.p = shape.kind === "line" ? linePoints(st.p[0], st.p[1], h.x, h.y, pr) : shape.p;
     if (frame.current) { cancelAnimationFrame(frame.current); frame.current = 0; }
     restartLive(st);
+  };
+
+  /** Start moving, scaling or turning the selection. */
+  const startXf = (mode: "move" | "scale" | "rotate", x: number, y: number) => {
+    const b = selBoxRef.current;
+    if (!b) return;
+    drag.current = { mode, x, y, cx: (b[0] + b[2]) / 2, cy: (b[1] + b[3]) / 2 };
+    xf.current = { ...NO_XF };
+    if (selBarEl.current) selBarEl.current.style.visibility = "hidden";
+  };
+  /** A handle of the selection box: scale (corner) or rotate (top). */
+  const onHandle = (mode: "scale" | "rotate") => (e: React.PointerEvent<HTMLElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    beginGesture();
+    try { box.current!.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    const [x, y] = pos(e);
+    startXf(mode, x, y);
   };
 
   const onDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -671,12 +728,7 @@ export default function InkLayer({
     e.preventDefault();
     try { box.current!.setPointerCapture(e.pointerId); } catch { /* pointer no longer active */ }
 
-    if (grab) {
-      drag.current = { x, y, dx: 0, dy: 0 };
-      redraw(sel.current!);
-      drawDragged();
-      return;
-    }
+    if (grab) { startXf("move", x, y); return; }
     if (sel.current) setSelection(null);
     if (tool === "lasso") { lasso.current = [x, y]; return; }
     if (tool === "erase") {
@@ -710,10 +762,18 @@ export default function InkLayer({
     const evs = typeof ne.getCoalescedEvents === "function" ? ne.getCoalescedEvents() : [];
     const list = evs.length ? evs : [ne];
     if (drag.current) {
-      const [x, y] = pos(e);
-      drag.current.dx = x - drag.current.x;
-      drag.current.dy = y - drag.current.y;
-      drawDragged();
+      const d = drag.current, [x, y] = pos(e);
+      if (d.mode === "move") xf.current = { ...xf.current, dx: x - d.x, dy: y - d.y };
+      else if (d.mode === "scale") {
+        const k = Math.hypot(x - d.cx, y - d.cy) / Math.max(1, Math.hypot(d.x - d.cx, d.y - d.cy));
+        xf.current = { ...xf.current, s: Math.min(6, Math.max(0.2, k)) };
+      } else {
+        let a = Math.atan2(y - d.cy, x - d.cx) - Math.atan2(d.y - d.cy, d.x - d.cx);
+        const q = Math.PI / 2, near = Math.round(a / q) * q;
+        if (Math.abs(a - near) < 0.07) a = near; // snaps to 0°, 90°, 180°
+        xf.current = { ...xf.current, rot: a };
+      }
+      scheduleXf();
       return;
     }
     if (lasso.current) {
@@ -731,8 +791,9 @@ export default function InkLayer({
     const ln = line.current;
     if (ln) {
       // a snapped line: the Pencil aims its end
+      if (ln.kind === "fixed") return; // a closed shape stays as it snapped
       const [x, y] = pos(list[list.length - 1]);
-      st.p = linePoints(ln.x0, ln.y0, x, y, ln.pr);
+      st.p = ln.kind === "arrow" ? arrowPoints(ln.x0, ln.y0, x, y, ln.pr, st.s) : linePoints(ln.x0, ln.y0, x, y, ln.pr);
       if (!frame.current) frame.current = requestAnimationFrame(() => { frame.current = 0; if (cur.current) restartLive(cur.current); });
       return;
     }
@@ -762,24 +823,40 @@ export default function InkLayer({
 
   const onUp = () => {
     if (drag.current) {
-      const { dx, dy } = drag.current;
+      const d = drag.current, x = xf.current, s = sel.current;
       drag.current = null;
-      wipe(live.current);
-      if (Math.abs(dx) + Math.abs(dy) > 0.5 && sel.current) {
+      xf.current = { ...NO_XF };
+      if (xfFrame.current) { cancelAnimationFrame(xfFrame.current); xfFrame.current = 0; }
+      if (selEl.current) selEl.current.style.transform = "";
+      if (selBarEl.current) selBarEl.current.style.visibility = "";
+      const moved = Math.abs(x.dx) + Math.abs(x.dy) > 0.5 || Math.abs(x.s - 1) > 0.01 || Math.abs(x.rot) > 0.005;
+      if (moved && s) {
         snapshot();
-        const s = sel.current;
-        strokes.current = strokes.current.map((st, i) =>
-          s.has(i) ? { ...st, p: st.p.map((v, j) => (j % 3 === 0 ? r1(v + dx) : j % 3 === 1 ? r1(v + dy) : v)) } : st);
+        strokes.current = strokes.current.map((st, i) => (s.has(i) ? xfStroke(st, x, d.cx, d.cy) : st));
         setSelection(new Set(s));
         save();
-      }
-      redraw();
+      } else redraw();
       return;
     }
     if (lasso.current) {
       const poly = lasso.current;
       lasso.current = null;
       wipe(live.current);
+      // a tap with the lasso picks the stroke under it
+      let ext = 0;
+      for (let j = 2; j < poly.length; j += 2) ext = Math.max(ext, Math.hypot(poly[j] - poly[0], poly[j + 1] - poly[1]));
+      if (ext < 6) {
+        let best = -1, bd = Infinity;
+        strokes.current.forEach((st, i) => {
+          const r2_ = (8 + st.s / 2) ** 2;
+          for (let j = 0; j < st.p.length; j += 3) {
+            const dd = j ? segDist2(poly[0], poly[1], st.p[j - 3], st.p[j - 2], st.p[j], st.p[j + 1]) : (st.p[0] - poly[0]) ** 2 + (st.p[1] - poly[1]) ** 2;
+            if (dd < r2_ && dd < bd) { bd = dd; best = i; }
+          }
+        });
+        setSelection(best >= 0 ? new Set([best]) : null);
+        return;
+      }
       if (poly.length < 8) return;
       const picked = new Set<number>();
       strokes.current.forEach((st, i) => {
@@ -860,13 +937,25 @@ export default function InkLayer({
         {dbgOn && <div ref={debugEl} className="inkdebug" />}
       </Floating>
       {selBox && (
-        <div className="selbox" style={{ left: selBox[0] * px, top: selBox[1] * px, width: (selBox[2] - selBox[0]) * px, height: (selBox[3] - selBox[1]) * px }}>
-          <div className="selbar" onPointerDown={(e) => e.stopPropagation()}>
-            <button type="button" onClick={deleteSel}>Borrar</button>
+        <>
+          <div ref={selEl} className="selbox" style={{ left: selBox[0] * px, top: selBox[1] * px, width: (selBox[2] - selBox[0]) * px, height: (selBox[3] - selBox[1]) * px }}>
+            <span className="sel-h rot" onPointerDown={onHandle("rotate")} aria-label="Girar" role="button" />
+            <span className="sel-h scale" onPointerDown={onHandle("scale")} aria-label="Cambiar tamaño" role="button" />
+          </div>
+          <div
+            ref={selBarEl}
+            className="selbar"
+            style={{ left: Math.max(0, Math.min(selBox[0] * px, U * px - 380)), top: selBox[3] * px + 26 }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button type="button" onClick={cutSel}>Cortar</button>
+            <button type="button" onClick={copySel}>Copiar</button>
             <button type="button" onClick={duplicateSel}>Duplicar</button>
+            {clip && <button type="button" onClick={pasteClip}>Pegar</button>}
+            <button type="button" className="danger" onClick={deleteSel}>Borrar</button>
             <button type="button" onClick={() => setSelection(null)}>Listo</button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

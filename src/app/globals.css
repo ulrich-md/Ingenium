@@ -156,9 +156,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .prt { display: grid; grid-template-columns: 10% minmax(0, 1fr) 10%; padding-top: 14px; align-items: start; }
 .prt .lb { padding-left: 4%; }
 .prt .mk { display: flex; justify-content: flex-end; align-items: center; gap: 6px; padding-right: 3%; }
+.morerow { position: relative; height: 56px; margin-top: 10px; }
+.morerow .ws-more { bottom: 6px; }
 .workspace { position: relative; margin: 22px 6% 0 10%; border-top: 1.5px dashed #c3c9d4; background-image: repeating-linear-gradient(to bottom, transparent 0 39px, #eceff4 39px 40px); }
 .workspace .ws-lab { position: absolute; top: 6px; left: 0; right: 0; font-size: 12px; color: #8a93a3; }
-.workspace .ws-more { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 6; border: 1.5px solid #c3c9d4; background: #fff; border-radius: 999px; padding: 8px 16px; font: 600 13px var(--body); color: #4a5263; cursor: pointer; }
+.ws-more { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 6; border: 1.5px solid #c3c9d4; background: #fff; border-radius: 999px; padding: 8px 16px; font: 600 13px var(--body); color: #4a5263; cursor: pointer; }
 .abox { margin: 8px 15% 0 10%; border: 1px solid #5b6270; position: relative; }
 .abox .r { height: 40px; border-bottom: 1.5px dotted #b6bcc8; margin: 0 2.2%; position: relative; display: flex; align-items: flex-end; }
 .abox .r:last-child { border-color: transparent; }
@@ -252,9 +254,15 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .toolbar .tool:disabled { opacity: 0.3; cursor: default; }
 .toolbar .hint { flex-basis: 100%; font: 500 0.8rem var(--body); color: var(--vec); padding: 2px 4px 0; }
 .inklayer canvas:nth-child(2), .inklayer canvas:nth-child(3) { pointer-events: none; }
-.selbox { position: absolute; border: 1.5px dashed var(--vec); border-radius: 6px; background: rgba(18, 53, 194, 0.04); touch-action: none; cursor: move; }
-.selbar { position: absolute; left: 0; top: calc(100% + 6px); display: flex; gap: 2px; background: #16181d; border-radius: 10px; padding: 3px; box-shadow: 0 6px 18px rgba(20,30,60,0.25); }
-.selbar button { border: 0; background: transparent; color: #fff; font: 600 0.82rem var(--body); padding: 8px 11px; border-radius: 7px; cursor: pointer; min-height: 36px; }
+.selbox { position: absolute; border: 1.5px dashed var(--vec); border-radius: 6px; background: rgba(18, 53, 194, 0.04); touch-action: none; cursor: move; transform-origin: center; }
+.sel-h { position: absolute; width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 2px solid var(--vec); box-shadow: 0 2px 6px rgba(20,30,60,0.2); touch-action: none; }
+.sel-h::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--vec); }
+.sel-h.scale { right: -17px; bottom: -17px; cursor: nwse-resize; }
+.sel-h.rot { left: calc(50% - 15px); top: -48px; cursor: grab; }
+.sel-h.rot::before { content: ""; position: absolute; left: 13px; top: 28px; width: 1.5px; height: 18px; background: var(--vec); }
+.selbar { position: absolute; z-index: 7; display: flex; gap: 2px; background: #16181d; border-radius: 12px; padding: 4px; box-shadow: 0 6px 18px rgba(20,30,60,0.25); white-space: nowrap; }
+.selbar button { border: 0; background: transparent; color: #fff; font: 600 0.86rem var(--body); padding: 8px 11px; border-radius: 8px; cursor: pointer; min-height: 40px; }
+.selbar button.danger { color: #ff9b9b; }
 .selbar button:hover { background: rgba(255,255,255,0.14); }
 .solution { display: grid; gap: 10px; background: var(--ok-soft); border-radius: 12px; padding: 12px 14px; }
 .solution > div { display: grid; gap: 4px; }
@@ -412,6 +420,7 @@ body.has-inkbar[data-inkdock="top"] main { padding-top: 84px; }
 .cpick .grow { flex: 1; }
 .inkpanel { max-height: calc(100vh - 24px); overflow-y: auto; overscroll-behavior: contain; }
 .ip-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.ih-paste { margin-left: 10px; border: 0; border-radius: 8px; padding: 6px 12px; background: #fff; color: #16181d; font: 700 0.84rem var(--body); cursor: pointer; }
 .inkhint { position: fixed; z-index: 59; background: #16181d; color: #fff; font: 600 0.84rem var(--body); padding: 8px 14px; border-radius: 12px; max-width: calc(100vw - 24px); text-align: center; left: 50%; transform: translateX(-50%); }
 .inkhint.dock-bottom, .inkhint.dock-left, .inkhint.dock-right { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
 .inkhint.dock-left, .inkhint.dock-right { bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }

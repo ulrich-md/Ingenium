@@ -9,7 +9,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { store } from "@/lib/storage";
-import type { InkHandle, Pen, Tool } from "./InkLayer";
+import { CLIP_EVENT, hasClip, type InkHandle, type Pen, type Tool } from "./InkLayer";
 import { cameraCmd, Floating, useCameraZoom, INK_TAP } from "./Camera";
 import { ICONS } from "./toolIcons";
 import ZoomWindow from "./ZoomWindow";
@@ -155,6 +155,13 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
   const [panel, setPanel] = useState(false);
   const [picker, setPicker] = useState(false);
   const [zw, setZw] = useState(false);
+  const [clipOn, setClipOn] = useState(false);
+  useEffect(() => {
+    const on = () => setClipOn(hasClip());
+    on();
+    window.addEventListener(CLIP_EVENT, on);
+    return () => window.removeEventListener(CLIP_EVENT, on);
+  }, []);
   useEffect(() => { if (!panel) setPicker(false); }, [panel]);
   const [dragging, setDragging] = useState(false);
   const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null);
@@ -416,7 +423,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
               <button type="button" className="btn sm" aria-pressed={zw} onClick={() => { setZw((v) => !v); setPanel(false); }}>{zw ? "Cerrar ventana de zoom" : "Ventana de zoom"}</button>
             </div>
           </div>
-          <p className="ip-tips">Toca con dos dedos para deshacer y con tres para rehacer. Para una línea recta, deja el lápiz quieto al final del trazo.</p>
+          <p className="ip-tips">Toca con dos dedos para deshacer y con tres para rehacer. Deja el lápiz quieto al final de un trazo y se vuelve forma: línea, flecha, triángulo, rectángulo o círculo.</p>
           <div className="ip-row ip-actions">
             <button type="button" className="btn sm ghost" aria-pressed={t.finger} onClick={() => t.setFinger(!t.finger)}>{t.finger ? "Dedo: escribe" : "Dedo: desplaza"}</button>
             <button type="button" className="btn sm ghost" onClick={() => { (onClear ? onClear() : ink.current?.clear()); setPanel(false); }}>Borrar hoja</button>
@@ -425,7 +432,10 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
         </div>
       )}
       {t.tool === "lasso" && (
-        <div ref={hintEl} className={`inkhint dock-${t.dock}`}>{t.selected ? `${t.selected} trazos seleccionados: arrástralos o toca un color` : "Rodea trazos con el lápiz para seleccionarlos"}</div>
+        <div ref={hintEl} className={`inkhint dock-${t.dock}`}>
+          {t.selected ? `${t.selected} ${t.selected === 1 ? "trazo seleccionado" : "trazos seleccionados"}: arrástralos, usa las asas para girar o cambiar el tamaño, o toca un color` : "Rodea trazos con el lápiz, o toca uno, para seleccionarlos"}
+          {!t.selected && clipOn && <button type="button" className="ih-paste" onClick={() => ink.current?.paste()}>Pegar</button>}
+        </div>
       )}
       <div ref={bar} className={`inkbar dock-${t.dock}${vertical ? " vertical" : ""}${dragging ? " dragging" : ""}${t.mini ? " mini" : ""}`} role="toolbar" aria-label="Herramientas de escritura">
         <button type="button" className="ib-grip" aria-label="Mover la barra (arrástrala a donde quieras)" title="Arrastra para mover" {...grip}>

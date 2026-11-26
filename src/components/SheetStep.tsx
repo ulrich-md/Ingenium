@@ -65,7 +65,15 @@ export default function SheetStep({
   const spaceKey = `kw-space-${sheet.id}`;
   const [space, setSpace] = useState(0);
   useEffect(() => setSpace(store.get<number>(spaceKey, 0)), [spaceKey]);
-  const more = () => setSpace((v) => { const n = Math.min(4000, v + 400); store.set(spaceKey, n); return n; });
+  const more = () => setSpace((v) => { const n = Math.min(4000, v + 160); store.set(spaceKey, n); return n; });
+  // stretched answer boxes, except on sheets that already have ink in the earlier layout
+  const [tall, setTall] = useState(true);
+  useEffect(() => {
+    const flag = `kw-tall-${sheet.id}`;
+    const old = store.get<unknown[]>(`kw-ink-${sheet.id}`, []).length > 0 && !store.get<boolean>(flag, false);
+    if (!old) store.set(flag, true);
+    setTall(!old);
+  }, [sheet.id]);
   const [showSol, setShowSol] = useState(false);
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
@@ -163,7 +171,7 @@ export default function SheetStep({
               <ExamSheet
                 sheet={sheet}
                 variant={mode === "ipad" ? "ink" : "typed"}
-                extra={space} onMore={marked ? undefined : more}
+                extra={space} onMore={marked ? undefined : more} tall={tall}
                 typed={typed}
                 onType={setRow}
                 onFocusInput={(el) => { lastInput.current = el; }}
@@ -191,7 +199,7 @@ export default function SheetStep({
             <ExamSheet
               sheet={sheet}
               variant={mode === "ipad" ? "ink" : "typed"}
-                extra={space} onMore={marked ? undefined : more}
+                extra={space} onMore={marked ? undefined : more} tall={tall}
               typed={typed}
               onType={setRow}
               onFocusInput={(el) => { lastInput.current = el; }}

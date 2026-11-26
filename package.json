@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts src/lib/inkGeom.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts src/lib/inkGeom.test.ts src/lib/shapes.test.ts"
   },
   "dependencies": {
     "katex": "0.16.22",
