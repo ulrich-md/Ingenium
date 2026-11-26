@@ -3,7 +3,8 @@
  * subtopics of bank/D.ts by topic id (e.g. "D1"). Ids start with x_.
  */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { E_CHARGE, f2, fmt, G, g, hasAny, K_COUL, method, MU0, near, normalize, part, pick, PLANETS, reason, TOL, U_AMU, val, valAny, type Concept, type Fig, type FigItem, type Rule } from "./kit.ts";
+import { E_CHARGE, f2, fmt, G, g, hasAny, K_COUL, method, MU0, near, normalize, part, pick, PLANETS, reason, TOL, U_AMU, val, valAny, type Concept, type Fig, type FigItem } from "./kit.ts";
+import type { Rule } from "../check.ts";
 
 const MT = 5.97e24, RT = 6.37e6;
 const MP = 1.67e-27;
@@ -109,16 +110,16 @@ export const extra: Record<string, Concept[]> = {
       id: "x_escapegraf", level: 3, label: "Proyectil que no escapa: energía total negativa", keywords: ["rapidez de escape", "energia total negativa", "muestre que v = √(2gr)", "ligado"],
       make: (r) => {
         const B = pick(r, [{ n: "la Luna", g: 1.62, R: 1.74e6 }, { n: "Marte", g: 3.71, R: 3.39e6 }, { n: "Mercurio", g: 3.7, R: 2.44e6 }]);
-        const n = pick(r, [2, 4]);
+        const n = pick(r, [3, 5]);
         const vesc = Math.sqrt(2 * B.g * B.R);
         const v = Number(Math.sqrt(2 * B.g * B.R * (1 - 1 / n)).toPrecision(3));
         const rho = 1 / (1 - (v * v) / (2 * B.g * B.R)), h = (rho - 1) * B.R;
         const fig: Fig = {
           w: 380, h: 235, alt: "Gráfica de la energía por unidad de masa frente a r/R: la curva de la energía potencial y una recta horizontal discontinua que es la energía total del proyectil",
           items: [{
-            t: "graph", x: 58, y: 14, w: 300, h: 170, xr: [0, 5], yr: [-1.25, 0], xlabel: "r / R", ylabel: "energía / (m g R)",
-            xticks: range(0, 5, 1), yticks: range(-1, 0, 0.25), grid: true,
-            series: [{ pts: curve((x) => -1 / x, 1, 5), smooth: true }, { pts: [[1, -1 / n], [5, -1 / n]], dash: true }],
+            t: "graph", x: 58, y: 14, w: 300, h: 170, xr: [0, 6], yr: [-1.25, 0], xlabel: "r / R", ylabel: "energía / (m g R)",
+            xticks: range(0, 6, 1), yticks: range(-1, 0, 0.25), grid: true,
+            series: [{ pts: curve((x) => -1 / x, 1, 6), smooth: true }, { pts: [[1, -1 / n], [6, -1 / n]], dash: true }],
           }],
         };
         return {
@@ -369,7 +370,7 @@ export const extra: Record<string, Concept[]> = {
           parts: [
             part("(a)", "Muestre que el radio de la trayectoria de un ion de masa m es r = (1/B)√(2mV/e).", [
               rx("M1", "eV = ½mv², así que v = √(2eV/m)", /eV|qV|½\s*m\s*v|1\/2\s*m\s*v|mv\^?2\s*=\s*2/i, "eV = ½mv²"),
-              rx("M1", "evB = mv²/r, es decir r = mv/eB, y se sustituye v", /mv\s*\/\s*eB|mv\s*\/\s*qB|evB|qvB|r\s*=\s*mv/i, "r = mv/eB"),
+              rx("M1", "evB = mv²/r, es decir r = mv/eB, y se sustituye v", /mv\s*\/\s*eB|mv\s*\/\s*qB|e\s*v\s*B|q\s*v\s*B|r\s*=\s*m\s*v/i, "r = mv/eB"),
             ], ["eV = ½ m v²  →  v = √(2eV / m)", "e v B = m v² / r  →  r = m v / (eB) = (1/B) √(2mV / e)"]),
             part("(b)", "Calcule el radio de la trayectoria del isótopo 1.", [
               method("r = (1/B)√(2mV/e) (o el cálculo de v antes)", /√|sqrt|mv\s*\/\s*eB|2\s*m\s*V|eV/i, v1, "sustituye en r = (1/B)√(2mV/e)"),
@@ -493,9 +494,9 @@ export const extra: Record<string, Concept[]> = {
               { code: "M1", text: "P = Fv", miss: "P = Fv", test: (l, n) => near(n, P) || /Fv|F\s*v/.test(l) },
               reason("Son iguales (P = I²R): la energía mecánica se transforma en energía térmica", "se comparan: son iguales", "igual", "misma", "coincide", "conserv", "transforma"),
             ], [`P = F v = ${fmt(F)} × ${fmt(v, 2)} = ${fmt(P)} W`, `I²R = ${fmt(I)}² × ${fmt(R, 2)} = ${fmt(I * I * R)} W: es igual, la energía mecánica se transforma en energía térmica (se conserva la energía)`]),
-            part("(e)", "La varilla se mueve ahora al doble de rapidez. Indique el factor por el que aumenta la potencia mecánica necesaria.", [
-              factor("ε y I se duplican, F se duplica: P = Fv aumenta 4 veces", 4),
-            ], ["ε ∝ v, I ∝ v, F ∝ v  →  P = F v ∝ v²: P aumenta 4 veces"], 2),
+            part("(e)", "La rapidez de la varilla se triplica. Indique el factor por el que aumenta la potencia mecánica necesaria.", [
+              factor("P ∝ v²: P aumenta 9 veces", 9),
+            ], ["ε ∝ v, I ∝ v, F ∝ v  →  P = F v ∝ v²: P aumenta 3² = 9 veces"], 2),
           ],
         };
       },
