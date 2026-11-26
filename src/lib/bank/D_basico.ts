@@ -95,11 +95,10 @@ export const extra: Record<string, Concept[]> = {
           `g = ${fmt(gL)} N kg⁻¹`,
         ]);
         pa.hints = [
-          "Qué usar: g = GM / R², con M y R de la Luna (están en la tabla de datos del enunciado).",
+          "Qué usar: g = GM / R², con M y R de la Luna (están en los datos del enunciado).",
           "Para empezar: sustituye G, M y R con sus unidades SI.",
         ];
         const pb = part("(b)", "Calcule el peso de la sonda en la superficie de la Luna.", [
-          method("W = mg", /W\s*=|m\s*g/i, W, "W = mg"),
           val("A1", `W = ${fmt(W)} N`, W),
         ], ["W = m g", `W = ${c.m} kg × ${fmt(gL)} N kg⁻¹`, `W = ${fmt(W)} N`]);
         pb.hints = [
@@ -108,6 +107,7 @@ export const extra: Record<string, Concept[]> = {
         ];
         return {
           stem: `Una sonda de masa ${c.t} kg desciende hasta la superficie de la Luna.`,
+          data: `Masa de la Luna = ${fmt(Luna.M)} kg · Radio de la Luna = ${fmt(Luna.R)} m · G = 6,67 × 10⁻¹¹ N m² kg⁻²`,
           fig: {
             w: 300, h: 200, alt: "Una sonda sobre la superficie de la Luna, con una flecha hacia abajo que representa su peso W",
             items: [
