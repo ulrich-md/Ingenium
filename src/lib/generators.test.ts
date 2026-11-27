@@ -58,12 +58,21 @@ test("concepts are detected from typed notes", () => {
 });
 
 import { generateMock, minutesFor } from "./generators.ts";
-test("mocks cover every topic and time at about 1.8 min per mark", () => {
-  const m = generateMock(5, 8, "mk");
+test("mocks spread over units and time at about 1.8 min per mark", () => {
+  const m = generateMock(5, 8, "mk", "NS");
   assert.equal(m.length, 8);
   assert.deepEqual(m.map((s) => s.num), [1, 2, 3, 4, 5, 6, 7, 8]);
-  assert.equal(new Set(m.map((s) => s.code.split(".")[2])).size, 5);
+  assert.ok(new Set(m.map((s) => s.unit)).size >= Math.min(5, new Set(TOPICS.map((t) => t.unit)).size));
   const marks = m.reduce((a, s) => a + s.parts.reduce((b, p) => b + p.marks, 0), 0);
   assert.equal(minutesFor(m), Math.round(marks * 1.8));
   assert.equal(new Set(m.map((s) => s.id)).size, 8);
+  // NM mocks never include Higher Level topics
+  for (let seed = 1; seed < 20; seed++) for (const s of generateMock(seed, 6, "x", "NM")) {
+    assert.ok(!TOPICS.find((t) => s.code.split(".")[2] === t.id)?.hl, s.topic);
+  }
+});
+
+test("mocks started before the bank grew keep their questions", () => {
+  const old = generateMock(5, 8, "mk");
+  assert.deepEqual(old.map((s) => s.code.split(".")[2]), ["A1", "A2", "A3", "B3", "D1", "A1", "A2", "A3"]);
 });

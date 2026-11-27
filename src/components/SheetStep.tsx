@@ -16,6 +16,8 @@ import { useCamera, ZoomBadge } from "./Camera";
 import { InkToolbar, useInkTools } from "./InkTools";
 import SaveStatus from "./SaveStatus";
 import { FormulaColumn, FormulaDrawer, hasFormulas, useFormulasOpen, useWide } from "./FormulaPanel";
+import { hintsFor } from "@/lib/hints";
+import { datos, pedido } from "@/lib/datos";
 
 type Awarded = (boolean | null)[][];
 
@@ -28,7 +30,7 @@ function SheetFit({ ipad, children }: { ipad: boolean; children: React.ReactNode
 const SHEET_W = 860;
 
 export default function SheetStep({
-  sheet, mode, typed, onTyped, awarded, onAwarded, marked, onMarked, onNext, nextLabel, exam,
+  sheet, mode, typed, onTyped, awarded, onAwarded, marked, onMarked, onNext, nextLabel, exam, hints, onHint,
 }: {
   sheet: Sheet;
   mode: "ipad" | "computadora";
@@ -42,6 +44,9 @@ export default function SheetStep({
   nextLabel: string;
   /** Exam mode: no marking, hints or skipping; the parent controls navigation. */
   exam?: { onPrev?: () => void; info: string };
+  /** Practice only: hints opened per part (count), and how to record one more. */
+  hints?: number[];
+  onHint?: (part: number, count: number) => void;
 }) {
   const ink = useRef<InkHandle>(null);
   const lastInput = useRef<HTMLInputElement | null>(null);
@@ -75,6 +80,16 @@ export default function SheetStep({
     setTall(!old);
   }, [sheet.id]);
   const [showSol, setShowSol] = useState(false);
+  // hints: which part's hints are on show (practice only)
+  const [hintPart, setHintPart] = useState<number | null>(null);
+  const [showDatos, setShowDatos] = useState(false);
+  const canHint = !!onHint && !exam && !marked;
+  const openHint = (pi: number) => {
+    const have = hints?.[pi] ?? 0, all = hintsFor(sheet.parts[pi]).length;
+    if (hintPart === pi && have < all) onHint!(pi, have + 1);
+    else if (have === 0) onHint!(pi, 1);
+    setHintPart(pi);
+  };
   const [strokes, setStrokes] = useState(0);
   const [showSample, setShowSample] = useState(false);
   const onStrokes = useCallback((n: number) => setStrokes(n), []);
@@ -152,6 +167,58 @@ export default function SheetStep({
                   : <>Un paso por renglón. Escribe <span className="mono">10^6</span> o <span className="mono">sqrt(</span> y se convierten solos.</>}
               </span>
               <button type="button" className="tipx" aria-label="Entendido, ocultar" onClick={closeTip}>Entendido</button>
+            </div>
+          )}
+          {canHint && (
+            <div className="hintbar" role="group" aria-label="Pistas">
+              <span className="hb-lab">¿Atascado?</span>
+              <button type="button" className={"btn sm ghost" + (showDatos ? " on" : "")} aria-expanded={showDatos} onClick={() => setShowDatos((v) => !v)}>Datos</button>
+              {sheet.parts.map((p, pi) => {
+                const have = hints?.[pi] ?? 0, all = hintsFor(p).length;
+                return (
+                  <button key={p.label} type="button" className={"btn sm ghost" + (hintPart === pi ? " on" : "")} onClick={() => openHint(pi)} disabled={hintPart === pi && have >= all}>
+                    {hintPart === pi && have > 0 ? (have < all ? `Otra pista ${p.label}` : `Pistas ${p.label}`) : `Pista ${p.label}`}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {canHint && showDatos && (
+            <div className="hintbox datosbox" role="note">
+              <div className="hb-head">
+                <b>Datos e incógnita</b>
+                <button type="button" className="tipx" onClick={() => setShowDatos(false)}>Ocultar</button>
+              </div>
+              {(() => {
+                const ds = datos(`${sheet.stem} ${sheet.data ?? ""}`);
+                return ds.length ? (
+                  <div>
+                    <span className="db-lab">Te dan</span>
+                    <ul>{ds.map((d) => <li key={d.text}><b>{d.text}</b>{d.si && <> = {d.si}</>}{d.note && <span className="muted"> ({d.note})</span>}</li>)}</ul>
+                  </div>
+                ) : <p className="muted">Los datos están en la figura: léelos con sus unidades.</p>;
+              })()}
+              <div>
+                <span className="db-lab">Te piden</span>
+                <ul>
+                  {sheet.parts.map((p) => {
+                    const q = pedido(p.prompt);
+                    return <li key={p.label}><b>{p.label}</b> {q.what}{q.term && <span className="muted"> · <i>{q.term}</i>: {q.meaning}</span>}</li>;
+                  })}
+                </ul>
+              </div>
+              <p className="muted" style={{ margin: 0, fontSize: ".86rem" }}>Escribe primero los datos en unidades SI y la ecuación que relaciona lo que te dan con lo que te piden.</p>
+            </div>
+          )}
+          {canHint && hintPart !== null && (hints?.[hintPart] ?? 0) > 0 && (
+            <div className="hintbox" role="note">
+              <div className="hb-head">
+                <b>Pistas para la parte {sheet.parts[hintPart].label}</b>
+                <button type="button" className="tipx" onClick={() => setHintPart(null)}>Ocultar</button>
+              </div>
+              <ol>
+                {hintsFor(sheet.parts[hintPart]).slice(0, hints?.[hintPart] ?? 0).map((h, i) => <li key={i}>{h}</li>)}
+              </ol>
             </div>
           )}
           {(exam || showF) && (

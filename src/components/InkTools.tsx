@@ -13,6 +13,7 @@ import { CLIP_EVENT, hasClip, type InkHandle, type Pen, type Tool } from "./InkL
 import { cameraCmd, Floating, useCameraZoom, INK_TAP } from "./Camera";
 import { ICONS } from "./toolIcons";
 import ZoomWindow from "./ZoomWindow";
+import { exportPdf } from "@/lib/exportPdf";
 
 export const PEN_COLORS = [
   { c: "#121417", n: "Negro" }, { c: "#e5484d", n: "Rojo" }, { c: "#2f3fd8", n: "Azul" },
@@ -426,6 +427,7 @@ export function InkToolbar({ t, ink, onClear }: { t: InkTools; ink: RefObject<In
           <p className="ip-tips">Toca con dos dedos para deshacer y con tres para rehacer. Deja el lápiz quieto al final de un trazo y se vuelve forma: línea, flecha, triángulo, rectángulo o círculo.</p>
           <div className="ip-row ip-actions">
             <button type="button" className="btn sm ghost" aria-pressed={t.finger} onClick={() => t.setFinger(!t.finger)}>{t.finger ? "Dedo: escribe" : "Dedo: desplaza"}</button>
+            <button type="button" className="btn sm ghost" onClick={() => { setPanel(false); exportPdf(); }}>PDF</button>
             <button type="button" className="btn sm ghost" onClick={() => { (onClear ? onClear() : ink.current?.clear()); setPanel(false); }}>Borrar hoja</button>
             <button type="button" className="btn sm" onClick={() => setPanel(false)}>Listo</button>
           </div>
