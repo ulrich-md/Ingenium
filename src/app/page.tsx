@@ -8,6 +8,7 @@ import PsiLive from "@/components/PsiLive";
 import Reveal from "@/components/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import SprintSection from "@/components/SprintSection";
+import { Diffs } from "@/components/OfferParts";
 import { UNIT_NAME, UNITS } from "@/lib/scoring";
 import type { Unit } from "@/lib/scoring";
 
@@ -27,12 +28,12 @@ const STEPS = [
   { Illo: IlloDiagnostic, t: "Haz el diagnóstico", d: "10 de opción múltiple y 3 de desarrollo. En 15 minutos sabes tu nivel del 1 al 7." },
   { Illo: IlloPlan, t: "Recibe tu plan", d: "12 semanas ordenadas por lo que más te cuesta, unidad por unidad." },
   { Illo: IlloTablet, t: "Resuelve hojas de examen", d: "A mano con el Apple Pencil o tecleadas, y las comparas con el esquema de marcas paso a paso." },
-  { Illo: IlloTimer, t: "Haz simulacros", d: "Prueba 1 y 2 con tiempo real y sin pistas. Al final ves tu nota estimada." },
+  { Illo: IlloTimer, t: "Haz simulacros", d: "Prueba 2 con tiempo real y sin pistas. Al final ves tu nota estimada. La Prueba 1 llega pronto." },
 ];
 
 const FAQ = [
   { q: "¿Kwanta es del Bachillerato Internacional?", a: "No. Las preguntas son originales, escritas con el formato y el estilo del examen. Kwanta no está afiliado con la Organización del Bachillerato Internacional." },
-  { q: "¿Necesito un iPad?", a: "No. En computadora resuelves las mismas hojas tecleando un paso por renglón, con barra de símbolos. En el teléfono repasas con opción múltiple tipo Prueba 1A." },
+  { q: "¿Necesito un iPad?", a: "No. En computadora resuelves las mismas hojas tecleando un paso por renglón, con barra de símbolos. En el teléfono haces la parte de opción múltiple del diagnóstico y ves tu progreso." },
   { q: "¿Sirve para NM y NS?", a: "Sí. El diagnóstico y los simulacros tienen versión NM y NS, y los temas solo de NS vienen marcados." },
   { q: "¿Cómo se corrigen las hojas?", a: "Con el esquema de marcas, paso a paso: ves qué marca vale cada renglón (M1 por el método, A1 por la respuesta) y en qué paso se te fue." },
   { q: "¿Dónde se guarda mi progreso?", a: "Por ahora en tu navegador, en el dispositivo donde estudias. Desde Inicio puedes guardar una copia en Archivos o iCloud." },
@@ -199,10 +200,19 @@ export default function Home() {
             <span className="dev-ic"><Icon name="phone" size={26} /></span>
             <span className="ic">Teléfono</span>
             <h3>Repaso rápido</h3>
-            <p className="muted">Opción múltiple tipo Prueba 1A en sesiones de 5 minutos, con tus correcciones y tu progreso.</p>
-            <p className="dev-soon"><span className="pill sun">Pronto</span> La teoría y los videos de cada tema.</p>
+            <p className="muted">La opción múltiple del diagnóstico, tu plan y tu progreso.</p>
+            <p className="dev-soon"><span className="pill sun">Pronto</span> Repaso rápido de 5 minutos, teoría y videos de cada tema.</p>
           </div>
         </div>
+      </section>
+
+      {/* differentiators */}
+      <section className="wrap ld-sec reveal" id="por-que">
+        <div className="ld-head">
+          <h2>Lo que no encuentras en otro lado</h2>
+          <p>Ocho cosas que Kwanta ya hace hoy, desde el diagnóstico gratis.</p>
+        </div>
+        <Diffs />
       </section>
 
       {/* the paid plan, in its own world */}
