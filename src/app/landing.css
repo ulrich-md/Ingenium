@@ -429,3 +429,24 @@
 .pr-note { color: rgba(255, 255, 255, 0.55); font-size: 0.85rem; text-align: center; max-width: 60ch; }
 @media (max-width: 900px) { .pr-cards { grid-template-columns: minmax(0, 1fr); max-width: 520px; margin-inline: auto; } .pr-card.hot { transform: none; order: -1; margin-top: 12px; } }
 @media (max-width: 700px) { .pr-hero { grid-template-columns: minmax(0, 1fr); text-align: center; padding-top: 40px; } .pr-hero-text { justify-items: center; } .pr-hero-art { width: min(60%, 220px); order: -1; } }
+
+/* ---------- MVP without coaches: billing options, mentors coming soon ---------- */
+.pr-billing { display: grid; gap: 10px; }
+.pr-per { font: 800 0.9rem var(--body); color: rgba(255, 255, 255, 0.8); }
+.pr-best { position: relative; padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 211, 107, 0.4); }
+.pr-best-tag { position: absolute; top: -10px; right: 12px; font: 900 0.66rem var(--body); letter-spacing: 0.06em; text-transform: uppercase; background: var(--sun); color: var(--ink); padding: 3px 8px; border-radius: 99px; }
+.pr-best small b { color: #ffd36b; }
+.pr-soon-price { font-size: 1.6rem !important; }
+.pr-card.later { opacity: 0.78; border-style: dashed; }
+.pr-card.later .pr-stack li svg { color: rgba(255, 255, 255, 0.45); }
+.pr-soon.big { font-size: 0.74rem; padding: 4px 10px; margin: 0; }
+.sp-txt { font: 800 0.86rem var(--body); color: #8fe6ff; }
+.sp-table .hot .sp-txt { color: #4b2bd0; }
+.sp-table tbody th .pr-soon { vertical-align: 1px; }
+.sp-perk h3 .pr-soon { vertical-align: 2px; }
+.sp-mentors { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 20px; align-items: center; margin: 0 auto 48px; padding: 24px 28px; border-radius: 26px;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)); border: 1px dashed rgba(255, 255, 255, 0.3); max-width: 1000px; }
+.sp-mentors h3 { font: 900 1.4rem var(--display); margin: 8px 0 4px; }
+.sp-mentors p { color: var(--sp-text); max-width: 56ch; }
+@media (max-width: 720px) { .sp-mentors { grid-template-columns: minmax(0, 1fr); text-align: center; justify-items: center; } }
+.pr-price small b { font: inherit; color: #ffd36b; }

@@ -34,7 +34,7 @@ Fórmulas del panel de fórmulas (`src/components/FormulaPanel.tsx`), con [KaTeX
 
 ## Fluent Emoji (Microsoft)
 
-Íconos 3D de la landing (`public/3d/*.webp`: calendario, cámara, hoja, escudo, trofeo, birrete, fuego, cohete, foco, globo, diana, estrellas y otros), de [microsoft/fluentui-emoji](https://github.com/microsoft/fluentui-emoji), carpeta `assets/<nombre>/3D`, rama `main` (descargados el 27 de noviembre de 2026 y convertidos a WebP).
+Íconos 3D de la landing (`public/3d/*.webp`: calendario, cámara, hoja, escudo, trofeo, birrete, fuego, cohete, foco, globo, diana, robot, estrellas y otros), de [microsoft/fluentui-emoji](https://github.com/microsoft/fluentui-emoji), carpeta `assets/<nombre>/3D`, rama `main` (descargados el 27 de noviembre de 2026 y convertidos a WebP).
 
 ```
 MIT License

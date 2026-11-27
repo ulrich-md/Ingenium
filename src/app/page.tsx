@@ -37,7 +37,7 @@ const FAQ = [
   { q: "¿Sirve para NM y NS?", a: "Sí. El diagnóstico y los simulacros tienen versión NM y NS, y los temas solo de NS vienen marcados." },
   { q: "¿Cómo se corrigen las hojas?", a: "Con el esquema de marcas, paso a paso: ves qué marca vale cada renglón (M1 por el método, A1 por la respuesta) y en qué paso se te fue." },
   { q: "¿Dónde se guarda mi progreso?", a: "Por ahora en tu navegador, en el dispositivo donde estudias. Desde Inicio puedes guardar una copia en Archivos o iCloud." },
-  { q: "¿Cuánto cuesta?", a: "El diagnóstico es gratis y no necesita cuenta. El Pase Física cuesta $89 USD hasta tu examen ($59 para fundadores) y el Sprint al 7 cuesta $349 USD por 12 semanas. Todo está en la página de precios." },
+  { q: "¿Cuánto cuesta?", a: "Empezar es gratis: el diagnóstico, tu plan de 12 semanas y 3 hojas de práctica por semana. El Sprint al 7 cuesta $19 USD al mes, o $89 hasta tu examen ($59 con precio de fundador), con 14 días para probarlo o te devolvemos el dinero." },
 ];
 
 

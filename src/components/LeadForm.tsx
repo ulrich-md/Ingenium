@@ -26,7 +26,7 @@ export default function LeadForm({ result }: { result: LeadResult }) {
     return (
       <div className="callout" style={{ borderLeftColor: "var(--ok)" }}>
         <b>Listo, ya tenemos tus datos.</b>
-        <span>Te escribiremos con tu plan y cuando abra la preventa del Sprint.</span>
+        <span>Te escribiremos con tu plan y cuando lleguen los mentores.</span>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function LeadForm({ result }: { result: LeadResult }) {
       whatsapp: String(f.get("whatsapp") ?? "").trim(),
       colegio: String(f.get("colegio") ?? "").trim(),
       pais: String(f.get("pais") ?? ""),
-      interes: f.get("sprint") ? "Sprint" : "Plan",
+      interes: f.get("sprint") ? "Mentores" : "Plan",
       website: String(f.get("website") ?? ""),
     };
     try {
@@ -64,7 +64,7 @@ export default function LeadForm({ result }: { result: LeadResult }) {
   return (
     <form className="card lead" onSubmit={submit} noValidate>
       <h3>Recibe tu plan por correo</h3>
-      <p className="muted" style={{ fontSize: ".92rem" }}>Te mandamos tu resultado y el plan de 12 semanas, y te avisamos cuando abra la cohorte de febrero.</p>
+      <p className="muted" style={{ fontSize: ".92rem" }}>Te mandamos tu resultado y el plan de 12 semanas, y te avisamos de novedades y cuando lleguen los mentores.</p>
       <div className="fields">
         <label>Nombre<input name="nombre" id="lead-nombre" autoComplete="given-name" required /></label>
         <label>Correo<input name="correo" id="lead-correo" type="email" autoComplete="email" inputMode="email" required /></label>
@@ -75,7 +75,7 @@ export default function LeadForm({ result }: { result: LeadResult }) {
         </label>
       </div>
       <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1 }} />
-      <label className="check"><input type="checkbox" name="sprint" id="lead-sprint" defaultChecked /> Me interesa el Sprint al 7 (cohorte de febrero)</label>
+      <label className="check"><input type="checkbox" name="sprint" id="lead-sprint" defaultChecked /> Avísame cuando lleguen los mentores que sacaron 7</label>
       <label className="check"><input type="checkbox" name="acepto" id="lead-acepto" /> Acepto el <Link href="/privacidad" target="_blank">aviso de privacidad</Link>. Si soy menor de edad, tengo permiso de mi madre, padre o tutor.</label>
       {err && <p role="alert" style={{ color: "var(--bad)", fontSize: ".9rem" }}>{err}</p>}
       <button className="btn primary" type="submit" disabled={busy}>{busy ? "Enviando…" : "Enviarme mi plan"}</button>

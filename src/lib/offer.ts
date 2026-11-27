@@ -29,7 +29,7 @@ export const PROBLEMS = [
 export const LEVERS = {
   more: [
     { t: "Tu meta", d: "Un 7 en Física IB, con tu nota proyectada a la vista." },
-    { t: "La certeza de que funciona", d: "Corrección con el esquema de marcas y, en el Sprint, una garantía." },
+    { t: "La certeza de que funciona", d: "Corrección con el esquema de marcas, y 14 días para probar el Sprint o te devolvemos el dinero." },
   ],
   less: [
     { t: "Espera", d: "15 minutos para saber tu nivel. En computadora, corrección al instante." },

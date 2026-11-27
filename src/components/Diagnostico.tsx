@@ -302,13 +302,13 @@ export default function Diagnostico() {
       }} />
 
       <div className="callout" style={{ borderLeftColor: "var(--vec)" }}>
-        <b>Sprint al 7 · cohorte de febrero</b>
-        <span>12 semanas con hojas de examen corregidas, una clase semanal en vivo con un coach que sacó 7 y 4 simulacros corregidos sobre tu hoja. Cupo de 25. Los primeros lugares tienen precio de fundador.</span>
+        <b>Sprint al 7 · tu plan, completo</b>
+        <span>12 semanas de hojas personalizadas sin límite, simulacros de Prueba 2 y corrección automática. $19 USD al mes, o $59 hasta tu examen con precio de fundador. 14 días para probarlo o te devolvemos el dinero.</span>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 6 }}>
           {PREVENTA ? (
-            <a className="btn sig" href={PREVENTA} target="_blank" rel="noopener">Apartar lugar de fundador · pagar con Mercado Pago</a>
+            <a className="btn sig" href={PREVENTA} target="_blank" rel="noopener">Empieza tu Sprint · Mercado Pago</a>
           ) : (
-            <button className="btn sig" type="button" disabled>Preventa: abre pronto</button>
+            <Link className="btn sig" href="/precios#sprint">Ver el Sprint al 7</Link>
           )}
           <button className="btn" type="button" onClick={restart}>Repetir diagnóstico</button>
           <Link className="btn ghost" href="/">Inicio</Link>

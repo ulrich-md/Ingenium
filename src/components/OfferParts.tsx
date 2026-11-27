@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Icon from "./Icon";
-import { PLAN_ROWS, PLANS, PREVENTA_URL } from "@/lib/plans";
+import { FOUNDER_UNTIL, PLAN_ROWS, PLANS, PREVENTA_URL, PRICE, type Cell } from "@/lib/plans";
 import { DIFFS, LEVERS, PROBLEMS } from "@/lib/offer";
 
 /** Pieces of the offer shared by the landing (Sprint al 7) and /precios.
@@ -11,11 +11,22 @@ export const I3d = ({ name, size, className = "" }: { name: string; size: number
   <img src={`/3d/${name}.webp`} width={size} height={size} alt="" className={`i3d ${className}`} loading="lazy" decoding="async" />
 );
 
-/** "Aparta tu lugar": Mercado Pago when the pre-sale link is set, otherwise the Sprint on /precios. */
+/** "Empieza tu Sprint": Mercado Pago when the payment link is set; otherwise the free diagnostic
+ *  (on the landing, the plans on /precios). */
 export function SprintCta({ onPricing = false }: { onPricing?: boolean }) {
-  if (PREVENTA_URL) return <a className="btn sp-btn lg" href={PREVENTA_URL} target="_blank" rel="noopener">Aparta tu lugar</a>;
-  return <Link className="btn sp-btn lg" href={onPricing ? "/diagnostico" : "/precios#sprint"}>{onPricing ? "Empieza por el diagnóstico" : "Aparta tu lugar"}</Link>;
+  if (PREVENTA_URL) return <a className="btn sp-btn lg" href={PREVENTA_URL} target="_blank" rel="noopener">Empieza tu Sprint</a>;
+  return <Link className="btn sp-btn lg" href={onPricing ? "/diagnostico" : "/precios#sprint"}>{onPricing ? "Empieza gratis" : "Ver el Sprint al 7"}</Link>;
 }
+
+/** The founder price line: "$59 hasta tu examen" and, if set, until when. */
+export const FounderNote = () => (
+  <>Precio de fundador: <b>{PRICE.founder}</b> hasta tu examen{FOUNDER_UNTIL ? `, hasta el ${FOUNDER_UNTIL}` : ""}</>
+);
+
+const cell = (v: Cell, hot: boolean) =>
+  typeof v === "string" ? <span className="sp-txt">{v}</span>
+  : v ? <span className="sp-yes"><Icon name="check" size={16} label="Incluido" /></span>
+  : <span className="sp-no" aria-label="No incluido">✕</span>;
 
 /** The three plans side by side, the Sprint column raised with an iridescent head. */
 export function PlanTable() {
@@ -36,14 +47,11 @@ export function PlanTable() {
           </tr>
         </thead>
         <tbody>
-          {PLAN_ROWS.map(([label, ...v]) => (
+          {PLAN_ROWS.map(([label, free, sprint, soon]) => (
             <tr key={label}>
-              <th scope="row">{label}</th>
-              {v.map((yes, ci) => (
-                <td key={ci} className={ci === 2 ? "hot" : undefined}>
-                  {yes ? <span className="sp-yes"><Icon name="check" size={16} label="Incluido" /></span> : <span className="sp-no" aria-label="No incluido">✕</span>}
-                </td>
-              ))}
+              <th scope="row">{label}{soon && <span className="pr-soon">Pronto</span>}</th>
+              <td>{cell(free, false)}</td>
+              <td className="hot">{cell(sprint, true)}</td>
             </tr>
           ))}
         </tbody>
@@ -54,10 +62,10 @@ export function PlanTable() {
 
 const WEEKS = [
   { img: "spiral-calendar", when: "Hoy", d: "Haces el diagnóstico gratis y recibes tu plan de 12 semanas." },
-  { img: "video-camera", when: "Cada semana", d: "Clase en vivo con tu coach y las hojas de examen del plan." },
-  { img: "stopwatch", when: "Durante el Sprint", d: "4 simulacros con tiempo real, corregidos sobre tu hoja." },
-  { img: "trophy", when: "Semana 12", d: "Ves tu nueva nota. Si cumpliste el plan y no subiste un nivel, te devolvemos el dinero." },
-];
+  { img: "books", when: "Cada semana", d: "Hojas del plan, empezando por lo que más te cuesta, con pistas y corrección automática." },
+  { img: "stopwatch", when: "Cada 4 semanas", d: "Un simulacro de Prueba 2 con tiempo real para medir tu avance." },
+  { img: "trophy", when: "Semana 12", d: "Tu nueva nota proyectada, unidad por unidad." },
+]
 
 /** The 12 weeks of the Sprint and the guarantee seal. */
 export function SprintWeeks({ id = "sp-seal-path" }: { id?: string }) {
@@ -65,11 +73,11 @@ export function SprintWeeks({ id = "sp-seal-path" }: { id?: string }) {
     <div className="wrap sp-weeks">
       <div className="sp-weeks-text">
         <h2 className="sp-h">Así son tus 12 semanas</h2>
-        <p className="sp-sub">Sabes desde hoy qué toca cada semana, y qué pasa si no subes.</p>
-        <div className="sp-seal" aria-label="Garantía: subes un nivel o te devolvemos el dinero">
+        <p className="sp-sub">Sabes desde hoy qué toca cada semana. Y tienes 14 días para probarlo.</p>
+        <div className="sp-seal" aria-label="Garantía: 14 días para probarlo o te devolvemos el dinero">
           <svg viewBox="0 0 200 200" aria-hidden="true">
             <defs><path id={id} d="M100 100 m-74 0 a74 74 0 1 1 148 0 a74 74 0 1 1 -148 0" /></defs>
-            <text><textPath href={`#${id}`} textLength="452" lengthAdjust="spacing">SUBES UN NIVEL O TE DEVOLVEMOS EL DINERO ★ GARANTÍA ★</textPath></text>
+            <text><textPath href={`#${id}`} textLength="452" lengthAdjust="spacing">14 DÍAS PARA PROBARLO O TE DEVOLVEMOS EL DINERO ★</textPath></text>
           </svg>
           <I3d name="shield" size={72} className="sp-seal-icon" />
         </div>
@@ -129,5 +137,20 @@ export function Levers() {
         {LEVERS.less.map((l) => <div key={l.t}><b>{l.t}</b><p>{l.d}</p></div>)}
       </div>
     </div>
+  );
+}
+
+/** Mentors who scored a 7: coming when we scale. The waitlist is the form after the diagnostic. */
+export function MentorsSoon() {
+  return (
+    <div className="wrap"><div className="sp-mentors">
+      <I3d name="graduation-cap" size={84} />
+      <div>
+        <span className="pr-soon big">Próximamente</span>
+        <h3>Mentores que sacaron 7</h3>
+        <p>Clases en vivo y simulacros corregidos por alguien que ya llegó. Al terminar tu diagnóstico, deja tu correo y te avisamos cuando abran.</p>
+      </div>
+      <Link className="btn pr-ghost lg" href="/diagnostico">Haz el diagnóstico</Link>
+    </div></div>
   );
 }
