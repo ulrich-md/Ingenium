@@ -90,7 +90,8 @@ npm run build      # build de producción
 
 | Variable | Para qué | Si falta |
 |---|---|---|
-| `NEXT_PUBLIC_PREVENTA_URL` | Link de pago de Mercado Pago para apartar lugar de fundador | El botón dice "Preventa: abre pronto" |
+| `NEXT_PUBLIC_PREVENTA_URL` | Link de pago de Mercado Pago del Sprint al 7 | Los botones llevan al diagnóstico gratis o a `/precios` |
+| `NEXT_PUBLIC_FUNDADOR_HASTA` | Último día del precio de fundador, como texto ("31 de enero") | No se muestra fecha de cierre |
 | `NEXT_PUBLIC_LEADS_URL` | URL `/exec` del Apps Script que guarda los registros en Google Sheets | El formulario de registro no aparece |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Correo de contacto del aviso de privacidad | Dice "nuestro correo de contacto" |
 | `NEXT_PUBLIC_SITE_URL` | Dirección pública del sitio, para la imagen al compartir el enlace (`/og.png`) | Usa la de producción de Vercel o `localhost` |
