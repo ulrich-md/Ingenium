@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Psi con birrete y una medalla con un 7" class="psi psi--siete psi-anim" viewBox="0 0 240 240"><style><![CDATA[/* Psi's animations. Each moving part of src/components/Gato.tsx has a class and carries its own pivot
+   (an inline transform-origin in viewBox units), so these rules never need coordinates.
+   Only on Gato with `animated`, and never for people who ask for less motion. */
+
+.psi .g-iris { transition: transform 0.18s ease-out; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* always: blink, breathe, swish */
+  .psi-anim .g-eyes { animation: psi-blink 4.6s infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-body { animation: psi-breathe 3.2s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-tail { animation: psi-swish 2.6s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-head { animation: psi-tilt 5s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-star { animation: psi-twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-star:nth-of-type(2n) { animation-delay: 0.5s; }
+
+  /* per part */
+  .psi-anim .g-wave { animation: psi-wave 1.1s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-point { animation: psi-point 1.4s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-flame { animation: psi-flicker 0.9s ease-in-out infinite alternate; transform-box: view-box; }
+  .psi-anim .g-hand { animation: psi-spin 3s linear infinite; transform-box: view-box; }
+  .psi-anim .g-tear { animation: psi-drip 2.2s ease-in infinite; transform-box: view-box; }
+  .psi-anim .g-ghost { animation: psi-ghost 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text { animation: psi-z 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text:nth-child(2) { animation-delay: 0.4s; }
+  .psi-anim .g-z text:nth-child(3) { animation-delay: 0.8s; }
+  .psi-anim .g-jump { animation: psi-hop 1.3s cubic-bezier(.3, .7, .4, 1) infinite; transform-box: view-box; }
+
+  /* per pose */
+  .psi-anim.psi--ups .g-head, .psi-anim.psi--insiste .g-head { animation: psi-shake 0.45s ease-in-out 3, psi-tilt 5s ease-in-out 1.35s infinite; }
+  .psi-anim.psi--duerme .g-head { animation: psi-snore 3.6s ease-in-out infinite; }
+  .psi-anim.psi--sube .g-head { animation: none; }
+
+  /* one-shot actions, added by script: peek into the box, jump, react */
+  .psi.do-peek .g-peek { animation: psi-peek 1.4s cubic-bezier(.5, 0, .3, 1) 1; }
+  .psi.do-jump { animation: psi-jump 0.7s cubic-bezier(.3, .7, .4, 1) 1; transform-origin: 50% 95%; }
+}
+
+@keyframes psi-blink { 0%, 94%, 100% { transform: scaleY(1); } 96.5% { transform: scaleY(0.08); } }
+@keyframes psi-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes psi-swish { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(9deg); } }
+@keyframes psi-tilt { 0%, 70%, 100% { transform: rotate(0deg); } 80% { transform: rotate(-4deg); } 90% { transform: rotate(2deg); } }
+@keyframes psi-twinkle { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.55); opacity: 0.6; } }
+@keyframes psi-wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-16deg); } }
+@keyframes psi-point { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(5px, -2px); } }
+@keyframes psi-flicker { 0% { transform: scale(1, 1) rotate(-2deg); } 100% { transform: scale(1.05, 1.1) rotate(2deg); } }
+@keyframes psi-spin { to { transform: rotate(360deg); } }
+@keyframes psi-drip { 0%, 30% { transform: translateY(0); opacity: 1; } 90% { transform: translateY(16px); opacity: 0; } 100% { opacity: 0; } }
+@keyframes psi-ghost { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes psi-z { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-6px); } }
+@keyframes psi-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.06, 0.92); } 45% { transform: translateY(-16px) scale(0.97, 1.04); } 78% { transform: translateY(0) scale(1.04, 0.96); } }
+@keyframes psi-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes psi-snore { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(1.5px) scale(1.02, 0.98); } }
+@keyframes psi-peek { 0% { transform: translateY(0); } 35%, 55% { transform: translateY(70px); } 100% { transform: translateY(0); } }
+@keyframes psi-jump { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.05, 0.93); } 50% { transform: translateY(-8%) scale(0.97, 1.04); } 80% { transform: translateY(0) scale(1.03, 0.97); } }
+]]></style><ellipse cx="120" cy="226" fill="#d5dee9" rx="84" ry="7"/><g class="g-tail" style="transform-origin:134px 214px"><path fill="none" stroke="#3d5a7c" stroke-linecap="round" stroke-width="13" d="M134 214c42 0 56-42 36-58"/><path fill="none" stroke="#8fd9ff" stroke-dasharray="0 42 6 10 6 36" stroke-width="13" d="M134 214c42 0 56-42 36-58" opacity=".75" pathLength="100"/><path fill="none" stroke="#f6f9fc" stroke-dasharray="0 86 14" stroke-linecap="round" stroke-width="13" d="M134 214c42 0 56-42 36-58" pathLength="100"/></g><path stroke="#3d5a7c" stroke-linecap="round" stroke-width="15" d="m92 150-36-50"/><circle cx="56" cy="100" r="11" fill="#f6f9fc"/><g fill="#ff7eb0"><ellipse cx="56" cy="102.6" rx="4.6" ry="3.6"/><circle cx="50.6" cy="96.4" r="2.2"/><circle cx="56" cy="94" r="2.2"/><circle cx="61.4" cy="96.4" r="2.2"/></g><path stroke="#3d5a7c" stroke-linecap="round" stroke-width="15" d="m132 150 36-50"/><circle cx="168" cy="100" r="11" fill="#f6f9fc"/><g fill="#ff7eb0"><ellipse cx="168" cy="102.6" rx="4.6" ry="3.6"/><circle cx="162.6" cy="96.4" r="2.2"/><circle cx="168" cy="94" r="2.2"/><circle cx="173.4" cy="96.4" r="2.2"/></g><g class="g-body" style="transform-origin:112px 218px"><path fill="#3d5a7c" stroke="#3d5a7c" stroke-linejoin="round" stroke-width="6" d="M82 138c-12 30-16 72 10 80h40c26-8 22-50 10-80Z"/><clipPath id="psi-siete-body"><path d="M82 138c-12 30-16 72 10 80h40c26-8 22-50 10-80Z"/></clipPath><g clip-path="url(#psi-siete-body)"><ellipse cx="148.96" cy="214" fill="#2b4565" opacity=".55" rx="54.56" ry="40"/><ellipse cx="92.64" cy="150.8" fill="#56769c" opacity=".3" rx="26.4" ry="12.8"/></g><ellipse cx="112" cy="174" fill="#f6f9fc" rx="17" ry="26"/><g fill="none" stroke="#8fd9ff" stroke-linecap="round" stroke-width="3.6" opacity=".8"><path d="M72 178q3.25-2.6 6.5 0t6.5 0"/><path d="M139 178q3.25-2.6 6.5 0t6.5 0"/></g></g><rect width="24" height="16" x="84" y="210" fill="#f6f9fc" rx="8"/><path stroke="#dbe4ee" stroke-linecap="round" stroke-width="1.8" d="M92 217v5m8-5v5"/><rect width="24" height="16" x="116" y="210" fill="#f6f9fc" rx="8"/><path stroke="#dbe4ee" stroke-linecap="round" stroke-width="1.8" d="M124 217v5m8-5v5"/><g class="g-head" style="transform-origin:112px 146px"><path fill="#3d5a7c" stroke="#3d5a7c" stroke-linejoin="round" stroke-width="9" d="m65 96 6-52 34 29Z"/><path fill="#ffa3c6" stroke="#ffa3c6" stroke-linejoin="round" stroke-width="5" d="m73 84 2-28 19 16Z"/><path fill="#2b4565" stroke="#2b4565" stroke-linejoin="round" stroke-width="9" d="m159 96-6-52-34 29Z"/><path fill="#ffa3c6" stroke="#ffa3c6" stroke-linejoin="round" stroke-width="5" d="m151 84-2-28-19 16Z"/><path fill="none" stroke="#2bb5ff" stroke-linecap="round" stroke-width="7" d="M82 139q30 16 60 0"/><path fill="#3d5a7c" d="M62 106c0-30 20-42 50-42s50 12 50 42c2 26-20 40-50 40s-52-14-50-40"/><clipPath id="psi-siete-head"><path d="M62 106c0-30 20-42 50-42s50 12 50 42c2 26-20 40-50 40s-52-14-50-40"/></clipPath><g clip-path="url(#psi-siete-head)"><ellipse cx="154" cy="141.9" fill="#2b4565" opacity=".55" rx="62" ry="41"/><ellipse cx="90" cy="77.12" fill="#56769c" opacity=".45" rx="30" ry="13.12"/></g><g fill="none" stroke="#8fd9ff" stroke-linecap="round" stroke-width="4"><path d="M99 77q4.333-3.4 8.667 0t8.666 0q4.334-3.4 8.667 0"/><path d="M63 110q3.25-2.6 6.5 0t6.5 0" opacity=".85"/><path d="M148 110q3.25-2.6 6.5 0t6.5 0" opacity=".85"/></g><circle cx="102.5" cy="123" r="11.5" fill="#f6f9fc"/><circle cx="121.5" cy="123" r="11.5" fill="#f6f9fc"/><circle cx="112" cy="130" r="9.5" fill="#f6f9fc"/><circle cx="79" cy="120" r="6.5" fill="#ffa3c6" opacity=".55"/><circle cx="145" cy="120" r="6.5" fill="#ffa3c6" opacity=".55"/><g class="g-eyes"><path fill="none" stroke="#0d1b2a" stroke-linecap="round" stroke-width="4" d="M84 105q9-7 18 0"/><path fill="none" stroke="#0d1b2a" stroke-linecap="round" stroke-width="4" d="M122 105q9-7 18 0"/></g><rect width="11" height="7.5" x="106.5" y="113" fill="#ff7eb0" rx="3.75"/><path fill="none" stroke="#0d1b2a" stroke-linecap="round" stroke-width="2.8" d="M103 124q10 8 19-2"/><g fill="none" stroke="#f6f9fc" stroke-linecap="round" stroke-width="1.8" opacity=".8"><path d="M90 121q-16-5-34-3"/><path d="M90 126q-16 0-32 5"/><path d="M134 121q16-5 34-3"/><path d="M134 126q16 0 32 5"/></g><circle cx="112" cy="153" r="8.5" fill="#e9a400"/><circle cx="111.3" cy="152.3" r="7.6" fill="#ffc23d"/><text x="111.3" y="156.4" fill="#0d1b2a" font-family="Georgia, 'Times New Roman', serif" font-size="11" font-weight="700" text-anchor="middle">Ψ</text></g><rect width="52" height="18" x="86" y="58" fill="#1c2a3a" rx="6"/><path fill="#0d1b2a" stroke="#0d1b2a" stroke-linejoin="round" stroke-width="5" d="m68 62 44-16 44 16-44 16Z"/><path fill="none" stroke="#ffc23d" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="m112 62 38 6 2 24"/><rect width="10" height="14" x="147" y="90" fill="#ffc23d" rx="4"/><path fill="none" stroke="#2bb5ff" stroke-linecap="round" stroke-linejoin="round" stroke-width="9" d="m92 142 20 24 20-24"/><circle cx="112" cy="174" r="19" fill="#e9a400"/><circle cx="111" cy="173" r="17" fill="#ffc23d"/><text x="111" y="182" fill="#0d1b2a" font-family="Nunito, 'Arial Rounded MT Bold', sans-serif" font-size="24" font-weight="900" text-anchor="middle">7</text><path fill="#ffc23d" d="M36 53q1.62 7.38 9 9-7.38 1.62-9 9-1.62-7.38-9-9 7.38-1.62 9-9" class="g-star"/><path fill="#ffc23d" d="M196 47q1.26 5.74 7 7-5.74 1.26-7 7-1.26-5.74-7-7 5.74-1.26 7-7" class="g-star"/><path fill="#2bb5ff" d="M200 123q.9 4.1 5 5-4.1.9-5 5-.9-4.1-5-5 4.1-.9 5-5" class="g-star"/><path fill="#2bb5ff" d="M28 123q.9 4.1 5 5-4.1.9-5 5-.9-4.1-5-5 4.1-.9 5-5" class="g-star"/></svg>

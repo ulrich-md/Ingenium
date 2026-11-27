@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/marking.test.ts src/lib/generators.test.ts src/lib/inkGeom.test.ts src/lib/shapes.test.ts",
-    "mascota": "tsx --tsconfig scripts/tsconfig.render.json scripts/render-gato.tsx"
+    "mascota": "tsx --tsconfig scripts/tsconfig.render.json scripts/render-gato.tsx",
+    "psi-sheet": "tsx --tsconfig scripts/tsconfig.render.json scripts/psi-sheet.tsx"
   },
   "dependencies": {
     "katex": "0.16.22",

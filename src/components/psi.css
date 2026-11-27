@@ -1,0 +1,54 @@
+/* Psi's animations. Each moving part of src/components/Gato.tsx has a class and carries its own pivot
+   (an inline transform-origin in viewBox units), so these rules never need coordinates.
+   Only on Gato with `animated`, and never for people who ask for less motion. */
+
+.psi .g-iris { transition: transform 0.18s ease-out; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* always: blink, breathe, swish */
+  .psi-anim .g-eyes { animation: psi-blink 4.6s infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-body { animation: psi-breathe 3.2s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-tail { animation: psi-swish 2.6s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-head { animation: psi-tilt 5s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-star { animation: psi-twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-star:nth-of-type(2n) { animation-delay: 0.5s; }
+
+  /* per part */
+  .psi-anim .g-wave { animation: psi-wave 1.1s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-point { animation: psi-point 1.4s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-flame { animation: psi-flicker 0.9s ease-in-out infinite alternate; transform-box: view-box; }
+  .psi-anim .g-hand { animation: psi-spin 3s linear infinite; transform-box: view-box; }
+  .psi-anim .g-tear { animation: psi-drip 2.2s ease-in infinite; transform-box: view-box; }
+  .psi-anim .g-ghost { animation: psi-ghost 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text { animation: psi-z 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text:nth-child(2) { animation-delay: 0.4s; }
+  .psi-anim .g-z text:nth-child(3) { animation-delay: 0.8s; }
+  .psi-anim .g-jump { animation: psi-hop 1.3s cubic-bezier(.3, .7, .4, 1) infinite; transform-box: view-box; }
+
+  /* per pose */
+  .psi-anim.psi--ups .g-head, .psi-anim.psi--insiste .g-head { animation: psi-shake 0.45s ease-in-out 3, psi-tilt 5s ease-in-out 1.35s infinite; }
+  .psi-anim.psi--duerme .g-head { animation: psi-snore 3.6s ease-in-out infinite; }
+  .psi-anim.psi--sube .g-head { animation: none; }
+
+  /* one-shot actions, added by script: peek into the box, jump, react */
+  .psi.do-peek .g-peek { animation: psi-peek 1.4s cubic-bezier(.5, 0, .3, 1) 1; }
+  .psi.do-jump { animation: psi-jump 0.7s cubic-bezier(.3, .7, .4, 1) 1; transform-origin: 50% 95%; }
+}
+
+@keyframes psi-blink { 0%, 94%, 100% { transform: scaleY(1); } 96.5% { transform: scaleY(0.08); } }
+@keyframes psi-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes psi-swish { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(9deg); } }
+@keyframes psi-tilt { 0%, 70%, 100% { transform: rotate(0deg); } 80% { transform: rotate(-4deg); } 90% { transform: rotate(2deg); } }
+@keyframes psi-twinkle { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.55); opacity: 0.6; } }
+@keyframes psi-wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-16deg); } }
+@keyframes psi-point { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(5px, -2px); } }
+@keyframes psi-flicker { 0% { transform: scale(1, 1) rotate(-2deg); } 100% { transform: scale(1.05, 1.1) rotate(2deg); } }
+@keyframes psi-spin { to { transform: rotate(360deg); } }
+@keyframes psi-drip { 0%, 30% { transform: translateY(0); opacity: 1; } 90% { transform: translateY(16px); opacity: 0; } 100% { opacity: 0; } }
+@keyframes psi-ghost { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes psi-z { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-6px); } }
+@keyframes psi-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.06, 0.92); } 45% { transform: translateY(-16px) scale(0.97, 1.04); } 78% { transform: translateY(0) scale(1.04, 0.96); } }
+@keyframes psi-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes psi-snore { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(1.5px) scale(1.02, 0.98); } }
+@keyframes psi-peek { 0% { transform: translateY(0); } 35%, 55% { transform: translateY(70px); } 100% { transform: translateY(0); } }
+@keyframes psi-jump { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.05, 0.93); } 50% { transform: translateY(-8%) scale(0.97, 1.04); } 80% { transform: translateY(0) scale(1.03, 0.97); } }

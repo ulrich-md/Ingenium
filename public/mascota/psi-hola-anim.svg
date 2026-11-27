@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Psi, el gato de Kwanta, saluda desde su caja" class="psi psi--hola psi-anim" viewBox="0 0 240 240"><style><![CDATA[/* Psi's animations. Each moving part of src/components/Gato.tsx has a class and carries its own pivot
+   (an inline transform-origin in viewBox units), so these rules never need coordinates.
+   Only on Gato with `animated`, and never for people who ask for less motion. */
+
+.psi .g-iris { transition: transform 0.18s ease-out; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* always: blink, breathe, swish */
+  .psi-anim .g-eyes { animation: psi-blink 4.6s infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-body { animation: psi-breathe 3.2s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-tail { animation: psi-swish 2.6s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-head { animation: psi-tilt 5s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-star { animation: psi-twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-star:nth-of-type(2n) { animation-delay: 0.5s; }
+
+  /* per part */
+  .psi-anim .g-wave { animation: psi-wave 1.1s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-point { animation: psi-point 1.4s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-flame { animation: psi-flicker 0.9s ease-in-out infinite alternate; transform-box: view-box; }
+  .psi-anim .g-hand { animation: psi-spin 3s linear infinite; transform-box: view-box; }
+  .psi-anim .g-tear { animation: psi-drip 2.2s ease-in infinite; transform-box: view-box; }
+  .psi-anim .g-ghost { animation: psi-ghost 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text { animation: psi-z 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text:nth-child(2) { animation-delay: 0.4s; }
+  .psi-anim .g-z text:nth-child(3) { animation-delay: 0.8s; }
+  .psi-anim .g-jump { animation: psi-hop 1.3s cubic-bezier(.3, .7, .4, 1) infinite; transform-box: view-box; }
+
+  /* per pose */
+  .psi-anim.psi--ups .g-head, .psi-anim.psi--insiste .g-head { animation: psi-shake 0.45s ease-in-out 3, psi-tilt 5s ease-in-out 1.35s infinite; }
+  .psi-anim.psi--duerme .g-head { animation: psi-snore 3.6s ease-in-out infinite; }
+  .psi-anim.psi--sube .g-head { animation: none; }
+
+  /* one-shot actions, added by script: peek into the box, jump, react */
+  .psi.do-peek .g-peek { animation: psi-peek 1.4s cubic-bezier(.5, 0, .3, 1) 1; }
+  .psi.do-jump { animation: psi-jump 0.7s cubic-bezier(.3, .7, .4, 1) 1; transform-origin: 50% 95%; }
+}
+
+@keyframes psi-blink { 0%, 94%, 100% { transform: scaleY(1); } 96.5% { transform: scaleY(0.08); } }
+@keyframes psi-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes psi-swish { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(9deg); } }
+@keyframes psi-tilt { 0%, 70%, 100% { transform: rotate(0deg); } 80% { transform: rotate(-4deg); } 90% { transform: rotate(2deg); } }
+@keyframes psi-twinkle { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.55); opacity: 0.6; } }
+@keyframes psi-wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-16deg); } }
+@keyframes psi-point { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(5px, -2px); } }
+@keyframes psi-flicker { 0% { transform: scale(1, 1) rotate(-2deg); } 100% { transform: scale(1.05, 1.1) rotate(2deg); } }
+@keyframes psi-spin { to { transform: rotate(360deg); } }
+@keyframes psi-drip { 0%, 30% { transform: translateY(0); opacity: 1; } 90% { transform: translateY(16px); opacity: 0; } 100% { opacity: 0; } }
+@keyframes psi-ghost { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes psi-z { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-6px); } }
+@keyframes psi-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.06, 0.92); } 45% { transform: translateY(-16px) scale(0.97, 1.04); } 78% { transform: translateY(0) scale(1.04, 0.96); } }
+@keyframes psi-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes psi-snore { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(1.5px) scale(1.02, 0.98); } }
+@keyframes psi-peek { 0% { transform: translateY(0); } 35%, 55% { transform: translateY(70px); } 100% { transform: translateY(0); } }
+@keyframes psi-jump { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.05, 0.93); } 50% { transform: translateY(-8%) scale(0.97, 1.04); } 80% { transform: translateY(0) scale(1.03, 0.97); } }
+]]></style><ellipse cx="130" cy="226" fill="#d5dee9" rx="96" ry="7"/><path fill="#b06d30" stroke="#b06d30" stroke-linejoin="round" stroke-width="4" d="m52 150 20-13h138l-20 13Z"/><path fill="#d9954b" stroke="#d9954b" stroke-linejoin="round" stroke-width="5" d="m72 137 10-29h124l4 29Z"/><path fill="#f8d196" stroke="#f8d196" stroke-linejoin="round" stroke-width="5" d="m52 150 20-13-24-21-20 15Z"/><g class="g-peek"><g class="g-head" style="transform-origin:122px 146px"><path fill="#3d5a7c" stroke="#3d5a7c" stroke-linejoin="round" stroke-width="9" d="m75 96 6-52 34 29Z"/><path fill="#ffa3c6" stroke="#ffa3c6" stroke-linejoin="round" stroke-width="5" d="m83 84 2-28 19 16Z"/><path fill="#2b4565" stroke="#2b4565" stroke-linejoin="round" stroke-width="9" d="m169 96-6-52-34 29Z"/><path fill="#ffa3c6" stroke="#ffa3c6" stroke-linejoin="round" stroke-width="5" d="m161 84-2-28-19 16Z"/><path fill="none" stroke="#2bb5ff" stroke-linecap="round" stroke-width="7" d="M92 139q30 16 60 0"/><path fill="#3d5a7c" d="M72 106c0-30 20-42 50-42s50 12 50 42c2 26-20 40-50 40s-52-14-50-40"/><clipPath id="psi-hola-head"><path d="M72 106c0-30 20-42 50-42s50 12 50 42c2 26-20 40-50 40s-52-14-50-40"/></clipPath><g clip-path="url(#psi-hola-head)"><ellipse cx="164" cy="141.9" fill="#2b4565" opacity=".55" rx="62" ry="41"/><ellipse cx="100" cy="77.12" fill="#56769c" opacity=".45" rx="30" ry="13.12"/></g><g fill="none" stroke="#8fd9ff" stroke-linecap="round" stroke-width="4"><path d="M109 77q4.333-3.4 8.667 0t8.666 0q4.334-3.4 8.667 0"/><path d="M73 110q3.25-2.6 6.5 0t6.5 0" opacity=".85"/><path d="M158 110q3.25-2.6 6.5 0t6.5 0" opacity=".85"/></g><circle cx="112.5" cy="123" r="11.5" fill="#f6f9fc"/><circle cx="131.5" cy="123" r="11.5" fill="#f6f9fc"/><circle cx="122" cy="130" r="9.5" fill="#f6f9fc"/><circle cx="89" cy="120" r="6.5" fill="#ffa3c6" opacity=".55"/><circle cx="155" cy="120" r="6.5" fill="#ffa3c6" opacity=".55"/><g class="g-eyes"><clipPath id="psi-hola-eyeL"><circle cx="103" cy="103" r="12.5"/></clipPath><circle cx="103" cy="103" r="12.5" fill="#fff"/><g class="g-iris" clip-path="url(#psi-hola-eyeL)"><circle cx="104" cy="103.6" r="9.8" fill="#0b7fc4"/><circle cx="103.4" cy="103" r="8.6" fill="#2bb5ff"/><circle cx="104" cy="103.6" r="5.2" fill="#0d1b2a"/><circle cx="107.8" cy="99.6" r="3.3" fill="#fff"/><circle cx="100.4" cy="107.4" r="1.5" fill="#fff"/></g><clipPath id="psi-hola-eyeR"><circle cx="141" cy="103" r="12.5"/></clipPath><circle cx="141" cy="103" r="12.5" fill="#fff"/><g class="g-iris" clip-path="url(#psi-hola-eyeR)"><circle cx="142" cy="103.6" r="9.8" fill="#d18f00"/><circle cx="141.4" cy="103" r="8.6" fill="#ffc23d"/><circle cx="142" cy="103.6" r="5.2" fill="#0d1b2a"/><circle cx="145.8" cy="99.6" r="3.3" fill="#fff"/><circle cx="138.4" cy="107.4" r="1.5" fill="#fff"/></g></g><rect width="11" height="7.5" x="116.5" y="113" fill="#ff7eb0" rx="3.75"/><path fill="none" stroke="#0d1b2a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M114 124q4 4 8-.5 4 4.5 8 .5"/><g fill="none" stroke="#f6f9fc" stroke-linecap="round" stroke-width="1.8" opacity=".8"><path d="M100 121q-16-5-34-3"/><path d="M100 126q-16 0-32 5"/><path d="M144 121q16-5 34-3"/><path d="M144 126q16 0 32 5"/></g><circle cx="122" cy="153" r="8.5" fill="#e9a400"/><circle cx="121.3" cy="152.3" r="7.6" fill="#ffc23d"/><text x="121.3" y="156.4" fill="#0d1b2a" font-family="Georgia, 'Times New Roman', serif" font-size="11" font-weight="700" text-anchor="middle">Ψ</text></g></g><path fill="#d9954b" stroke="#d9954b" stroke-linejoin="round" stroke-width="5" d="m190 150 20-13v70l-20 13Z"/><path fill="#f8d196" stroke="#f8d196" stroke-linejoin="round" stroke-width="5" d="m190 150 20-13 21 15-19 14Z"/><rect width="142" height="74" x="50" y="148" fill="#efb76a" rx="6"/><rect width="142" height="12" x="50" y="210" fill="#d9954b" opacity=".4" rx="6"/><path fill="none" stroke="#d9954b" stroke-linecap="round" stroke-width="1.8" d="M56 154q2.5-1.6 5 0t5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0 5 0"/><rect width="16" height="36" x="113" y="148" fill="#f7e5c0" rx="2"/><g opacity=".8" transform="rotate(-10 158 188)"><circle cx="158" cy="188" r="16" fill="none" stroke="#b06d30" stroke-width="2.6"/><text x="158" y="194.5" fill="#b06d30" font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="700" text-anchor="middle">Ψ</text></g><rect width="24" height="16" x="80" y="142" fill="#f6f9fc" rx="8"/><path stroke="#dbe4ee" stroke-linecap="round" stroke-width="1.8" d="M88 149v5m8-5v5"/><g class="g-wave" style="transform-origin:154px 150px"><path stroke="#3d5a7c" stroke-linecap="round" stroke-width="15" d="m154 150 32-62"/><circle cx="186" cy="88" r="11" fill="#f6f9fc"/><g fill="#ff7eb0"><ellipse cx="186" cy="90.6" rx="4.6" ry="3.6"/><circle cx="180.6" cy="84.4" r="2.2"/><circle cx="186" cy="82" r="2.2"/><circle cx="191.4" cy="84.4" r="2.2"/></g></g><g fill="none" stroke="#bfe7ff" stroke-linecap="round" stroke-width="3.6"><path d="M201 68q8 8 5 18"/><path d="M209 58q12 12 8 28"/></g><g class="g-tail" style="transform-origin:208px 192px"><path fill="none" stroke="#3d5a7c" stroke-linecap="round" stroke-width="13" d="M208 192c28-10 28-52 12-66"/><path fill="none" stroke="#8fd9ff" stroke-dasharray="0 42 6 10 6 36" stroke-width="13" d="M208 192c28-10 28-52 12-66" opacity=".75" pathLength="100"/><path fill="none" stroke="#f6f9fc" stroke-dasharray="0 86 14" stroke-linecap="round" stroke-width="13" d="M208 192c28-10 28-52 12-66" pathLength="100"/></g></svg>

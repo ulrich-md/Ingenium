@@ -1,29 +1,42 @@
-/** Kwanta's mascot: a cat that lives in a box, after Schrödinger's thought experiment.
- *  What makes it ours:
- *   - heterochromia: one celeste eye and one amber eye, its "two states";
- *   - wave stripes (sine waves) on the forehead, cheeks and tail instead of tabby marks;
- *   - white socks with pink beans, a celeste collar with a yellow Ψ tag;
- *   - a cardboard box with a corrugated edge, packing tape and a Ψ stamp;
- *   - the "superposición" pose: half the cat is solid, the other half a cloud of dots.
- *  Flat and rounded like the rest of Kwanta's illustrations: no outlines, a darker shade for the
- *  shadow side. Every SVG gets its own `uid` so clip paths and masks never collide on a page.
- *  Animation hooks (classes): g-tail, g-wave, g-eyes, g-body, g-z, g-star. */
+/** Psi, Kwanta's mascot: a cat that lives in a box, after Schrödinger's thought experiment.
+ *
+ *  Drawing rules (the same ones Duolingo's illustrators follow for their own style):
+ *   - only three base forms, all rounded: circles, rounded rectangles, rounded triangles. No points;
+ *   - as few shapes as possible, so the silhouette reads as one blob even at 32 px;
+ *   - one light source, top left: every part gets a lighter top-left and a darker bottom-right
+ *     shape clipped to its own outline (no outlines, no doubled strokes);
+ *   - geometric eyes: circles, never ovals.
+ *  What makes Psi ours: one celeste eye and one amber eye (its "two states"), a single wave stripe on
+ *  the forehead and cheeks, white socks, a celeste collar with a yellow Ψ tag, and its cardboard box
+ *  with a wavy corrugated edge and a Ψ stamp. In "superposición" half of Psi is a celeste ghost.
+ *  Every SVG takes a `uid` so its clip paths never collide with another one on the page.
+ *  Animation: with `animated`, the parts move on their own (src/components/psi.css): eyes blink,
+ *  tail swishes, paw waves, flames flicker... Hooks are classes on the parts (g-head, g-body, g-eyes,
+ *  g-iris, g-wave, g-tail, g-peek, g-jump, g-flame, g-hand, g-tear, g-ghost, g-z, g-star) and each
+ *  moving part carries its own pivot as an inline transform-origin. `.g-iris` can be moved by script
+ *  so the eyes follow the pointer (see usePsiEyes in the landing). */
 
-export type GatoPose = "hola" | "sube" | "ups" | "superposicion" | "escribe" | "duerme";
-type Mood = "hola" | "feliz" | "ups" | "duda" | "concentrado" | "dormido";
+export type GatoPose =
+  | "hola" | "sube" | "ups" | "superposicion" | "escribe" | "duerme"
+  | "senala" | "racha" | "siete" | "lee" | "cronometro" | "triste" | "insiste" | "ipad" | "cara";
+export type Mood =
+  | "hola" | "feliz" | "ups" | "duda" | "concentrado" | "dormido"
+  | "sorprendido" | "triste" | "enojado" | "guino" | "enamorado" | "orgulloso";
 
 export const K = {
-  fur: "#3b5878", furD: "#2a4260", furDD: "#1f3350", furL: "#5f80a6",
-  cream: "#f6f9fc", creamD: "#d9e3ee",
-  pink: "#ff9ec4", bean: "#ff7eb0", mouth: "#5a1a2e",
+  fur: "#3d5a7c", furD: "#2b4565", furL: "#56769c",
+  cream: "#f6f9fc", creamD: "#dbe4ee",
+  pink: "#ffa3c6", bean: "#ff7eb0", mouth: "#5a1a2e",
   ink: "#0d1b2a", white: "#ffffff",
   eyeA: "#2bb5ff", eyeAD: "#0b7fc4", eyeB: "#ffc23d", eyeBD: "#d18f00",
-  wave: "#7fd3ff",
+  wave: "#8fd9ff",
   brand: "#2bb5ff", brandD: "#1590d8", brandL: "#bfe7ff", brandXL: "#e2f4ff",
   sun: "#ffc23d", sunD: "#e9a400", red: "#d62828", pen: "#1d3fbf",
-  box: "#eeb466", boxD: "#d48f45", boxDD: "#a9652a", boxL: "#f7cd8d", tape: "#f6e3bb",
-  ground: "#d5dee9",
+  box: "#efb76a", boxD: "#d9954b", boxDD: "#b06d30", boxL: "#f8d196", tape: "#f7e5c0",
+  ground: "#d5dee9", flame: "#ff9b3d", flameD: "#f2711c",
 };
+
+type Pt = [number, number];
 
 /** A sine wave of `n` half-periods starting at (x, y), `w` wide. */
 const wave = (x: number, y: number, w: number, amp: number, n: number) => {
@@ -33,227 +46,250 @@ const wave = (x: number, y: number, w: number, amp: number, n: number) => {
   return d;
 };
 
-const star = (x: number, y: number, r: number, fill: string = K.sun, key?: string | number) => (
-  <path key={key} className="g-star" d={`M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z`} fill={fill} />
+const star = (x: number, y: number, r: number, fill: string = K.sun) => (
+  <path key={`${x}-${y}`} className="g-star" d={`M${x} ${y - r}Q${x + r * 0.18} ${y - r * 0.18} ${x + r} ${y}Q${x + r * 0.18} ${y + r * 0.18} ${x} ${y + r}Q${x - r * 0.18} ${y + r * 0.18} ${x - r} ${y}Q${x - r * 0.18} ${y - r * 0.18} ${x} ${y - r}Z`} fill={fill} />
 );
+
+/** Fill a path and round its corners with a same-color stroke (rounded triangles, rounded boxes). */
+const Soft = ({ d, fill, r = 6, opacity }: { d: string; fill: string; r?: number; opacity?: number }) => (
+  <path d={d} fill={fill} stroke={fill} strokeWidth={r} strokeLinejoin="round" opacity={opacity} />
+);
+
+/** Light from the top left: a highlight and a shadow clipped to the shape itself. */
+function Shade({ id, d, box, hi = 0.45, lo = 0.55 }: { id: string; d: string; box: [number, number, number, number]; hi?: number; lo?: number }) {
+  const [x, y, w, h] = box;
+  return (
+    <>
+      <clipPath id={id}><path d={d} /></clipPath>
+      <g clipPath={`url(#${id})`}>
+        <ellipse cx={x + w * 0.92} cy={y + h * 0.95} rx={w * 0.62} ry={h * 0.5} fill={K.furD} opacity={lo} />
+        <ellipse cx={x + w * 0.28} cy={y + h * 0.16} rx={w * 0.3} ry={h * 0.16} fill={K.furL} opacity={hi} />
+      </g>
+    </>
+  );
+}
 
 /* ---------------- eyes ---------------- */
 
-function Eye({ uid, side, x, y, look = [0, 0], lid = 0 }: { uid: string; side: "L" | "R"; x: number; y: number; look?: [number, number]; lid?: number }) {
+function Eye({ uid, side, x, y, look = [0, 0], lid = 0, small }: { uid: string; side: "L" | "R"; x: number; y: number; look?: Pt; lid?: number; small?: boolean }) {
   const [iris, irisD] = side === "L" ? [K.eyeA, K.eyeAD] : [K.eyeB, K.eyeBD];
   const [dx, dy] = look;
   const id = `${uid}-eye${side}`;
-  const lidY = y - 14 + 27 * lid;
+  const r = 12.5;
+  const lidY = y - r + 2 * r * lid;
   return (
     <g>
-      <clipPath id={id}><ellipse cx={x} cy={y} rx={11.5} ry={13} /></clipPath>
-      <ellipse cx={x} cy={y} rx={11.5} ry={13} fill={K.white} />
+      <clipPath id={id}><circle cx={x} cy={y} r={r} /></clipPath>
+      <circle cx={x} cy={y} r={r} fill={K.white} />
       <g clipPath={`url(#${id})`}>
-        <circle cx={x + dx} cy={y + dy} r={9.4} fill={iris} />
-        <circle cx={x + dx} cy={y + dy} r={8.4} fill="none" stroke={irisD} strokeWidth={2} />
-        <path d={`M${x + dx - 6} ${y + dy + 3} a6.5 6.5 0 0 0 12 0`} fill="none" stroke={K.white} strokeWidth={1.4} opacity={0.35} />
-        <ellipse cx={x + dx} cy={y + dy} rx={4.1} ry={7.2} fill={K.ink} />
-        <circle cx={x + dx + 3.4} cy={y + dy - 4.6} r={3.1} fill={K.white} />
-        <circle cx={x + dx - 3.1} cy={y + dy + 4.2} r={1.4} fill={K.white} />
-        {lid > 0 && (
-          <path d={`M${x - 13} ${y - 15} H${x + 13} V${lidY} Q${x} ${lidY + 4} ${x - 13} ${lidY} Z`} fill={K.fur} />
-        )}
+        <g className="g-iris" transform={small ? `translate(${x + dx} ${y + dy}) scale(0.72) translate(${-(x + dx)} ${-(y + dy)})` : undefined}>
+          <circle cx={x + dx} cy={y + dy} r={9.8} fill={irisD} />
+          <circle cx={x + dx - 0.6} cy={y + dy - 0.6} r={8.6} fill={iris} />
+          <circle cx={x + dx} cy={y + dy} r={5.2} fill={K.ink} />
+          <circle cx={x + dx + 3.8} cy={y + dy - 4} r={3.3} fill={K.white} />
+          <circle cx={x + dx - 3.6} cy={y + dy + 3.8} r={1.5} fill={K.white} />
+        </g>
+        {lid > 0 && <rect x={x - r} y={y - r - 2} width={2 * r} height={lidY - (y - r) + 2} fill={K.fur} />}
       </g>
-      {lid > 0 && <path d={`M${x - 11} ${lidY + 0.6} Q${x} ${lidY + 4.4} ${x + 11} ${lidY + 0.6}`} fill="none" stroke={K.furDD} strokeWidth={2.2} strokeLinecap="round" />}
     </g>
   );
 }
 
 function Eyes({ uid, cx, cy, mood }: { uid: string; cx: number; cy: number; mood: Mood }) {
-  const L = cx - 17, R = cx + 17, y = cy - 2;
-  if (mood === "feliz") {
-    return (
-      <g className="g-eyes">
-        {[L, R].map((x) => <path key={x} d={`M${x - 9} ${y + 3} Q${x} ${y - 10} ${x + 9} ${y + 3}`} fill="none" stroke={K.ink} strokeWidth={3.8} strokeLinecap="round" />)}
-      </g>
-    );
-  }
-  if (mood === "dormido") {
-    return (
-      <g className="g-eyes">
-        {[L, R].map((x) => <path key={x} d={`M${x - 9} ${y} Q${x} ${y + 7} ${x + 9} ${y}`} fill="none" stroke={K.ink} strokeWidth={3.4} strokeLinecap="round" />)}
-      </g>
-    );
-  }
-  const brow = (x: number, dir: 1 | -1, lift = 0) => (
-    <path d={`M${x - dir * 9} ${y - 17 + lift} L${x + dir * 7} ${y - 22 + lift}`} stroke={K.cream} strokeWidth={2.6} strokeLinecap="round" opacity={0.9} />
+  const L = cx - 19, R = cx + 19, y = cy - 3;
+  const arc = (x: number, kind: "up" | "down" | "flat") => (
+    <path key={x} d={kind === "up" ? `M${x - 9} ${y + 4} Q${x} ${y - 9} ${x + 9} ${y + 4}` : kind === "flat" ? `M${x - 9} ${y + 2} Q${x} ${y - 5} ${x + 9} ${y + 2}` : `M${x - 9} ${y + 1} Q${x} ${y + 8} ${x + 9} ${y + 1}`}
+      fill="none" stroke={K.ink} strokeWidth={4} strokeLinecap="round" />
   );
-  const conf = {
-    hola: { l: [0.8, 0.6] as [number, number], r: [0.8, 0.6] as [number, number], ll: 0, rl: 0 },
-    ups: { l: [2.6, -2.2] as [number, number], r: [2.6, -2.2] as [number, number], ll: 0, rl: 0 },
-    duda: { l: [1.6, -2.6] as [number, number], r: [1.2, -1.2] as [number, number], ll: 0, rl: 0.46 },
-    concentrado: { l: [1, 3.2] as [number, number], r: [1, 3.2] as [number, number], ll: 0.32, rl: 0.32 },
-  }[mood];
+  if (mood === "feliz") return <g className="g-eyes">{arc(L, "up")}{arc(R, "up")}</g>;
+  if (mood === "dormido") return <g className="g-eyes">{arc(L, "down")}{arc(R, "down")}</g>;
+  if (mood === "orgulloso") return <g className="g-eyes">{arc(L, "flat")}{arc(R, "flat")}</g>;
+  if (mood === "enamorado") {
+    const heart = (x: number) => (
+      <g key={x}>
+        <path d={`M${x} ${y + 9} C${x - 15} ${y - 1} ${x - 8} ${y - 13} ${x} ${y - 5} C${x + 8} ${y - 13} ${x + 15} ${y - 1} ${x} ${y + 9} Z`} fill={K.bean} stroke={K.bean} strokeWidth={2} strokeLinejoin="round" />
+        <circle cx={x - 5} cy={y - 4} r={2.2} fill={K.white} opacity={0.8} />
+      </g>
+    );
+    return <g className="g-eyes">{heart(L)}{heart(R)}</g>;
+  }
+  const conf: Record<"hola" | "ups" | "duda" | "concentrado" | "sorprendido" | "triste" | "enojado" | "guino", { l: Pt; r: Pt; ll: number; rl: number }> = {
+    hola: { l: [1, 0.6], r: [1, 0.6], ll: 0, rl: 0 },
+    ups: { l: [2.6, -2.6], r: [2.6, -2.6], ll: 0, rl: 0 },
+    duda: { l: [1.4, -2.8], r: [1.4, -1.6], ll: 0, rl: 0.42 },
+    concentrado: { l: [1.2, 3.2], r: [1.2, 3.2], ll: 0.3, rl: 0.3 },
+    sorprendido: { l: [0, 0], r: [0, 0], ll: 0, rl: 0 },
+    triste: { l: [-0.6, 3], r: [-0.6, 3], ll: 0.18, rl: 0.18 },
+    enojado: { l: [0.6, 1.4], r: [-0.6, 1.4], ll: 0.36, rl: 0.36 },
+    guino: { l: [1, 0.6], r: [1, 0.6], ll: 0, rl: 0 },
+  };
+  const c = conf[mood];
+  const brow = (x: number, dir: 1 | -1) => <path d={`M${x - dir * 8} ${y - 17} Q${x} ${y - 23} ${x + dir * 8} ${y - 22}`} fill="none" stroke={K.cream} strokeWidth={3} strokeLinecap="round" />;
+  const angry = (x: number, dir: 1 | -1) => <path d={`M${x - dir * 10} ${y - 21} L${x + dir * 8} ${y - 14}`} fill="none" stroke={K.cream} strokeWidth={3.4} strokeLinecap="round" />;
+  const high = (x: number) => <path d={`M${x - 9} ${y - 20} Q${x} ${y - 27} ${x + 9} ${y - 20}`} fill="none" stroke={K.cream} strokeWidth={3} strokeLinecap="round" />;
   return (
     <g className="g-eyes">
-      <Eye uid={uid} side="L" x={L} y={y} look={conf.l} lid={conf.ll} />
-      <Eye uid={uid} side="R" x={R} y={y} look={conf.r} lid={conf.rl} />
-      {mood === "ups" && <>{brow(L, 1)}{brow(R, -1)}</>}
-      {mood === "duda" && <path d={`M${L - 9} ${y - 20} Q${L} ${y - 26} ${L + 8} ${y - 21}`} fill="none" stroke={K.cream} strokeWidth={2.6} strokeLinecap="round" opacity={0.9} />}
+      <Eye uid={uid} side="L" x={L} y={y} look={c.l} lid={c.ll} small={mood === "sorprendido"} />
+      {mood === "guino" ? arc(R, "up") : <Eye uid={uid} side="R" x={R} y={y} look={c.r} lid={c.rl} small={mood === "sorprendido"} />}
+      {(mood === "ups" || mood === "triste") && <>{brow(L, 1)}{brow(R, -1)}</>}
+      {mood === "enojado" && <>{angry(L, 1)}{angry(R, -1)}</>}
+      {mood === "sorprendido" && <>{high(L)}{high(R)}</>}
+      {mood === "duda" && <path d={`M${L - 9} ${y - 19} Q${L} ${y - 26} ${L + 9} ${y - 20}`} fill="none" stroke={K.cream} strokeWidth={3} strokeLinecap="round" />}
+      {mood === "triste" && <path className="g-tear" style={{ transformOrigin: `${L - 6}px ${y + 12}px` }} d={`M${L - 6} ${y + 12} q-5 8 0 11 q5 -3 0 -11z`} fill={K.brandL} />}
     </g>
   );
 }
 
 /* ---------------- head ---------------- */
 
+const headPath = (cx: number, cy: number) =>
+  `M${cx - 50} ${cy} C${cx - 50} ${cy - 30} ${cx - 30} ${cy - 42} ${cx} ${cy - 42} C${cx + 30} ${cy - 42} ${cx + 50} ${cy - 30} ${cx + 50} ${cy}
+   C${cx + 52} ${cy + 26} ${cx + 30} ${cy + 40} ${cx} ${cy + 40} C${cx - 30} ${cy + 40} ${cx - 52} ${cy + 26} ${cx - 50} ${cy} Z`;
+
 function Ear({ cx, cy, side, down }: { cx: number; cy: number; side: 1 | -1; down?: boolean }) {
   const s = side;
-  const p = (dx: number, dy: number) => `${cx + s * dx} ${cy + dy}`;
+  const P = (dx: number, dy: number) => `${cx + s * dx} ${cy + dy}`;
   return (
-    <g transform={down ? `rotate(${s * 30} ${cx + s * 28} ${cy - 22})` : undefined}>
-      <path d={`M${p(40, -12)} Q${p(54, -56)} ${p(46, -66)} Q${p(28, -60)} ${p(9, -34)} Z`} fill={s < 0 ? K.fur : K.furD} />
-      <path d={`M${p(36, -22)} Q${p(46, -50)} ${p(43, -57)} Q${p(30, -52)} ${p(16, -34)} Z`} fill={K.pink} />
-      <path d={`M${p(35, -30)} l${s * 3} -12 M${p(30, -31)} l${s * 1} -14 M${p(25, -32)} l${-s * 2} -10`} stroke={K.cream} strokeWidth={1.8} strokeLinecap="round" opacity={0.9} fill="none" />
+    <g transform={down ? `rotate(${s * 34} ${cx + s * 30} ${cy - 24})` : undefined}>
+      <Soft d={`M${P(47, -10)} L${P(41, -62)} L${P(7, -33)} Z`} fill={s < 0 ? K.fur : K.furD} r={9} />
+      <Soft d={`M${P(39, -22)} L${P(37, -50)} L${P(18, -34)} Z`} fill={K.pink} r={5} />
     </g>
   );
 }
 
-const headPath = (cx: number, cy: number) => {
-  const p = (dx: number, dy: number) => `${cx + dx} ${cy + dy}`;
-  return `M${p(-44, -10)} C${p(-46, -36)} ${p(-22, -43)} ${p(0, -43)} C${p(22, -43)} ${p(46, -36)} ${p(44, -10)}
-    L${p(57, 3)} L${p(45, 8)} L${p(55, 18)} L${p(38, 23)}
-    C${p(30, 37)} ${p(14, 41)} ${p(0, 41)} C${p(-14, 41)} ${p(-30, 37)} ${p(-38, 23)}
-    L${p(-55, 18)} L${p(-45, 8)} L${p(-57, 3)} Z`;
-};
-
 function Mouth({ cx, cy, mood }: { cx: number; cy: number; mood: Mood }) {
-  const y = cy + 13;
-  const w = <path d={`M${cx} ${y} v4 M${cx - 8} ${y + 5} Q${cx - 4} ${y + 9} ${cx} ${y + 4} Q${cx + 4} ${y + 9} ${cx + 8} ${y + 5}`} fill="none" stroke={K.ink} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />;
+  const y = cy + 16;
+  const w = <path d={`M${cx - 8} ${y + 2} Q${cx - 4} ${y + 6} ${cx} ${y + 1.5} Q${cx + 4} ${y + 6} ${cx + 8} ${y + 2}`} fill="none" stroke={K.ink} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />;
   switch (mood) {
     case "feliz":
       return (
         <g>
-          <path d={`M${cx - 11} ${y + 5} Q${cx} ${y + 26} ${cx + 11} ${y + 5} Q${cx} ${y + 9} ${cx - 11} ${y + 5} Z`} fill={K.mouth} />
-          <ellipse cx={cx} cy={y + 15} rx={5.6} ry={3.6} fill={K.bean} />
-          <path d={`M${cx} ${y} v5`} stroke={K.ink} strokeWidth={2.4} strokeLinecap="round" />
+          <path d={`M${cx - 11} ${y + 1} Q${cx} ${y + 22} ${cx + 11} ${y + 1} Z`} fill={K.mouth} stroke={K.mouth} strokeWidth={2} strokeLinejoin="round" />
+          <ellipse cx={cx} cy={y + 11} rx={5.6} ry={3.6} fill={K.bean} />
         </g>
       );
     case "ups":
-      return <path d={`M${cx - 7} ${y + 8} q3.5 -4 7 0 t7 0`} fill="none" stroke={K.ink} strokeWidth={2.4} strokeLinecap="round" />;
+      return <path d={`M${cx - 7} ${y + 5} q3.5 -4 7 0 t7 0`} fill="none" stroke={K.ink} strokeWidth={2.6} strokeLinecap="round" />;
     case "duda":
-      return <path d={`M${cx - 4} ${y + 7} Q${cx + 4} ${y + 4} ${cx + 10} ${y + 8}`} fill="none" stroke={K.ink} strokeWidth={2.4} strokeLinecap="round" />;
+      return <path d={`M${cx - 4} ${y + 4} Q${cx + 4} ${y + 1} ${cx + 10} ${y + 5}`} fill="none" stroke={K.ink} strokeWidth={2.6} strokeLinecap="round" />;
     case "concentrado":
-      return <g>{w}<path d={`M${cx + 5} ${y + 7} q4 6 8 1 q-2 -4 -8 -1z`} fill={K.bean} /></g>;
+    case "guino":
+      return <g>{w}<path d={`M${cx + 4} ${y + 4} q4 7 9 2 q-2 -5 -9 -2z`} fill={K.bean} /></g>;
+    case "enamorado":
+      return (
+        <g>
+          <path d={`M${cx - 9} ${y + 1} Q${cx} ${y + 18} ${cx + 9} ${y + 1} Z`} fill={K.mouth} stroke={K.mouth} strokeWidth={2} strokeLinejoin="round" />
+          <ellipse cx={cx} cy={y + 9} rx={4.6} ry={3} fill={K.bean} />
+        </g>
+      );
+    case "sorprendido":
+      return <ellipse cx={cx} cy={y + 8} rx={5.5} ry={7} fill={K.mouth} />;
+    case "triste":
+      return <path d={`M${cx - 8} ${y + 8} Q${cx} ${y + 1} ${cx + 8} ${y + 8}`} fill="none" stroke={K.ink} strokeWidth={2.6} strokeLinecap="round" />;
+    case "enojado":
+      return <path d={`M${cx - 8} ${y + 6} Q${cx} ${y + 3} ${cx + 8} ${y + 6}`} fill="none" stroke={K.ink} strokeWidth={2.8} strokeLinecap="round" />;
+    case "orgulloso":
+      return <path d={`M${cx - 9} ${y + 2} Q${cx + 1} ${y + 10} ${cx + 10} ${y}`} fill="none" stroke={K.ink} strokeWidth={2.8} strokeLinecap="round" />;
+    case "dormido":
+      return <path d={`M${cx - 4} ${y + 3} Q${cx} ${y + 6} ${cx + 4} ${y + 3}`} fill="none" stroke={K.ink} strokeWidth={2.4} strokeLinecap="round" />;
     default:
       return w;
   }
 }
 
-function Head({ uid, cx, cy, mood, earsDown, collar = true }: { uid: string; cx: number; cy: number; mood: Mood; earsDown?: boolean; collar?: boolean }) {
-  const p = (dx: number, dy: number) => [cx + dx, cy + dy] as const;
-  const blush = mood === "feliz" || mood === "hola" || mood === "dormido";
+export function Head({ uid, cx, cy, mood, earsDown, collar = true }: { uid: string; cx: number; cy: number; mood: Mood; earsDown?: boolean; collar?: boolean }) {
+  const d = headPath(cx, cy);
+  const blush = !["ups", "duda", "enojado", "triste"].includes(mood);
   return (
-    <g className="g-head">
+    <g className="g-head" style={{ transformOrigin: `${cx}px ${cy + 40}px` }}>
       <Ear cx={cx} cy={cy} side={-1} down={earsDown} />
       <Ear cx={cx} cy={cy} side={1} down={earsDown} />
-      {collar && (
-        <g>
-          <path d={`M${cx - 30} ${cy + 31} Q${cx} ${cy + 47} ${cx + 30} ${cy + 31}`} fill="none" stroke={K.brandD} strokeWidth={7} strokeLinecap="round" />
-          <path d={`M${cx - 30} ${cy + 30} Q${cx} ${cy + 45} ${cx + 30} ${cy + 30}`} fill="none" stroke={K.brand} strokeWidth={4.5} strokeLinecap="round" />
-        </g>
-      )}
-      <path d={headPath(cx + 3, cy + 3)} fill={K.furD} />
-      <path d={`M${cx - 7} ${cy - 41} l3 -9 l4 6 l3 -10 l3 8 l4 -5 l1 10 Z`} fill={K.fur} />
-      <path d={headPath(cx, cy)} fill={K.fur} />
-      <ellipse cx={cx - 16} cy={cy - 20} rx={20} ry={11} transform={`rotate(-14 ${cx - 16} ${cy - 20})`} fill={K.furL} opacity={0.45} />
-      {/* wave stripes instead of tabby marks */}
-      <g fill="none" stroke={K.wave} strokeLinecap="round">
-        <path d={wave(cx - 14, cy - 33, 28, 3, 4)} strokeWidth={3.2} />
-        <path d={wave(cx - 9, cy - 26, 18, 2.4, 4)} strokeWidth={2.6} opacity={0.8} />
-        <path d={wave(...p(-47, -4), 12, 2.2, 2)} strokeWidth={2.4} opacity={0.75} />
-        <path d={wave(...p(-49, 3), 10, 2, 2)} strokeWidth={2.2} opacity={0.6} />
-        <path d={wave(...p(35, -4), 12, 2.2, 2)} strokeWidth={2.4} opacity={0.75} />
-        <path d={wave(...p(39, 3), 10, 2, 2)} strokeWidth={2.2} opacity={0.6} />
+      {collar && <path d={`M${cx - 30} ${cy + 33} Q${cx} ${cy + 49} ${cx + 30} ${cy + 33}`} fill="none" stroke={K.brand} strokeWidth={7} strokeLinecap="round" />}
+      <path d={d} fill={K.fur} />
+      <Shade id={`${uid}-head`} d={d} box={[cx - 50, cy - 42, 100, 82]} />
+      {/* one wave on the forehead and one on each cheek: Psi's markings */}
+      <g fill="none" stroke={K.wave} strokeLinecap="round" strokeWidth={4}>
+        <path d={wave(cx - 13, cy - 29, 26, 3.4, 3)} />
+        <path d={wave(cx - 49, cy + 4, 13, 2.6, 2)} opacity={0.85} />
+        <path d={wave(cx + 36, cy + 4, 13, 2.6, 2)} opacity={0.85} />
       </g>
-      {/* muzzle */}
-      <ellipse cx={cx - 9} cy={cy + 17} rx={13} ry={10} fill={K.cream} />
-      <ellipse cx={cx + 9} cy={cy + 17} rx={13} ry={10} fill={K.cream} />
-      <ellipse cx={cx} cy={cy + 27} rx={9.5} ry={6} fill={K.cream} />
-      <ellipse cx={cx + 10} cy={cy + 22} rx={9} ry={5} fill={K.creamD} opacity={0.6} />
-      {[[-13, 16], [-17, 20], [-11, 21], [13, 16], [17, 20], [11, 21]].map(([dx, dy]) => <circle key={`${dx},${dy}`} cx={cx + dx} cy={cy + dy} r={1.1} fill={K.furL} />)}
-      {blush && <><ellipse cx={cx - 30} cy={cy + 13} rx={7} ry={4} fill={K.pink} opacity={0.5} /><ellipse cx={cx + 30} cy={cy + 13} rx={7} ry={4} fill={K.pink} opacity={0.5} /></>}
+      {/* muzzle: two circles and a chin, all cream */}
+      <circle cx={cx - 9.5} cy={cy + 17} r={11.5} fill={K.cream} />
+      <circle cx={cx + 9.5} cy={cy + 17} r={11.5} fill={K.cream} />
+      <circle cx={cx} cy={cy + 24} r={9.5} fill={K.cream} />
+      {blush && <><circle cx={cx - 33} cy={cy + 14} r={6.5} fill={K.pink} opacity={0.55} /><circle cx={cx + 33} cy={cy + 14} r={6.5} fill={K.pink} opacity={0.55} /></>}
       <Eyes uid={uid} cx={cx} cy={cy} mood={mood} />
-      <path d={`M${cx - 5.5} ${cy + 7} Q${cx} ${cy + 4.6} ${cx + 5.5} ${cy + 7} Q${cx + 3} ${cy + 12.6} ${cx} ${cy + 13} Q${cx - 3} ${cy + 12.6} ${cx - 5.5} ${cy + 7} Z`} fill={K.bean} />
-      <ellipse cx={cx - 1.6} cy={cy + 7.6} rx={1.8} ry={1} fill={K.white} opacity={0.7} />
+      <rect x={cx - 5.5} y={cy + 7} width={11} height={7.5} rx={3.75} fill={K.bean} />
       <Mouth cx={cx} cy={cy} mood={mood} />
-      {/* whiskers */}
-      <g fill="none" stroke={K.cream} strokeWidth={1.5} strokeLinecap="round" opacity={0.85}>
-        <path d={`M${cx - 20} ${cy + 15} Q${cx - 36} ${cy + 9} ${cx - 54} ${cy + 10}`} />
-        <path d={`M${cx - 20} ${cy + 19} Q${cx - 38} ${cy + 18} ${cx - 55} ${cy + 22}`} />
-        <path d={`M${cx - 19} ${cy + 23} Q${cx - 34} ${cy + 27} ${cx - 48} ${cy + 33}`} />
-        <path d={`M${cx + 20} ${cy + 15} Q${cx + 36} ${cy + 9} ${cx + 54} ${cy + 10}`} />
-        <path d={`M${cx + 20} ${cy + 19} Q${cx + 38} ${cy + 18} ${cx + 55} ${cy + 22}`} />
-        <path d={`M${cx + 19} ${cy + 23} Q${cx + 34} ${cy + 27} ${cx + 48} ${cy + 33}`} />
+      <g fill="none" stroke={K.cream} strokeWidth={1.8} strokeLinecap="round" opacity={0.8}>
+        <path d={`M${cx - 22} ${cy + 15} Q${cx - 38} ${cy + 10} ${cx - 56} ${cy + 12}`} />
+        <path d={`M${cx - 22} ${cy + 20} Q${cx - 38} ${cy + 20} ${cx - 54} ${cy + 25}`} />
+        <path d={`M${cx + 22} ${cy + 15} Q${cx + 38} ${cy + 10} ${cx + 56} ${cy + 12}`} />
+        <path d={`M${cx + 22} ${cy + 20} Q${cx + 38} ${cy + 20} ${cx + 54} ${cy + 25}`} />
       </g>
       {collar && (
         <g>
-          <circle cx={cx} cy={cy + 45} r={8} fill={K.sunD} />
-          <circle cx={cx - 0.6} cy={cy + 44.4} r={7.2} fill={K.sun} />
-          <text x={cx - 0.6} y={cy + 48.4} textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize={11} fontWeight={700} fill={K.ink}>Ψ</text>
+          <circle cx={cx} cy={cy + 47} r={8.5} fill={K.sunD} />
+          <circle cx={cx - 0.7} cy={cy + 46.3} r={7.6} fill={K.sun} />
+          <text x={cx - 0.7} y={cy + 50.4} textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize={11} fontWeight={700} fill={K.ink}>Ψ</text>
         </g>
       )}
     </g>
   );
 }
 
-/* ---------------- body parts ---------------- */
+/* ---------------- body ---------------- */
 
-/** An arm ending in a white sock. With `beans`, the paw shows its pink pads to the viewer. */
-function Arm({ from, to, beans, cls }: { from: [number, number]; to: [number, number]; beans?: boolean; cls?: string }) {
+const bodyPath = (cx: number, top: number) =>
+  `M${cx - 30} ${top} C${cx - 42} ${top + 30} ${cx - 46} ${top + 72} ${cx - 20} ${top + 80} L${cx + 20} ${top + 80} C${cx + 46} ${top + 72} ${cx + 42} ${top + 30} ${cx + 30} ${top} Z`;
+
+function Body({ uid, cx, top }: { uid: string; cx: number; top: number }) {
+  const d = bodyPath(cx, top);
+  return (
+    <g className="g-body" style={{ transformOrigin: `${cx}px ${top + 80}px` }}>
+      <path d={d} fill={K.fur} stroke={K.fur} strokeWidth={6} strokeLinejoin="round" />
+      <Shade id={`${uid}-body`} d={d} box={[cx - 44, top, 88, 80]} hi={0.3} />
+      <ellipse cx={cx} cy={top + 36} rx={17} ry={26} fill={K.cream} />
+      <g fill="none" stroke={K.wave} strokeWidth={3.6} strokeLinecap="round" opacity={0.8}>
+        <path d={wave(cx - 40, top + 40, 13, 2.6, 2)} /><path d={wave(cx + 27, top + 40, 13, 2.6, 2)} />
+      </g>
+    </g>
+  );
+}
+
+/** A capsule arm ending in a white sock. With `beans`, the paw shows its pink pads. */
+function Arm({ from, to, beans, cls }: { from: Pt; to: Pt; beans?: boolean; cls?: string }) {
   const [px, py] = to;
   return (
-    <g className={cls}>
-      <path d={`M${from[0]} ${from[1]} L${px} ${py}`} stroke={K.furD} strokeWidth={16} strokeLinecap="round" />
-      <path d={`M${from[0]} ${from[1]} L${px} ${py}`} stroke={K.fur} strokeWidth={12} strokeLinecap="round" />
+    <g className={cls} style={cls ? { transformOrigin: `${from[0]}px ${from[1]}px` } : undefined}>
+      <path d={`M${from[0]} ${from[1]} L${px} ${py}`} stroke={K.fur} strokeWidth={15} strokeLinecap="round" />
       <circle cx={px} cy={py} r={11} fill={K.cream} />
-      <circle cx={px + 2} cy={py + 2} r={9} fill={K.creamD} opacity={0.5} />
-      {beans ? (
+      {beans && (
         <g fill={K.bean}>
-          <ellipse cx={px} cy={py + 2.4} rx={4.6} ry={3.6} />
-          <circle cx={px - 5.4} cy={py - 4} r={2.2} /><circle cx={px} cy={py - 6.4} r={2.2} /><circle cx={px + 5.4} cy={py - 4} r={2.2} />
+          <ellipse cx={px} cy={py + 2.6} rx={4.6} ry={3.6} />
+          <circle cx={px - 5.4} cy={py - 3.6} r={2.2} /><circle cx={px} cy={py - 6} r={2.2} /><circle cx={px + 5.4} cy={py - 3.6} r={2.2} />
         </g>
-      ) : (
-        <path d={`M${px - 3.4} ${py - 9} v5 M${px + 3.4} ${py - 9} v5`} stroke={K.creamD} strokeWidth={1.6} strokeLinecap="round" />
       )}
     </g>
   );
 }
 
-/** A paw resting on the box edge (only the sock shows). */
+/** A paw resting on an edge: only the white sock shows. */
 const RestPaw = ({ x, y }: { x: number; y: number }) => (
   <g>
-    <ellipse cx={x} cy={y} rx={12} ry={8.5} fill={K.cream} />
-    <path d={`M${x - 4} ${y - 2} v6 M${x + 4} ${y - 2} v6`} stroke={K.creamD} strokeWidth={1.6} strokeLinecap="round" />
+    <rect x={x - 12} y={y - 8} width={24} height={16} rx={8} fill={K.cream} />
+    <path d={`M${x - 4} ${y - 1} v5 M${x + 4} ${y - 1} v5`} stroke={K.creamD} strokeWidth={1.8} strokeLinecap="round" />
   </g>
 );
 
-function Torso({ cx, top }: { cx: number; top: number }) {
+/** Tail: one capsule stroke; two celeste rings and the cream tip are dashes on the same path. */
+function Tail({ d }: { d: string }) {
+  const [, x, y] = d.match(/M\s*([\d.]+)[\s,]+([\d.]+)/) ?? [];
   return (
-    <g className="g-body">
-      <path d={`M${cx - 28} ${top} Q${cx - 44} ${top + 52} ${cx - 30} ${top + 78} L${cx + 30} ${top + 78} Q${cx + 44} ${top + 52} ${cx + 28} ${top} Z`} fill={K.furD} />
-      <path d={`M${cx - 28} ${top} Q${cx - 42} ${top + 50} ${cx - 28} ${top + 76} L${cx + 24} ${top + 76} Q${cx + 36} ${top + 50} ${cx + 24} ${top} Z`} fill={K.fur} />
-      <ellipse cx={cx} cy={top + 30} rx={17} ry={25} fill={K.cream} />
-      <g fill="none" stroke={K.wave} strokeWidth={2.6} strokeLinecap="round" opacity={0.7}>
-        <path d={wave(cx - 38, top + 34, 14, 2.4, 2)} /><path d={wave(cx - 39, top + 44, 12, 2.2, 2)} />
-        <path d={wave(cx + 22, top + 34, 14, 2.4, 2)} /><path d={wave(cx + 24, top + 44, 12, 2.2, 2)} />
-      </g>
-    </g>
-  );
-}
-
-/** Tail: navy with darker rings and a cream tip. */
-function Tail({ d, tip }: { d: string; tip: [number, number] }) {
-  return (
-    <g className="g-tail">
-      <path d={d} fill="none" stroke={K.furD} strokeWidth={15} strokeLinecap="round" />
-      <path d={d} fill="none" stroke={K.fur} strokeWidth={11} strokeLinecap="round" />
-      <path d={d} fill="none" stroke={K.wave} strokeWidth={11} strokeDasharray="3 11" opacity={0.55} />
-      <circle cx={tip[0]} cy={tip[1]} r={7.5} fill={K.cream} />
+    <g className="g-tail" style={{ transformOrigin: `${x}px ${y}px` }}>
+      <path d={d} fill="none" stroke={K.fur} strokeWidth={13} strokeLinecap="round" />
+      <path d={d} pathLength={100} fill="none" stroke={K.wave} strokeWidth={13} strokeDasharray="0 42 6 10 6 36" opacity={0.75} />
+      <path d={d} pathLength={100} fill="none" stroke={K.cream} strokeWidth={13} strokeLinecap="round" strokeDasharray="0 86 14" />
     </g>
   );
 }
@@ -263,11 +299,9 @@ function Tail({ d, tip }: { d: string; tip: [number, number] }) {
 function BoxBack() {
   return (
     <g>
-      <path d="M50 150 L70 136 L212 136 L192 150 Z" fill={K.boxDD} />
-      <path d="M70 136 L80 106 L208 106 L212 136 Z" fill={K.boxD} />
-      <path d={wave(80, 108, 128, 1.4, 20)} fill="none" stroke={K.boxDD} strokeWidth={1.4} opacity={0.6} />
-      <path d="M50 150 L70 136 L46 114 L24 130 Z" fill={K.boxL} />
-      <path d="M50 150 L70 136 L58 125 Z" fill={K.box} opacity={0.6} />
+      <Soft d="M52 150 L72 137 L210 137 L190 150 Z" fill={K.boxDD} r={4} />
+      <Soft d="M72 137 L82 108 L206 108 L210 137 Z" fill={K.boxD} r={5} />
+      <Soft d="M52 150 L72 137 L48 116 L28 131 Z" fill={K.boxL} r={5} />
     </g>
   );
 }
@@ -275,32 +309,21 @@ function BoxBack() {
 function BoxFront() {
   return (
     <g>
-      <path d="M192 150 L212 136 L212 208 L192 222 Z" fill={K.boxD} />
-      <path d="M192 150 L212 136 L234 152 L214 168 Z" fill={K.boxL} />
-      <path d="M192 150 L212 136 L222 145 Z" fill={K.box} opacity={0.7} />
-      <rect x={50} y={150} width={142} height={72} rx={4} fill={K.box} />
-      <rect x={50} y={150} width={142} height={7} fill={K.boxL} />
-      <path d={wave(50, 153.5, 142, 1.3, 30)} fill="none" stroke={K.boxD} strokeWidth={1.3} />
-      <rect x={50} y={212} width={142} height={10} rx={4} fill={K.boxD} opacity={0.35} />
-      {/* packing tape */}
-      <path d="M114 150 H129 V183 L126.5 186 L124 183 L121.5 186 L119 183 L116.5 186 L114 183 Z" fill={K.tape} opacity={0.95} />
-      <path d="M116 150 V182" stroke={K.white} strokeWidth={1.6} opacity={0.6} />
-      {/* this side up */}
-      <g stroke={K.boxDD} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.7}>
-        <path d="M70 206 v-16 m-6 6 l6 -6 l6 6" /><path d="M84 206 v-16 m-6 6 l6 -6 l6 6" />
-        <path d="M62 211 h30" />
-      </g>
-      {/* the Ψ stamp */}
-      <g transform="rotate(-10 162 190)" opacity={0.75}>
-        <circle cx={162} cy={190} r={17} fill="none" stroke={K.boxDD} strokeWidth={2.4} />
-        <circle cx={162} cy={190} r={12.5} fill="none" stroke={K.boxDD} strokeWidth={1.2} strokeDasharray="2 2.4" />
-        <text x={162} y={196.5} textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize={18} fontWeight={700} fill={K.boxDD}>Ψ</text>
+      <Soft d="M190 150 L210 137 L210 207 L190 220 Z" fill={K.boxD} r={5} />
+      <Soft d="M190 150 L210 137 L231 152 L212 166 Z" fill={K.boxL} r={5} />
+      <rect x={50} y={148} width={142} height={74} rx={6} fill={K.box} />
+      <rect x={50} y={210} width={142} height={12} rx={6} fill={K.boxD} opacity={0.4} />
+      <path d={wave(56, 154, 130, 1.6, 26)} fill="none" stroke={K.boxD} strokeWidth={1.8} strokeLinecap="round" />
+      <rect x={113} y={148} width={16} height={36} rx={2} fill={K.tape} />
+      <g transform="rotate(-10 158 188)" opacity={0.8}>
+        <circle cx={158} cy={188} r={16} fill="none" stroke={K.boxDD} strokeWidth={2.6} />
+        <text x={158} y={194.5} textAnchor="middle" fontFamily="Georgia, 'Times New Roman', serif" fontSize={18} fontWeight={700} fill={K.boxDD}>Ψ</text>
       </g>
     </g>
   );
 }
 
-const Ground = ({ cx = 130, w = 98 }: { cx?: number; w?: number }) => <ellipse cx={cx} cy={226} rx={w} ry={7} fill={K.ground} />;
+const Ground = ({ cx = 130, w = 96 }: { cx?: number; w?: number }) => <ellipse cx={cx} cy={226} rx={w} ry={7} fill={K.ground} />;
 
 const Sweat = ({ x, y }: { x: number; y: number }) => (
   <g><path d={`M${x} ${y} q-7 10 0 14 q7 -4 0 -14z`} fill={K.brandL} /><circle cx={x - 1.8} cy={y + 8} r={1.5} fill={K.white} /></g>
@@ -309,53 +332,99 @@ const Sweat = ({ x, y }: { x: number; y: number }) => (
 /* ---------------- poses ---------------- */
 
 const LABEL: Record<GatoPose, string> = {
-  hola: "El gato de Kwanta saluda desde su caja",
-  sube: "El gato de Kwanta salta de la caja, feliz: subiste de nivel",
-  ups: "El gato de Kwanta, preocupado, junto a una marca roja de corrección",
-  superposicion: "El gato de Kwanta en superposición: mitad sólido, mitad nube de puntos",
-  escribe: "El gato de Kwanta resuelve una hoja de examen con su lápiz",
-  duerme: "El gato de Kwanta duerme en su caja",
+  hola: "Psi, el gato de Kwanta, saluda desde su caja",
+  sube: "Psi salta de la caja, feliz: subiste de nivel",
+  ups: "Psi, preocupado, junto a una marca roja de corrección",
+  superposicion: "Psi en superposición: mitad gato, mitad fantasma celeste",
+  escribe: "Psi resuelve una hoja de examen con su lápiz",
+  duerme: "Psi duerme en su caja",
+  senala: "Psi guiña un ojo y señala hacia un lado",
+  racha: "Psi sostiene una llama con el número de días de tu racha",
+  siete: "Psi con birrete y una medalla con un 7",
+  lee: "Psi lee el cuadernillo de fórmulas",
+  cronometro: "Psi, sorprendido, mira un cronómetro",
+  triste: "Psi, triste, en su caja",
+  insiste: "Psi, serio, te recuerda tu hoja de hoy",
+  ipad: "Psi escribe en un iPad con el Apple Pencil",
+  cara: "Psi, el gato de Kwanta",
 };
 
-export default function Gato({ pose = "hola", uid, className, title }: { pose?: GatoPose; uid?: string; className?: string; title?: string }) {
-  const id = uid ?? `gato-${pose}`;
-  const label = title ?? LABEL[pose];
+export type GatoProps = {
+  pose?: GatoPose;
+  /** Only for pose "cara": the expression. */
+  mood?: Mood;
+  /** Let the parts move on their own (needs src/components/psi.css). */
+  animated?: boolean;
+  uid?: string;
+  className?: string;
+  title?: string;
+};
+
+export default function Gato({ pose = "hola", mood, animated, uid, className, title }: GatoProps) {
+  const id = uid ?? `psi-${pose}${mood ? `-${mood}` : ""}`;
+  const cls = ["psi", `psi--${pose}`, animated ? "psi-anim" : "", className ?? ""].filter(Boolean).join(" ");
   return (
-    <svg viewBox="0 0 240 240" className={className} role="img" aria-label={label} xmlns="http://www.w3.org/2000/svg">
-      {POSES[pose](id)}
+    <svg viewBox={pose === "cara" ? "50 46 140 140" : "0 0 240 240"} className={cls} role="img" aria-label={title ?? LABEL[pose]} xmlns="http://www.w3.org/2000/svg">
+      {POSES[pose](id, mood)}
     </svg>
   );
 }
 
-const POSES: Record<GatoPose, (uid: string) => React.ReactNode> = {
+/** Psi sitting outside the box: body, feet, tail and head. Arms and props go in `front`/`back`. */
+function Sitting({ uid, cx = 112, mood, earsDown, tail, back, front, collar = true }: {
+  uid: string; cx?: number; mood: Mood; earsDown?: boolean; tail: string; back?: React.ReactNode; front?: React.ReactNode; collar?: boolean;
+}) {
+  const top = 138;
+  return (
+    <>
+      <Ground cx={cx + 8} w={84} />
+      <Tail d={tail} />
+      {back}
+      <Body uid={uid} cx={cx} top={top} />
+      <RestPaw x={cx - 16} y={top + 80} />
+      <RestPaw x={cx + 16} y={top + 80} />
+      <Head uid={uid} cx={cx} cy={top - 32} mood={mood} earsDown={earsDown} collar={collar} />
+      {front}
+    </>
+  );
+}
+
+/** Rounded flame, base at (x, y + 24). */
+const flamePath = (x: number, y: number, s = 1) =>
+  `M${x} ${y - 34 * s} C${x + 8 * s} ${y - 20 * s} ${x + 26 * s} ${y - 10 * s} ${x + 24 * s} ${y + 8 * s} C${x + 22 * s} ${y + 26 * s} ${x - 22 * s} ${y + 26 * s} ${x - 24 * s} ${y + 8 * s}
+   C${x - 26 * s} ${y - 6 * s} ${x - 12 * s} ${y - 14 * s} ${x - 7 * s} ${y - 26 * s} C${x - 3 * s} ${y - 17 * s} ${x - 1 * s} ${y - 14 * s} ${x} ${y - 34 * s} Z`;
+
+const POSES: Record<GatoPose, (uid: string, mood?: Mood) => React.ReactNode> = {
   hola: (uid) => (
     <>
       <Ground />
       <BoxBack />
-      <Head uid={uid} cx={124} cy={106} mood="hola" />
+      <g className="g-peek"><Head uid={uid} cx={122} cy={106} mood="hola" /></g>
       <BoxFront />
-      <RestPaw x={94} y={151} />
-      <Arm cls="g-wave" from={[152, 146]} to={[184, 86]} beans />
-      <g className="g-wave-lines" fill="none" stroke={K.brandL} strokeWidth={3.4} strokeLinecap="round">
-        <path d="M198 66 q8 8 5 18" /><path d="M206 56 q12 12 8 28" />
+      <RestPaw x={92} y={150} />
+      <Arm cls="g-wave" from={[154, 150]} to={[186, 88]} beans />
+      <g fill="none" stroke={K.brandL} strokeWidth={3.6} strokeLinecap="round">
+        <path d="M201 68 q8 8 5 18" /><path d="M209 58 q12 12 8 28" />
       </g>
-      <Tail d="M210 190 C 238 180, 238 136, 220 124" tip={[220, 124]} />
+      <Tail d="M208 192 C 236 182, 236 140, 220 126" />
     </>
   ),
 
   sube: (uid) => (
     <>
-      <circle cx={120} cy={96} r={78} fill={K.brandXL} />
-      <circle cx={120} cy={96} r={58} fill={K.brandL} opacity={0.45} />
+      <circle cx={120} cy={98} r={80} fill={K.brandXL} />
+      <circle cx={120} cy={98} r={58} fill={K.brandL} opacity={0.4} />
       <Ground />
       <BoxBack />
-      <Tail d="M146 168 C 188 170, 204 126, 182 110" tip={[182, 110]} />
-      <Torso cx={120} top={98} />
-      <Arm from={[98, 110]} to={[62, 58]} beans />
-      <Arm from={[142, 110]} to={[178, 58]} beans />
-      <Head uid={uid} cx={120} cy={66} mood="feliz" />
+      <g className="g-jump" style={{ transformOrigin: "120px 180px" }}>
+        <Tail d="M146 170 C 190 172, 206 128, 184 110" />
+        <Arm from={[96, 116]} to={[60, 60]} beans />
+        <Arm from={[144, 116]} to={[180, 60]} beans />
+        <Body uid={uid} cx={120} top={100} />
+        <Head uid={uid} cx={120} cy={68} mood="feliz" />
+      </g>
       <BoxFront />
-      {star(28, 40, 10, K.sun, 1)}{star(212, 36, 8, K.sun, 2)}{star(214, 104, 6, K.brand, 3)}{star(34, 112, 6, K.brand, 4)}{star(196, 14, 4, K.sun, 5)}
+      {star(26, 42, 11)}{star(214, 34, 8)}{star(216, 106, 6, K.brand)}{star(30, 112, 6, K.brand)}{star(194, 12, 4.5)}
     </>
   ),
 
@@ -363,43 +432,44 @@ const POSES: Record<GatoPose, (uid: string) => React.ReactNode> = {
     <>
       <Ground />
       <BoxBack />
-      <Head uid={uid} cx={122} cy={120} mood="ups" earsDown />
+      <Head uid={uid} cx={122} cy={118} mood="ups" earsDown />
       <BoxFront />
-      <RestPaw x={96} y={151} />
-      <RestPaw x={150} y={151} />
-      <Sweat x={172} y={70} />
-      {/* the red correction mark, like the margin of a marked exam */}
-      <g fill="none" stroke={K.red} strokeWidth={4.6} strokeLinecap="round" transform="rotate(-8 202 78)">
-        <path d="M190 64 L212 92" /><path d="M213 64 L190 93" />
+      <RestPaw x={94} y={150} />
+      <RestPaw x={150} y={150} />
+      <Sweat x={176} y={72} />
+      <g fill="none" stroke={K.red} strokeWidth={5} strokeLinecap="round" transform="rotate(-8 204 80)">
+        <path d="M192 66 L214 94" /><path d="M215 66 L192 95" />
       </g>
     </>
   ),
 
   superposicion: (uid) => {
-    const cat = (
-      <>
-        <Head uid={`${uid}-a`} cx={122} cy={104} mood="duda" />
-        <Arm from={[150, 152]} to={[150, 128]} />
-      </>
+    const cx = 122, cy = 106;
+    const trail: [number, number, number][] = [[184, 66, 4.5], [196, 88, 3.6], [192, 114, 3], [206, 72, 2.6], [208, 102, 2.2], [218, 86, 1.8]];
+    // the other state: the same silhouette as a celeste ghost, keeping only its amber eye
+    const ghost = (
+      <g>
+        <Soft d={`M${cx + 47} ${cy - 10} L${cx + 41} ${cy - 62} L${cx + 7} ${cy - 33} Z`} fill={K.brandL} r={9} />
+        <path d={headPath(cx, cy)} fill={K.brandL} />
+        <path d={wave(cx + 4, cy - 29, 13, 3.4, 2)} fill="none" stroke={K.white} strokeWidth={4} strokeLinecap="round" />
+        <circle cx={cx + 19} cy={cy - 3} r={12.5} fill={K.white} opacity={0.75} />
+        <circle cx={cx + 20.4} cy={cy - 4.6} r={8.6} fill={K.eyeB} opacity={0.8} />
+        <circle cx={cx + 21} cy={cy - 4} r={5.2} fill={K.ink} opacity={0.7} />
+        <rect x={cx - 5.5} y={cy + 7} width={11} height={7.5} rx={3.75} fill={K.white} opacity={0.6} />
+      </g>
     );
-    const dots: React.ReactNode[] = [];
-    for (let y = 26; y < 160; y += 7) for (let x = 123; x < 200; x += 7) dots.push(<circle key={`${x}-${y}`} cx={x + (((y - 26) / 7) % 2) * 3.5} cy={y} r={2.3} fill="#fff" />);
-    const strays = [[188, 70, 2.4], [200, 96, 2], [196, 120, 1.8], [210, 82, 1.6], [206, 52, 1.4], [184, 44, 2], [214, 108, 1.2]];
     return (
       <>
         <Ground />
         <BoxBack />
-        <clipPath id={`${uid}-left`}><rect x={0} y={0} width={122} height={240} /></clipPath>
-        <mask id={`${uid}-cloud`} maskUnits="userSpaceOnUse" x={0} y={0} width={240} height={240}>{dots}</mask>
-        <g clipPath={`url(#${uid}-left)`}>{cat}</g>
-        <clipPath id={`${uid}-right`}><rect x={122} y={0} width={118} height={240} /></clipPath>
-        <g clipPath={`url(#${uid}-right)`} opacity={0.16}>{cat}</g>
-        <g mask={`url(#${uid}-cloud)`}>{cat}</g>
-        {strays.map(([x, y, r]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill={K.fur} opacity={0.55} />)}
-        <path d="M122 30 V148" stroke={K.brand} strokeWidth={2} strokeDasharray="3 5" strokeLinecap="round" opacity={0.6} />
+        <clipPath id={`${uid}-left`}><rect x={0} y={0} width={cx} height={240} /></clipPath>
+        <clipPath id={`${uid}-right`}><rect x={cx} y={0} width={240 - cx} height={240} /></clipPath>
+        <g className="g-ghost" clipPath={`url(#${uid}-right)`}>{ghost}</g>
+        <g clipPath={`url(#${uid}-left)`}><Head uid={`${uid}-c`} cx={cx} cy={cy} mood="duda" /></g>
+        <g className="g-ghost">{trail.map(([x, y, r]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill={K.brand} opacity={0.55} />)}</g>
         <BoxFront />
-        <RestPaw x={96} y={151} />
-        <text x={40} y={70} fontFamily="Nunito, 'Arial Rounded MT Bold', sans-serif" fontWeight={900} fontSize={26} fill={K.brand}>?</text>
+        <RestPaw x={94} y={150} />
+        <text x={36} y={72} fontFamily="Nunito, 'Arial Rounded MT Bold', sans-serif" fontWeight={900} fontSize={28} fill={K.brand}>?</text>
       </>
     );
   },
@@ -407,25 +477,23 @@ const POSES: Record<GatoPose, (uid: string) => React.ReactNode> = {
   escribe: (uid) => (
     <>
       <Ground cx={124} w={92} />
-      <Tail d="M150 196 C 196 200, 212 160, 192 146" tip={[192, 146]} />
-      <Torso cx={112} top={112} />
+      <Tail d="M148 196 C 194 200, 212 160, 194 144" />
+      <Body uid={uid} cx={112} top={112} />
       <Head uid={uid} cx={112} cy={80} mood="concentrado" />
-      {/* the exam sheet */}
       <g transform="rotate(-5 128 194)">
-        <rect x={48} y={160} width={160} height={62} rx={3} fill={K.creamD} />
-        <rect x={46} y={158} width={160} height={62} rx={3} fill={K.white} />
-        <rect x={58} y={168} width={136} height={44} fill="none" stroke="#5b6270" strokeWidth={1.2} />
-        <path d="M62 183 H190 M62 198 H190" stroke="#b6bcc8" strokeWidth={1.3} strokeDasharray="2 3" />
-        <path d="M66 180 q4 -8 8 0 t8 0 M88 180 l6 -7 m-6 0 l6 7 M100 177 h8 M112 180 q3 -6 6 0 q3 6 6 0" fill="none" stroke={K.pen} strokeWidth={2} strokeLinecap="round" />
-        <text x={158} y={210} fontFamily="Caveat, 'Bradley Hand', cursive" fontWeight={700} fontSize={16} fill={K.red}>M1 ✓</text>
-        <path d="M66 195 q5 -7 10 0 t10 0" fill="none" stroke={K.pen} strokeWidth={2} strokeLinecap="round" />
+        <rect x={48} y={162} width={160} height={60} rx={5} fill={K.creamD} />
+        <rect x={46} y={160} width={160} height={60} rx={5} fill={K.white} />
+        <rect x={58} y={170} width={136} height={42} rx={2} fill="none" stroke="#8a93a3" strokeWidth={1.4} />
+        <path d="M64 184 H188 M64 199 H188" stroke="#c3c9d4" strokeWidth={1.4} strokeDasharray="2 3.4" strokeLinecap="round" />
+        <path d={`${wave(68, 181, 24, 3, 4)} M98 181 h10 M114 181 l6 -7 m-6 0 l6 7`} fill="none" stroke={K.pen} strokeWidth={2.2} strokeLinecap="round" />
+        <path d={wave(68, 196, 30, 3, 5)} fill="none" stroke={K.pen} strokeWidth={2.2} strokeLinecap="round" />
+        <text x={158} y={211} fontFamily="Caveat, 'Bradley Hand', cursive" fontWeight={700} fontSize={17} fill={K.red}>M1 ✓</text>
       </g>
-      <RestPaw x={82} y={176} />
-      {/* the pencil, then the paw holding it */}
+      <RestPaw x={80} y={176} />
       <path d="M132 196 L160 150" stroke={K.creamD} strokeWidth={9} strokeLinecap="round" />
       <path d="M132 196 L160 150" stroke={K.white} strokeWidth={6.4} strokeLinecap="round" />
-      <path d="M129 201 L131 192 L136 195 Z" fill={K.ink} />
       <path d="M152 163 L160 150" stroke={K.brand} strokeWidth={6.4} strokeLinecap="round" />
+      <circle cx={130.6} cy={198.6} r={2.4} fill={K.ink} />
       <Arm from={[134, 146]} to={[146, 172]} />
     </>
   ),
@@ -434,15 +502,144 @@ const POSES: Record<GatoPose, (uid: string) => React.ReactNode> = {
     <>
       <Ground />
       <BoxBack />
-      <Head uid={uid} cx={124} cy={142} mood="dormido" collar={false} />
+      <Head uid={uid} cx={122} cy={142} mood="dormido" collar={false} />
       <BoxFront />
-      <RestPaw x={100} y={151} />
-      <Tail d="M156 150 C 176 156, 184 174, 172 190" tip={[172, 190]} />
+      <RestPaw x={98} y={150} />
+      <Tail d="M154 150 C 176 156, 184 176, 172 192" />
       <g className="g-z" fill={K.brand} fontFamily="Nunito, 'Arial Rounded MT Bold', sans-serif" fontWeight={900}>
-        <text x={166} y={102} fontSize={16}>z</text>
-        <text x={182} y={84} fontSize={22}>z</text>
-        <text x={202} y={62} fontSize={28}>Z</text>
+        <text x={164} y={104} fontSize={16}>z</text>
+        <text x={180} y={86} fontSize={22}>z</text>
+        <text x={200} y={64} fontSize={28}>Z</text>
       </g>
+    </>
+  ),
+
+  senala: (uid) => (
+    <Sitting uid={uid} mood="guino" tail="M90 214 C 52 214, 40 172, 58 156"
+      back={<Arm from={[92, 152]} to={[84, 196]} />}
+      front={<>
+        <Arm cls="g-point" from={[132, 154]} to={[196, 132]} />
+        <g fill="none" stroke={K.brandL} strokeWidth={3.6} strokeLinecap="round"><path d="M214 118 l10 -6" /><path d="M216 134 h12" /><path d="M214 150 l10 6" /></g>
+      </>} />
+  ),
+
+  racha: (uid) => (
+    <Sitting uid={uid} mood="feliz" tail="M134 214 C 176 214, 190 172, 170 156"
+      back={<><Arm from={[94, 152]} to={[86, 186]} /><Arm from={[130, 152]} to={[138, 186]} /></>}
+      front={<>
+        <g className="g-flame" style={{ transformOrigin: "112px 200px" }}>
+          <path d={flamePath(112, 176)} fill={K.flameD} stroke={K.flameD} strokeWidth={4} strokeLinejoin="round" />
+          <path d={flamePath(110, 174)} fill={K.sun} />
+          <path d={flamePath(110, 184, 0.55)} fill={K.flame} opacity={0.75} />
+          <text x={110} y={194} textAnchor="middle" fontFamily="Nunito, 'Arial Rounded MT Bold', sans-serif" fontWeight={900} fontSize={26} fill={K.white}>7</text>
+        </g>
+        <circle cx={86} cy={186} r={11} fill={K.cream} /><circle cx={138} cy={186} r={11} fill={K.cream} />
+        {star(40, 70, 8)}{star(190, 60, 6, K.flame)}
+      </>} />
+  ),
+
+  siete: (uid) => (
+    <Sitting uid={uid} mood="orgulloso" tail="M134 214 C 176 214, 190 172, 170 156"
+      back={<><Arm from={[92, 150]} to={[56, 100]} beans /><Arm from={[132, 150]} to={[168, 100]} beans /></>}
+      front={<>
+        {/* the mortarboard */}
+        <rect x={86} y={58} width={52} height={18} rx={6} fill="#1c2a3a" />
+        <Soft d="M68 62 L112 46 L156 62 L112 78 Z" fill={K.ink} r={5} />
+        <path d="M112 62 L150 68 L152 92" fill="none" stroke={K.sun} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+        <rect x={147} y={90} width={10} height={14} rx={4} fill={K.sun} />
+        {/* the medal: a 7 on a celeste ribbon */}
+        <path d="M92 142 L112 166 L132 142" fill="none" stroke={K.brand} strokeWidth={9} strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx={112} cy={174} r={19} fill={K.sunD} />
+        <circle cx={111} cy={173} r={17} fill={K.sun} />
+        <text x={111} y={182} textAnchor="middle" fontFamily="Nunito, 'Arial Rounded MT Bold', sans-serif" fontWeight={900} fontSize={24} fill={K.ink}>7</text>
+        {star(36, 62, 9)}{star(196, 54, 7)}{star(200, 128, 5, K.brand)}{star(28, 128, 5, K.brand)}
+      </>} />
+  ),
+
+  lee: (uid) => (
+    <Sitting uid={uid} mood="concentrado" tail="M134 214 C 176 214, 190 172, 170 156"
+      back={<><Arm from={[94, 152]} to={[68, 170]} /><Arm from={[130, 152]} to={[156, 170]} /></>}
+      front={<>
+        <g transform="rotate(-4 112 190)">
+          <rect x={58} y={160} width={108} height={60} rx={7} fill={K.brandD} />
+          <path d="M62 162 Q87 154 111 162 V214 Q87 206 62 214 Z" fill={K.white} />
+          <path d="M113 162 Q137 154 162 162 V214 Q137 206 113 214 Z" fill={K.cream} />
+          <path d="M70 174 h32 M70 184 h26 M70 194 h30 M70 204 h20" stroke="#c3c9d4" strokeWidth={2.4} strokeLinecap="round" />
+          <text x={137} y={182} textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontStyle="italic" fontSize={10} fill={K.ink}>F = ma</text>
+          <path d="M122 194 h30 M122 204 h22" stroke="#c3c9d4" strokeWidth={2.4} strokeLinecap="round" />
+        </g>
+        <circle cx={64} cy={172} r={10.5} fill={K.cream} /><circle cx={160} cy={170} r={10.5} fill={K.cream} />
+      </>} />
+  ),
+
+  cronometro: (uid) => (
+    <Sitting uid={uid} mood="sorprendido" tail="M90 214 C 52 214, 40 172, 58 156"
+      back={<Arm from={[92, 152]} to={[84, 196]} />}
+      front={<>
+        <rect x={176} y={70} width={14} height={12} rx={4} fill={K.brandD} />
+        <circle cx={183} cy={110} r={30} fill={K.brandD} />
+        <circle cx={182} cy={109} r={27} fill={K.brand} />
+        <circle cx={182} cy={109} r={21} fill={K.white} />
+        {[0, 90, 180, 270].map((a) => { const r = (a * Math.PI) / 180; return <circle key={a} cx={182 + Math.cos(r) * 16} cy={109 + Math.sin(r) * 16} r={1.8} fill={K.ink} />; })}
+        <g className="g-hand" style={{ transformOrigin: "182px 109px" }}><path d="M182 109 L182 93" stroke={K.red} strokeWidth={3.4} strokeLinecap="round" /></g>
+        <circle cx={182} cy={109} r={3} fill={K.ink} />
+        <Arm from={[132, 154]} to={[160, 128]} />
+        <Sweat x={58} y={62} />
+      </>} />
+  ),
+
+  triste: (uid) => (
+    <>
+      <Ground />
+      <BoxBack />
+      <Head uid={uid} cx={122} cy={120} mood="triste" earsDown />
+      <BoxFront />
+      <RestPaw x={100} y={150} />
+      <RestPaw x={144} y={150} />
+    </>
+  ),
+
+  insiste: (uid) => (
+    <Sitting uid={uid} mood="enojado" tail="M134 214 C 176 214, 190 172, 170 156"
+      back={<Arm from={[94, 152]} to={[86, 196]} />}
+      front={<>
+        <Arm cls="g-point" from={[132, 152]} to={[156, 104]} />
+        <rect x={150} y={82} width={8} height={18} rx={4} fill={K.cream} />
+        <g className="g-star" style={{ transformOrigin: "196px 58px" }}>
+          <rect x={174} y={34} width={44} height={44} rx={14} fill={K.sun} />
+          <path d="M182 74 L178 88 L194 76 Z" fill={K.sun} />
+          <text x={196} y={68} textAnchor="middle" fontFamily="Nunito, 'Arial Rounded MT Bold', sans-serif" fontWeight={900} fontSize={32} fill={K.ink}>!</text>
+        </g>
+      </>} />
+  ),
+
+  ipad: (uid) => (
+    <>
+      <Ground cx={124} w={92} />
+      <Tail d="M148 196 C 194 200, 212 160, 194 144" />
+      <Body uid={uid} cx={112} top={112} />
+      <Head uid={uid} cx={112} cy={80} mood="concentrado" />
+      <g transform="rotate(-5 128 194)">
+        <rect x={40} y={156} width={172} height={70} rx={12} fill={K.ink} />
+        <rect x={48} y={163} width={156} height={56} rx={5} fill={K.white} />
+        <path d="M58 182 H194 M58 198 H194" stroke="#c3c9d4" strokeWidth={1.4} strokeDasharray="2 3.4" strokeLinecap="round" />
+        <path d={`${wave(62, 179, 26, 3, 4)} M94 179 h10 M110 179 l6 -7 m-6 0 l6 7`} fill="none" stroke={K.pen} strokeWidth={2.2} strokeLinecap="round" />
+        <path d={wave(62, 195, 34, 3, 5)} fill="none" stroke={K.pen} strokeWidth={2.2} strokeLinecap="round" />
+        <text x={158} y={212} fontFamily="Caveat, 'Bradley Hand', cursive" fontWeight={700} fontSize={17} fill={K.red}>A1 ✓</text>
+      </g>
+      <RestPaw x={78} y={176} />
+      <path d="M132 192 L162 146" stroke={K.creamD} strokeWidth={8} strokeLinecap="round" />
+      <path d="M132 192 L162 146" stroke={K.white} strokeWidth={6} strokeLinecap="round" />
+      <path d="M130 196 L133 190" stroke="#8a93a3" strokeWidth={4} strokeLinecap="round" />
+      <Arm from={[134, 146]} to={[146, 170]} />
+    </>
+  ),
+
+  /** Head only, for small sizes (favicon, app icon, avatar) and for the expression sheet. */
+  cara: (uid, mood = "hola") => (
+    <>
+      <circle cx={120} cy={116} r={70} fill={K.brandXL} />
+      <Head uid={uid} cx={120} cy={126} mood={mood} collar={false} earsDown={mood === "triste" || mood === "ups"} />
     </>
   ),
 };

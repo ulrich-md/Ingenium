@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Psi escribe en un iPad con el Apple Pencil" class="psi psi--ipad psi-anim" viewBox="0 0 240 240"><style><![CDATA[/* Psi's animations. Each moving part of src/components/Gato.tsx has a class and carries its own pivot
+   (an inline transform-origin in viewBox units), so these rules never need coordinates.
+   Only on Gato with `animated`, and never for people who ask for less motion. */
+
+.psi .g-iris { transition: transform 0.18s ease-out; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* always: blink, breathe, swish */
+  .psi-anim .g-eyes { animation: psi-blink 4.6s infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-body { animation: psi-breathe 3.2s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-tail { animation: psi-swish 2.6s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-head { animation: psi-tilt 5s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-star { animation: psi-twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .psi-anim .g-star:nth-of-type(2n) { animation-delay: 0.5s; }
+
+  /* per part */
+  .psi-anim .g-wave { animation: psi-wave 1.1s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-point { animation: psi-point 1.4s ease-in-out infinite; transform-box: view-box; }
+  .psi-anim .g-flame { animation: psi-flicker 0.9s ease-in-out infinite alternate; transform-box: view-box; }
+  .psi-anim .g-hand { animation: psi-spin 3s linear infinite; transform-box: view-box; }
+  .psi-anim .g-tear { animation: psi-drip 2.2s ease-in infinite; transform-box: view-box; }
+  .psi-anim .g-ghost { animation: psi-ghost 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text { animation: psi-z 2.4s ease-in-out infinite; }
+  .psi-anim .g-z text:nth-child(2) { animation-delay: 0.4s; }
+  .psi-anim .g-z text:nth-child(3) { animation-delay: 0.8s; }
+  .psi-anim .g-jump { animation: psi-hop 1.3s cubic-bezier(.3, .7, .4, 1) infinite; transform-box: view-box; }
+
+  /* per pose */
+  .psi-anim.psi--ups .g-head, .psi-anim.psi--insiste .g-head { animation: psi-shake 0.45s ease-in-out 3, psi-tilt 5s ease-in-out 1.35s infinite; }
+  .psi-anim.psi--duerme .g-head { animation: psi-snore 3.6s ease-in-out infinite; }
+  .psi-anim.psi--sube .g-head { animation: none; }
+
+  /* one-shot actions, added by script: peek into the box, jump, react */
+  .psi.do-peek .g-peek { animation: psi-peek 1.4s cubic-bezier(.5, 0, .3, 1) 1; }
+  .psi.do-jump { animation: psi-jump 0.7s cubic-bezier(.3, .7, .4, 1) 1; transform-origin: 50% 95%; }
+}
+
+@keyframes psi-blink { 0%, 94%, 100% { transform: scaleY(1); } 96.5% { transform: scaleY(0.08); } }
+@keyframes psi-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.015, 1.03); } }
+@keyframes psi-swish { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(9deg); } }
+@keyframes psi-tilt { 0%, 70%, 100% { transform: rotate(0deg); } 80% { transform: rotate(-4deg); } 90% { transform: rotate(2deg); } }
+@keyframes psi-twinkle { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.55); opacity: 0.6; } }
+@keyframes psi-wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-16deg); } }
+@keyframes psi-point { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(5px, -2px); } }
+@keyframes psi-flicker { 0% { transform: scale(1, 1) rotate(-2deg); } 100% { transform: scale(1.05, 1.1) rotate(2deg); } }
+@keyframes psi-spin { to { transform: rotate(360deg); } }
+@keyframes psi-drip { 0%, 30% { transform: translateY(0); opacity: 1; } 90% { transform: translateY(16px); opacity: 0; } 100% { opacity: 0; } }
+@keyframes psi-ghost { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes psi-z { 0%, 100% { opacity: 0.35; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-6px); } }
+@keyframes psi-hop { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.06, 0.92); } 45% { transform: translateY(-16px) scale(0.97, 1.04); } 78% { transform: translateY(0) scale(1.04, 0.96); } }
+@keyframes psi-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes psi-snore { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(1.5px) scale(1.02, 0.98); } }
+@keyframes psi-peek { 0% { transform: translateY(0); } 35%, 55% { transform: translateY(70px); } 100% { transform: translateY(0); } }
+@keyframes psi-jump { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.05, 0.93); } 50% { transform: translateY(-8%) scale(0.97, 1.04); } 80% { transform: translateY(0) scale(1.03, 0.97); } }
+]]></style><ellipse cx="124" cy="226" fill="#d5dee9" rx="92" ry="7"/><g class="g-tail" style="transform-origin:148px 196px"><path fill="none" stroke="#3d5a7c" stroke-linecap="round" stroke-width="13" d="M148 196c46 4 64-36 46-52"/><path fill="none" stroke="#8fd9ff" stroke-dasharray="0 42 6 10 6 36" stroke-width="13" d="M148 196c46 4 64-36 46-52" opacity=".75" pathLength="100"/><path fill="none" stroke="#f6f9fc" stroke-dasharray="0 86 14" stroke-linecap="round" stroke-width="13" d="M148 196c46 4 64-36 46-52" pathLength="100"/></g><g class="g-body" style="transform-origin:112px 192px"><path fill="#3d5a7c" stroke="#3d5a7c" stroke-linejoin="round" stroke-width="6" d="M82 112c-12 30-16 72 10 80h40c26-8 22-50 10-80Z"/><clipPath id="psi-ipad-body"><path d="M82 112c-12 30-16 72 10 80h40c26-8 22-50 10-80Z"/></clipPath><g clip-path="url(#psi-ipad-body)"><ellipse cx="148.96" cy="188" fill="#2b4565" opacity=".55" rx="54.56" ry="40"/><ellipse cx="92.64" cy="124.8" fill="#56769c" opacity=".3" rx="26.4" ry="12.8"/></g><ellipse cx="112" cy="148" fill="#f6f9fc" rx="17" ry="26"/><g fill="none" stroke="#8fd9ff" stroke-linecap="round" stroke-width="3.6" opacity=".8"><path d="M72 152q3.25-2.6 6.5 0t6.5 0"/><path d="M139 152q3.25-2.6 6.5 0t6.5 0"/></g></g><g class="g-head" style="transform-origin:112px 120px"><path fill="#3d5a7c" stroke="#3d5a7c" stroke-linejoin="round" stroke-width="9" d="m65 70 6-52 34 29Z"/><path fill="#ffa3c6" stroke="#ffa3c6" stroke-linejoin="round" stroke-width="5" d="m73 58 2-28 19 16Z"/><path fill="#2b4565" stroke="#2b4565" stroke-linejoin="round" stroke-width="9" d="m159 70-6-52-34 29Z"/><path fill="#ffa3c6" stroke="#ffa3c6" stroke-linejoin="round" stroke-width="5" d="m151 58-2-28-19 16Z"/><path fill="none" stroke="#2bb5ff" stroke-linecap="round" stroke-width="7" d="M82 113q30 16 60 0"/><path fill="#3d5a7c" d="M62 80c0-30 20-42 50-42s50 12 50 42c2 26-20 40-50 40s-52-14-50-40"/><clipPath id="psi-ipad-head"><path d="M62 80c0-30 20-42 50-42s50 12 50 42c2 26-20 40-50 40s-52-14-50-40"/></clipPath><g clip-path="url(#psi-ipad-head)"><ellipse cx="154" cy="115.9" fill="#2b4565" opacity=".55" rx="62" ry="41"/><ellipse cx="90" cy="51.12" fill="#56769c" opacity=".45" rx="30" ry="13.12"/></g><g fill="none" stroke="#8fd9ff" stroke-linecap="round" stroke-width="4"><path d="M99 51q4.333-3.4 8.667 0t8.666 0q4.334-3.4 8.667 0"/><path d="M63 84q3.25-2.6 6.5 0t6.5 0" opacity=".85"/><path d="M148 84q3.25-2.6 6.5 0t6.5 0" opacity=".85"/></g><circle cx="102.5" cy="97" r="11.5" fill="#f6f9fc"/><circle cx="121.5" cy="97" r="11.5" fill="#f6f9fc"/><circle cx="112" cy="104" r="9.5" fill="#f6f9fc"/><circle cx="79" cy="94" r="6.5" fill="#ffa3c6" opacity=".55"/><circle cx="145" cy="94" r="6.5" fill="#ffa3c6" opacity=".55"/><g class="g-eyes"><clipPath id="psi-ipad-eyeL"><circle cx="93" cy="77" r="12.5"/></clipPath><circle cx="93" cy="77" r="12.5" fill="#fff"/><g clip-path="url(#psi-ipad-eyeL)"><g class="g-iris"><circle cx="94.2" cy="80.2" r="9.8" fill="#0b7fc4"/><circle cx="93.6" cy="79.6" r="8.6" fill="#2bb5ff"/><circle cx="94.2" cy="80.2" r="5.2" fill="#0d1b2a"/><circle cx="98" cy="76.2" r="3.3" fill="#fff"/><circle cx="90.6" cy="84" r="1.5" fill="#fff"/></g><path fill="#3d5a7c" d="M80.5 62.5h25V72h-25z"/></g><clipPath id="psi-ipad-eyeR"><circle cx="131" cy="77" r="12.5"/></clipPath><circle cx="131" cy="77" r="12.5" fill="#fff"/><g clip-path="url(#psi-ipad-eyeR)"><g class="g-iris"><circle cx="132.2" cy="80.2" r="9.8" fill="#d18f00"/><circle cx="131.6" cy="79.6" r="8.6" fill="#ffc23d"/><circle cx="132.2" cy="80.2" r="5.2" fill="#0d1b2a"/><circle cx="136" cy="76.2" r="3.3" fill="#fff"/><circle cx="128.6" cy="84" r="1.5" fill="#fff"/></g><path fill="#3d5a7c" d="M118.5 62.5h25V72h-25z"/></g></g><rect width="11" height="7.5" x="106.5" y="87" fill="#ff7eb0" rx="3.75"/><path fill="none" stroke="#0d1b2a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M104 98q4 4 8-.5 4 4.5 8 .5"/><path fill="#ff7eb0" d="M116 100q4 7 9 2-2-5-9-2"/><g fill="none" stroke="#f6f9fc" stroke-linecap="round" stroke-width="1.8" opacity=".8"><path d="M90 95q-16-5-34-3"/><path d="M90 100q-16 0-32 5"/><path d="M134 95q16-5 34-3"/><path d="M134 100q16 0 32 5"/></g><circle cx="112" cy="127" r="8.5" fill="#e9a400"/><circle cx="111.3" cy="126.3" r="7.6" fill="#ffc23d"/><text x="111.3" y="130.4" fill="#0d1b2a" font-family="Georgia, 'Times New Roman', serif" font-size="11" font-weight="700" text-anchor="middle">Ψ</text></g><g transform="rotate(-5 128 194)"><rect width="172" height="70" x="40" y="156" fill="#0d1b2a" rx="12"/><rect width="156" height="56" x="48" y="163" fill="#fff" rx="5"/><path stroke="#c3c9d4" stroke-dasharray="2 3.4" stroke-linecap="round" stroke-width="1.4" d="M58 182h136M58 198h136"/><path fill="none" stroke="#1d3fbf" stroke-linecap="round" stroke-width="2.2" d="M62 179q3.25-3 6.5 0t6.5 0 6.5 0 6.5 0m6 0h10m6 0 6-7m-6 0 6 7"/><path fill="none" stroke="#1d3fbf" stroke-linecap="round" stroke-width="2.2" d="M62 195q3.4-3 6.8 0t6.8 0 6.8 0 6.8 0 6.8 0"/><text x="158" y="212" fill="#d62828" font-family="Caveat, 'Bradley Hand', cursive" font-size="17" font-weight="700">A1 ✓</text></g><rect width="24" height="16" x="66" y="168" fill="#f6f9fc" rx="8"/><path stroke="#dbe4ee" stroke-linecap="round" stroke-width="1.8" d="M74 175v5m8-5v5"/><path stroke="#dbe4ee" stroke-linecap="round" stroke-width="8" d="m132 192 30-46"/><path stroke="#fff" stroke-linecap="round" stroke-width="6" d="m132 192 30-46"/><path stroke="#8a93a3" stroke-linecap="round" stroke-width="4" d="m130 196 3-6"/><path stroke="#3d5a7c" stroke-linecap="round" stroke-width="15" d="m134 146 12 24"/><circle cx="146" cy="170" r="11" fill="#f6f9fc"/></svg>
