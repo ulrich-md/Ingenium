@@ -93,8 +93,20 @@ npm run build      # build de producción
 | `NEXT_PUBLIC_PREVENTA_URL` | Link de pago de Mercado Pago para apartar lugar de fundador | El botón dice "Preventa: abre pronto" |
 | `NEXT_PUBLIC_LEADS_URL` | URL `/exec` del Apps Script que guarda los registros en Google Sheets | El formulario de registro no aparece |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | Correo de contacto del aviso de privacidad | Dice "nuestro correo de contacto" |
+| `NEXT_PUBLIC_SITE_URL` | Dirección pública del sitio, para la imagen al compartir el enlace (`/og.png`) | Usa la de producción de Vercel o `localhost` |
 
 Son variables públicas: se leen al compilar, así que después de cambiarlas hay que volver a desplegar.
+
+## Landing y mascota
+
+La portada (`src/app/page.tsx`, estilos en `src/app/landing.css`) sigue el esquema de la de Duolingo: Psi y una sola frase con dos botones, una tira con las unidades A–E, cuatro ideas en zigzag, cómo funciona, las unidades, los dispositivos, una banda oscura para el Sprint al 7, preguntas frecuentes, una última llamada y un footer grande (`src/components/SiteFooter.tsx`, también en `/precios`). Los botones de las páginas públicas van en MAYÚSCULAS; los bloques aparecen al bajar (`src/components/Reveal.tsx`).
+
+**Psi**, el gato de Kwanta (`src/components/Gato.tsx`): vive en una caja, como el gato de Schrödinger, con un ojo celeste y uno ámbar, una onda en la frente y una placa Ψ. Tiene 14 poses y 12 expresiones. Se anima por partes (`src/components/psi.css`: parpadeo, cola, respiración, saludo, salto…) y respeta "reducir movimiento". `src/components/PsiLive.tsx` le agrega que siga el puntero con los ojos y salte al tocarlo.
+
+```bash
+npm run mascota      # exporta cada pose (quieta y animada) y cada expresión a public/mascota/
+npm run psi-sheet -- plantilla.html salida.html   # arma una ficha del personaje desde una plantilla
+```
 
 ## Registros en Google Sheets
 
@@ -119,6 +131,9 @@ src/
     Device.tsx         detección de dispositivo y selector "Vista"
     LeadForm.tsx       registro al final del diagnóstico (→ Google Sheets)
     Brand.tsx          logo y diagrama de niveles de energía
+    Gato.tsx           Psi, la mascota: poses y expresiones (SVG)
+    PsiLive.tsx        Psi animado, con ojos que siguen el puntero
+    SiteFooter.tsx     footer grande de las páginas públicas
     Figures.tsx        figuras estilo examen (SVG)
   lib/
     content.ts         preguntas originales y reglas de marcas

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import "../landing.css";
 import Icon from "@/components/Icon";
+import PsiLive from "@/components/PsiLive";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = { title: "Precios · Kwanta" };
 
@@ -27,11 +30,15 @@ const FAQ = [
 
 export default function Precios() {
   return (
+    <div className="pub">
     <div className="wrap pricing">
       <header className="pricing-head">
-        <p className="eyebrow">Precios de fundador</p>
-        <h1>Elige cómo llegar al 7</h1>
-        <p className="lede muted">Empieza gratis con el diagnóstico. Cuando sepas tu nivel, elige el plan que te lleve a la meta.</p>
+        <div className="pricing-head-text">
+          <span className="pill sun">Precios de fundador</span>
+          <h1>Elige cómo llegar al 7</h1>
+          <p className="lede muted">Empieza gratis con el diagnóstico. Cuando sepas tu nivel, elige el plan que te lleve a la meta.</p>
+        </div>
+        <div className="pricing-art"><PsiLive pose="senala" uid="precios" /></div>
       </header>
 
       <div className="prices">
@@ -49,7 +56,7 @@ export default function Precios() {
           <p className="muted">Teoría A–E, banco de hojas de examen, simulacros de Prueba 1 y 2, videos por tema y tutor.</p>
           <Link className="btn" href="/diagnostico">Primero, el diagnóstico</Link>
         </div>
-        <div className="card price-card featured">
+        <div className="card price-card featured" id="sprint">
           <span className="pill brand">Cupo 25 · febrero</span>
           <h3>Sprint al 7</h3>
           <span className="price">$349 <small>USD · 12 semanas</small></span>
@@ -93,10 +100,8 @@ export default function Precios() {
         </div>
       </section>
 
-      <footer className="foot">
-        <span>Precios en dólares estadounidenses. Kwanta no está afiliado con la Organización del Bachillerato Internacional.</span>
-        <span><Link href="/">Inicio</Link> · <Link href="/privacidad">Aviso de privacidad</Link></span>
-      </footer>
+    </div>
+    <SiteFooter />
     </div>
   );
 }

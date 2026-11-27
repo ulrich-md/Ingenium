@@ -17,7 +17,7 @@ export default function TopbarActions() {
       ) : (
         <>
           {path !== "/precios" && <Link href="/precios" className="btn ghost sm hide-xs">Precios</Link>}
-          <Link href="/entrar" className="btn ghost sm">Entrar</Link>
+          <Link href="/entrar" className={`btn ghost sm${path === "/" ? " hide-xs" : ""}`}>Entrar</Link>
           <Link href="/diagnostico" className="btn primary sm">Diagnóstico gratis</Link>
         </>
       )}

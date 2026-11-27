@@ -1,13 +1,28 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
+import "@/components/psi.css";
 import { Mark } from "@/components/Brand";
 import { DeviceProvider, VistaSwitcher } from "@/components/Device";
 import TopbarActions from "@/components/TopbarActions";
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL
+  ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+const DESCRIPTION = "Hojas de examen de Física IB que escribes a mano en el iPad o tecleas, corregidas con el esquema de marcas. Diagnóstico gratis en 15 minutos.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE),
   title: "Kwanta · Física IB en español",
-  description: "Hojas de examen de Física IB que escribes a mano en el iPad y se corrigen paso a paso. Diagnóstico gratis.",
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "es_419",
+    siteName: "Kwanta",
+    title: "Kwanta · Sube hasta el 7 en Física IB",
+    description: DESCRIPTION,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Psi, el gato de Kwanta, saluda desde su caja junto al texto: Sube hasta el 7 en Física IB" }],
+  },
+  twitter: { card: "summary_large_image", title: "Kwanta · Sube hasta el 7 en Física IB", description: DESCRIPTION, images: ["/og.png"] },
   applicationName: "Kwanta",
   appleWebApp: { capable: true, title: "Kwanta", statusBarStyle: "default" },
 };
