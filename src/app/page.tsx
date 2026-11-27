@@ -7,6 +7,7 @@ import { IlloDiagnostic, IlloPlan, IlloTablet, IlloTimer, UNIT_ILLO } from "@/co
 import PsiLive from "@/components/PsiLive";
 import Reveal from "@/components/Reveal";
 import SiteFooter from "@/components/SiteFooter";
+import SprintSection from "@/components/SprintSection";
 import { UNIT_NAME, UNITS } from "@/lib/scoring";
 import type { Unit } from "@/lib/scoring";
 
@@ -38,11 +39,6 @@ const FAQ = [
   { q: "¿Cuánto cuesta?", a: "El diagnóstico es gratis y no necesita cuenta. El Pase Física cuesta $89 USD hasta tu examen ($59 para fundadores) y el Sprint al 7 cuesta $349 USD por 12 semanas. Todo está en la página de precios." },
 ];
 
-const SPRINT = [
-  "Una clase en vivo cada semana con un coach que sacó 7",
-  "4 simulacros corregidos sobre tu propia hoja",
-  "Todo lo del Pase Física: teoría, banco de hojas y simulacros",
-];
 
 export default function Home() {
   return (
@@ -209,25 +205,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* the paid plan, in its own dark band */}
-      <section className="ld-sprint reveal" aria-labelledby="sprint-t">
-        <div className="wrap ld-sprint-in">
-          <div className="ld-sprint-art"><PsiLive pose="siete" uid="sprint" /></div>
-          <div className="ld-sprint-text">
-            <span className="pill sun">Cupo de 25 · empieza en febrero</span>
-            <h2 id="sprint-t">Sprint al 7</h2>
-            <p className="ld-sprint-lede">12 semanas para subir de nivel, con alguien que ya llegó al 7.</p>
-            <ul>
-              {SPRINT.map((s) => <li key={s}><Icon name="check" size={18} />{s}</li>)}
-            </ul>
-            <p className="ld-sprint-promise"><b>Garantía:</b> si cumples el plan y no subes un nivel, te devolvemos el dinero.</p>
-            <div className="ld-sprint-cta">
-              <Link className="btn onbrand lg" href="/precios#sprint">Ver el Sprint al 7</Link>
-              <span className="ld-sprint-price">$349 USD · 12 semanas</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* the paid plan, in its own world */}
+      <SprintSection />
 
       {/* questions */}
       <section className="wrap ld-sec reveal" id="preguntas">

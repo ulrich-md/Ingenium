@@ -4,23 +4,12 @@ import "../landing.css";
 import Icon from "@/components/Icon";
 import PsiLive from "@/components/PsiLive";
 import SiteFooter from "@/components/SiteFooter";
+import { PLAN_ROWS, PREVENTA_URL } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Precios · Kwanta" };
 
-const PREVENTA = process.env.NEXT_PUBLIC_PREVENTA_URL;
-
-/** What each plan includes, for the comparison under the cards. */
-const ROWS: [string, boolean, boolean, boolean][] = [
-  ["Diagnóstico con nota proyectada", true, true, true],
-  ["Plan de 12 semanas", true, true, true],
-  ["Teoría de las unidades A–E", false, true, true],
-  ["Banco de hojas de examen", false, true, true],
-  ["Simulacros de Prueba 1 y 2", false, true, true],
-  ["Videos por tema y tutor", false, true, true],
-  ["Clase semanal en vivo con un coach", false, false, true],
-  ["4 simulacros corregidos sobre tu hoja", false, false, true],
-  ["Garantía de subir un nivel", false, false, true],
-];
+const PREVENTA = PREVENTA_URL;
+const ROWS = PLAN_ROWS;
 
 const FAQ = [
   { q: "¿Puedo empezar gratis?", a: "Sí. El diagnóstico no pide tarjeta ni cuenta. Al terminar ves tu nivel y tu plan, y decides si quieres algo más." },

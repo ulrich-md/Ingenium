@@ -51,8 +51,8 @@ const star = (x: number, y: number, r: number, fill: string = K.sun) => (
 );
 
 /** Fill a path and round its corners with a same-color stroke (rounded triangles, rounded boxes). */
-const Soft = ({ d, fill, r = 6, opacity }: { d: string; fill: string; r?: number; opacity?: number }) => (
-  <path d={d} fill={fill} stroke={fill} strokeWidth={r} strokeLinejoin="round" opacity={opacity} />
+const Soft = ({ d, fill, r = 6, opacity, cls }: { d: string; fill: string; r?: number; opacity?: number; cls?: string }) => (
+  <path d={d} fill={fill} stroke={fill} strokeWidth={r} strokeLinejoin="round" opacity={opacity} className={cls} />
 );
 
 /** Light from the top left: a highlight and a shadow clipped to the shape itself. */
@@ -62,8 +62,8 @@ function Shade({ id, d, box, hi = 0.45, lo = 0.55 }: { id: string; d: string; bo
     <>
       <clipPath id={id}><path d={d} /></clipPath>
       <g clipPath={`url(#${id})`}>
-        <ellipse cx={x + w * 0.92} cy={y + h * 0.95} rx={w * 0.62} ry={h * 0.5} fill={K.furD} opacity={lo} />
-        <ellipse cx={x + w * 0.28} cy={y + h * 0.16} rx={w * 0.3} ry={h * 0.16} fill={K.furL} opacity={hi} />
+        <ellipse className="shade-lo" cx={x + w * 0.92} cy={y + h * 0.95} rx={w * 0.62} ry={h * 0.5} fill={K.furD} opacity={lo} />
+        <ellipse className="shade-hi" cx={x + w * 0.28} cy={y + h * 0.16} rx={w * 0.3} ry={h * 0.16} fill={K.furL} opacity={hi} />
       </g>
     </>
   );
@@ -89,7 +89,7 @@ function Eye({ uid, side, x, y, look = [0, 0], lid = 0, small }: { uid: string; 
           <circle cx={x + dx + 3.8} cy={y + dy - 4} r={3.3} fill={K.white} />
           <circle cx={x + dx - 3.6} cy={y + dy + 3.8} r={1.5} fill={K.white} />
         </g>
-        {lid > 0 && <rect x={x - r} y={y - r - 2} width={2 * r} height={lidY - (y - r) + 2} fill={K.fur} />}
+        {lid > 0 && <rect className="fur" x={x - r} y={y - r - 2} width={2 * r} height={lidY - (y - r) + 2} fill={K.fur} />}
       </g>
     </g>
   );
@@ -151,7 +151,7 @@ function Ear({ cx, cy, side, down }: { cx: number; cy: number; side: 1 | -1; dow
   const P = (dx: number, dy: number) => `${cx + s * dx} ${cy + dy}`;
   return (
     <g transform={down ? `rotate(${s * 34} ${cx + s * 30} ${cy - 24})` : undefined}>
-      <Soft d={`M${P(47, -10)} L${P(41, -62)} L${P(7, -33)} Z`} fill={s < 0 ? K.fur : K.furD} r={9} />
+      <Soft d={`M${P(47, -10)} L${P(41, -62)} L${P(7, -33)} Z`} fill={s < 0 ? K.fur : K.furD} r={9} cls="fur fur-s" />
       <Soft d={`M${P(39, -22)} L${P(37, -50)} L${P(18, -34)} Z`} fill={K.pink} r={5} />
     </g>
   );
@@ -205,7 +205,7 @@ export function Head({ uid, cx, cy, mood, earsDown, collar = true }: { uid: stri
       <Ear cx={cx} cy={cy} side={-1} down={earsDown} />
       <Ear cx={cx} cy={cy} side={1} down={earsDown} />
       {collar && <path d={`M${cx - 30} ${cy + 33} Q${cx} ${cy + 49} ${cx + 30} ${cy + 33}`} fill="none" stroke={K.brand} strokeWidth={7} strokeLinecap="round" />}
-      <path d={d} fill={K.fur} />
+      <path d={d} fill={K.fur} className="fur" />
       <Shade id={`${uid}-head`} d={d} box={[cx - 50, cy - 42, 100, 82]} />
       {/* one wave on the forehead and one on each cheek: Psi's markings */}
       <g fill="none" stroke={K.wave} strokeLinecap="round" strokeWidth={4}>
@@ -247,7 +247,7 @@ function Body({ uid, cx, top }: { uid: string; cx: number; top: number }) {
   const d = bodyPath(cx, top);
   return (
     <g className="g-body" style={{ transformOrigin: `${cx}px ${top + 80}px` }}>
-      <path d={d} fill={K.fur} stroke={K.fur} strokeWidth={6} strokeLinejoin="round" />
+      <path d={d} fill={K.fur} stroke={K.fur} strokeWidth={6} strokeLinejoin="round" className="fur fur-s" />
       <Shade id={`${uid}-body`} d={d} box={[cx - 44, top, 88, 80]} hi={0.3} />
       <ellipse cx={cx} cy={top + 36} rx={17} ry={26} fill={K.cream} />
       <g fill="none" stroke={K.wave} strokeWidth={3.6} strokeLinecap="round" opacity={0.8}>
@@ -262,7 +262,7 @@ function Arm({ from, to, beans, cls }: { from: Pt; to: Pt; beans?: boolean; cls?
   const [px, py] = to;
   return (
     <g className={cls} style={cls ? { transformOrigin: `${from[0]}px ${from[1]}px` } : undefined}>
-      <path d={`M${from[0]} ${from[1]} L${px} ${py}`} stroke={K.fur} strokeWidth={15} strokeLinecap="round" />
+      <path d={`M${from[0]} ${from[1]} L${px} ${py}`} stroke={K.fur} strokeWidth={15} strokeLinecap="round" className="fur-s" />
       <circle cx={px} cy={py} r={11} fill={K.cream} />
       {beans && (
         <g fill={K.bean}>
@@ -287,7 +287,7 @@ function Tail({ d }: { d: string }) {
   const [, x, y] = d.match(/M\s*([\d.]+)[\s,]+([\d.]+)/) ?? [];
   return (
     <g className="g-tail" style={{ transformOrigin: `${x}px ${y}px` }}>
-      <path d={d} fill="none" stroke={K.fur} strokeWidth={13} strokeLinecap="round" />
+      <path d={d} fill="none" stroke={K.fur} strokeWidth={13} strokeLinecap="round" className="fur-s" />
       <path d={d} pathLength={100} fill="none" stroke={K.wave} strokeWidth={13} strokeDasharray="0 42 6 10 6 36" opacity={0.75} />
       <path d={d} pathLength={100} fill="none" stroke={K.cream} strokeWidth={13} strokeLinecap="round" strokeDasharray="0 86 14" />
     </g>
@@ -355,17 +355,42 @@ export type GatoProps = {
   mood?: Mood;
   /** Let the parts move on their own (needs src/components/psi.css). */
   animated?: boolean;
+  /** "iri": the premium Psi of the Sprint al 7, iridescent fur (needs psi.css). */
+  skin?: "iri";
+  /** A white die-cut edge around the whole drawing, like a sticker. */
+  sticker?: boolean;
   uid?: string;
   className?: string;
   title?: string;
 };
 
-export default function Gato({ pose = "hola", mood, animated, uid, className, title }: GatoProps) {
-  const id = uid ?? `psi-${pose}${mood ? `-${mood}` : ""}`;
-  const cls = ["psi", `psi--${pose}`, animated ? "psi-anim" : "", className ?? ""].filter(Boolean).join(" ");
+export default function Gato({ pose = "hola", mood, animated, skin, sticker, uid, className, title }: GatoProps) {
+  const id = uid ?? `psi-${pose}${mood ? `-${mood}` : ""}${skin ? `-${skin}` : ""}`;
+  const cls = ["psi", `psi--${pose}`, animated ? "psi-anim" : "", skin === "iri" ? "psi-iri" : "", className ?? ""].filter(Boolean).join(" ");
+  const art = POSES[pose](id, mood);
   return (
-    <svg viewBox={pose === "cara" ? "50 46 140 140" : "0 0 240 240"} className={cls} role="img" aria-label={title ?? LABEL[pose]} xmlns="http://www.w3.org/2000/svg">
-      {POSES[pose](id, mood)}
+    <svg viewBox={pose === "cara" ? "50 46 140 140" : sticker ? "-12 -12 264 264" : "0 0 240 240"} className={cls} role="img" aria-label={title ?? LABEL[pose]} xmlns="http://www.w3.org/2000/svg">
+      {skin === "iri" && (
+        // one gradient across the whole drawing (user space), so even a vertical arm gets its color
+        <linearGradient id="psi-iri-g" gradientUnits="userSpaceOnUse" x1="20" y1="10" x2="220" y2="230">
+          <stop offset="0" stopColor="#38d3ff" />
+          <stop offset="0.42" stopColor="#6c7bff" />
+          <stop offset="0.75" stopColor="#c05cf0" />
+          <stop offset="1" stopColor="#ff7eb0" />
+        </linearGradient>
+      )}
+      {sticker ? (
+        <>
+          <filter id={`${id}-cut`} x="-10%" y="-10%" width="120%" height="120%">
+            <feMorphology in="SourceAlpha" operator="dilate" radius="5" result="grow" />
+            <feFlood floodColor="#fff" />
+            <feComposite in2="grow" operator="in" result="edge" />
+            <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#000" floodOpacity="0.28" in="edge" result="shadow" />
+            <feMerge><feMergeNode in="shadow" /><feMergeNode in="edge" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <g filter={`url(#${id}-cut)`}>{art}</g>
+        </>
+      ) : art}
     </svg>
   );
 }

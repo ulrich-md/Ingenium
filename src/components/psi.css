@@ -52,3 +52,10 @@
 @keyframes psi-snore { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(1.5px) scale(1.02, 0.98); } }
 @keyframes psi-peek { 0% { transform: translateY(0); } 35%, 55% { transform: translateY(70px); } 100% { transform: translateY(0); } }
 @keyframes psi-jump { 0%, 100% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.05, 0.93); } 50% { transform: translateY(-8%) scale(0.97, 1.04); } 80% { transform: translateY(0) scale(1.03, 0.97); } }
+
+/* the premium skin (Sprint al 7): iridescent fur, white markings, violet shading */
+.psi-iri .fur { fill: url(#psi-iri-g); }
+.psi-iri .fur-s { stroke: url(#psi-iri-g); }
+.psi-iri .shade-lo { fill: #3b1a7a; opacity: 0.3; }
+.psi-iri .shade-hi { fill: #ffffff; opacity: 0.35; }
+.psi-iri [stroke="#8fd9ff"] { stroke: rgba(255, 255, 255, 0.85); }
