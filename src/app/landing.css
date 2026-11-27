@@ -139,3 +139,114 @@
 .price-card.featured { border-color: var(--ink); }
 .price-card.featured h3 { color: var(--brand); font-size: 1.5rem; }
 .price-card:target { box-shadow: 0 0 0 4px var(--brand); }
+
+/* =====================================================================
+   Depth and color. Layers instead of one flat paper: a hero with its own
+   ground and floating stickers, a color per idea, a celeste band, chunky
+   3D edges (like the buttons) and layered shadows.
+   ===================================================================== */
+.ld { --lift: 0 1px 2px rgba(13, 27, 42, 0.06), 0 10px 24px rgba(13, 27, 42, 0.08), 0 24px 48px rgba(13, 27, 42, 0.06); }
+
+/* ---------- hero ground ---------- */
+.ld-hero-band { position: relative; isolation: isolate;
+  background:
+    radial-gradient(520px 420px at 26% 52%, rgba(43, 181, 255, 0.28), transparent 70%),
+    radial-gradient(420px 320px at 80% 20%, rgba(255, 194, 61, 0.18), transparent 70%),
+    linear-gradient(180deg, #e9f6ff 0%, var(--paper) 100%); }
+.ld-hero-band::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle, rgba(8, 100, 168, 0.13) 1.4px, transparent 1.6px) 0 0 / 26px 26px;
+  -webkit-mask-image: radial-gradient(70% 80% at 40% 50%, #000 30%, transparent 80%); mask-image: radial-gradient(70% 80% at 40% 50%, #000 30%, transparent 80%); }
+.ld-hero { padding-block: 64px 84px; }
+.ld-hero h1 { font-size: clamp(2.2rem, 4vw, 3.1rem); }
+.ld-hero h1 .hl { color: var(--brand-ink); }
+.ld-hero-art { position: relative; }
+.ld-hero-art::before { content: ""; position: absolute; inset: 6% 8% 10%; border-radius: 50%; background: #fff; box-shadow: 0 0 0 18px rgba(255, 255, 255, 0.45), 0 30px 60px rgba(8, 100, 168, 0.18); z-index: -1; }
+
+/* stickers: small things from Psi's world, each with a chunky edge and a soft shadow */
+.stk { position: absolute; display: grid; place-items: center; pointer-events: none; }
+.stk:is(span) { background: #fff; border-radius: 14px; border-bottom: 4px solid var(--line2); box-shadow: 0 12px 26px rgba(13, 27, 42, 0.14); padding: 6px 12px; white-space: nowrap; }
+.stk-m1 { left: -2%; top: 14%; font: 700 1.5rem/1 var(--hand); color: var(--bad); transform: rotate(-9deg); }
+.stk-n7 { right: -4%; top: 6%; font: 700 1rem/1 var(--mono); color: var(--ink); background: var(--sun) !important; border-bottom-color: #d99a00 !important; transform: rotate(7deg); }
+.stk-psi { left: 2%; bottom: 14%; width: 52px; height: 52px; padding: 0 !important; border-radius: 50% !important; background: var(--brand) !important; border-bottom-color: var(--brand-shadow) !important; font: 700 1.6rem/1 Georgia, "Times New Roman", serif; color: #fff; }
+.stk-f { right: -6%; bottom: 22%; font: 600 1.4rem/1 var(--hand); color: var(--pen); transform: rotate(5deg); }
+.stk-star { width: 34px; left: 18%; top: -2%; fill: var(--sun); filter: drop-shadow(0 6px 8px rgba(217, 154, 0, 0.35)); }
+.stk-wave { width: 70px; right: 14%; bottom: 0; fill: none; stroke: var(--brand); stroke-width: 4; stroke-linecap: round; }
+@media (prefers-reduced-motion: no-preference) {
+  .stk { animation: ld-float 5s ease-in-out infinite; }
+  .stk-n7 { animation-delay: -1.2s; } .stk-psi { animation-delay: -2.4s; } .stk-f { animation-delay: -3.1s; } .stk-star { animation-duration: 3.4s; } .stk-wave { animation-delay: -0.6s; }
+}
+@keyframes ld-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+@media (max-width: 820px) {
+  .ld-hero { padding-block: 24px 56px; }
+  .stk-m1 { left: -8%; font-size: 1.2rem; } .stk-n7 { right: -8%; } .stk-f { right: -10%; font-size: 1.1rem; } .stk-psi { left: -6%; width: 42px; height: 42px; font-size: 1.3rem; }
+  .stk-wave { display: none; }
+}
+
+/* ---------- units strip: each unit in its color, with a 3D edge ---------- */
+.ld-strip { background: #fff; border-block: 0; box-shadow: 0 1px 0 var(--line), 0 -1px 0 var(--line); position: relative; z-index: 1; }
+.ld-strip-in { gap: 10px; padding-block: 14px; }
+.ld-strip-item { border: 2px solid transparent; border-bottom-width: 4px; color: var(--ink); background: var(--surface2); transition: transform 0.15s, background-color 0.15s; }
+.ld-strip-item:hover { transform: translateY(-2px); background: var(--surface); border-color: var(--line); }
+
+/* ---------- zigzag: one accent color per idea ---------- */
+.zz--a { --acc: #2bb5ff; --acc-d: #1590d8; --acc-soft: #dff2ff; --acc-ink: #0864a8; }
+.zz--b { --acc: #ffc23d; --acc-d: #e0a100; --acc-soft: #fff1cc; --acc-ink: #7a5000; }
+.zz--c { --acc: #a77be6; --acc-d: #8a4bd0; --acc-soft: #efe5fc; --acc-ink: #6b34b5; }
+.zz--d { --acc: #58c23a; --acc-d: #3f9a25; --acc-soft: #e2f5d8; --acc-ink: #2f6f1c; }
+.zz h2 { color: var(--acc-ink, var(--brand-ink)); }
+.zz-kick { justify-self: start; display: inline-flex; align-items: center; gap: 7px; font: 800 0.8rem var(--body); letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--acc-ink); background: var(--acc-soft); border: 2px solid var(--acc); border-bottom-width: 4px; border-radius: 12px; padding: 5px 11px; }
+@media (max-width: 820px) { .zz-kick { justify-self: center; } }
+/* the stage: a soft blob in the accent color, a dashed orbit, and a floor shadow */
+.zz-art { isolation: isolate; }
+.zz-art::before { inset: 4% 2% 6%; border-radius: 46% 54% 52% 48% / 52% 46% 54% 48%; background: var(--acc-soft); box-shadow: inset 0 -14px 0 rgba(13, 27, 42, 0.04); z-index: -2; }
+.zz-art::after { content: ""; position: absolute; inset: 14% -4% 18%; border-radius: 50%; border: 3px dashed var(--acc); opacity: 0.55; transform: rotate(-12deg); z-index: -1; }
+.zz-art .psi-live svg, .zz-sheet .hsheet { filter: drop-shadow(0 18px 20px rgba(13, 27, 42, 0.14)); }
+.zz-stk { position: absolute; right: 2%; top: 8%; background: #fff; border: 2px solid var(--acc); border-bottom-width: 5px; border-radius: 14px; padding: 6px 12px;
+  font: 800 0.86rem var(--body); color: var(--acc-ink); box-shadow: 0 12px 26px rgba(13, 27, 42, 0.12); transform: rotate(4deg); white-space: nowrap; }
+.zz.flip .zz-stk { right: auto; left: 2%; transform: rotate(-4deg); }
+.zz-sheet .zz-stk { top: auto; bottom: -4%; }
+.zz-levels .zz-stk { display: none; }
+.zz-levels-card { border-color: var(--acc); }
+@media (prefers-reduced-motion: no-preference) { .zz-stk { animation: ld-float 5.5s ease-in-out infinite; } }
+
+/* ---------- the celeste band for "how it works" ---------- */
+.ld-band { position: relative; background: var(--brand); margin-block: 56px; scroll-margin-top: 40px; }
+.ld-band-wave { position: absolute; left: 0; width: 100%; height: 50px; fill: var(--brand); }
+.ld-band-wave.top { bottom: 100%; margin-bottom: -1px; }
+.ld-band-wave.bottom { top: 100%; margin-top: -1px; }
+.ld-band .ld-sec { padding-block: 40px 48px; }
+.ld-band .ld-head h2 { color: var(--ink); }
+.ld-band .ld-head p { color: var(--ink); opacity: 0.8; font-weight: 700; }
+.ld-band .howto { counter-reset: none; position: relative; }
+.ld-band .howto-step { border: 0; box-shadow: 0 6px 0 var(--brand-shadow), 0 18px 36px rgba(8, 60, 110, 0.18); }
+.ld-band .howto-n { background: var(--sun); box-shadow: 0 3px 0 #d99a00; }
+.ld-band .howto-step:first-child::after { content: "Gratis"; position: absolute; top: 14px; right: 14px; font: 800 0.7rem var(--body); letter-spacing: 0.05em; text-transform: uppercase;
+  background: var(--ok-soft); color: var(--ok); padding: 3px 8px; border-radius: 99px; }
+
+/* ---------- cards with a chunky edge ---------- */
+.ld .unit-tile { box-shadow: 0 6px 0 rgba(13, 27, 42, 0.08); }
+.ld .unit-tile:hover { box-shadow: 0 10px 0 rgba(13, 27, 42, 0.08), var(--lift); }
+.ld .devbento .dev { box-shadow: var(--lift); transition: transform 0.2s; }
+.ld .devbento .dev:hover { transform: translateY(-4px); }
+.ld .devbento .dev-main { background: linear-gradient(155deg, #5fcbff 0%, var(--brand) 45%, #1ea6f2 100%); box-shadow: 0 6px 0 var(--brand-shadow), var(--lift); border-bottom-width: 2px; }
+.ld .faq-item { box-shadow: 0 1px 2px rgba(13, 27, 42, 0.04); transition: border-color 0.15s; }
+.ld .faq-item[open] { border-color: var(--brand); }
+.ld-faq-art { background: radial-gradient(circle, rgba(43, 181, 255, 0.18), transparent 70%); border-radius: 50%; }
+
+/* ---------- Sprint band: glows ---------- */
+.ld-sprint { background:
+  radial-gradient(520px 320px at 22% 40%, rgba(43, 181, 255, 0.32), transparent 70%),
+  radial-gradient(460px 300px at 88% 85%, rgba(255, 194, 61, 0.16), transparent 70%),
+  var(--ink); }
+.ld-sprint-art { box-shadow: 0 0 0 14px rgba(43, 181, 255, 0.16), 0 0 0 30px rgba(43, 181, 255, 0.08), 0 30px 80px rgba(0, 0, 0, 0.4); }
+
+/* ---------- last call: sun rays behind Psi ---------- */
+.ld-final-art { isolation: isolate; }
+.ld-rays { position: absolute; inset: -30% -40% -10%; z-index: -1; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 194, 61, 0.28) 0deg 10deg, transparent 10deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%); mask-image: radial-gradient(circle, #000 25%, transparent 68%); }
+@media (prefers-reduced-motion: no-preference) { .ld-rays { animation: ld-spin 40s linear infinite; } }
+@keyframes ld-spin { to { transform: rotate(360deg); } }
+.zz--a .zz-stk { top: -2%; right: -4%; }
+@media (max-width: 820px) { .zz--a .zz-stk { right: -8%; } }

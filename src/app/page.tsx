@@ -50,8 +50,18 @@ export default function Home() {
       <Reveal />
 
       {/* hero: Psi, one sentence, two buttons */}
+      <div className="ld-hero-band">
       <section className="wrap ld-hero">
-        <div className="ld-hero-art"><PsiLive pose="hola" uid="hero" /></div>
+        <div className="ld-hero-art">
+          <PsiLive pose="hola" uid="hero" />
+          {/* stickers floating around Psi: the exam, its marks and the goal */}
+          <span className="stk stk-m1" aria-hidden="true">M1 ✓</span>
+          <span className="stk stk-n7" aria-hidden="true">n = 7</span>
+          <span className="stk stk-psi" aria-hidden="true">Ψ</span>
+          <span className="stk stk-f" aria-hidden="true">F = m a</span>
+          <svg className="stk stk-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1Q13.5 10.5 23 12Q13.5 13.5 12 23Q10.5 13.5 1 12Q10.5 10.5 12 1Z" /></svg>
+          <svg className="stk stk-wave" viewBox="0 0 60 16" aria-hidden="true"><path d="M3 8 q6.75 -10 13.5 0 t13.5 0 t13.5 0 t13.5 0" /></svg>
+        </div>
         <div className="ld-hero-text">
           <h1>Sube hasta el 7 en Física IB, hoja por hoja.</h1>
           <div className="ld-hero-cta">
@@ -61,6 +71,7 @@ export default function Home() {
           <p className="ld-hero-note">En español · NM y NS · 15 minutos, sin crear cuenta</p>
         </div>
       </section>
+      </div>
 
       {/* the five units, like a course strip */}
       <nav className="ld-strip" aria-label="Unidades de Física IB">
@@ -76,32 +87,36 @@ export default function Home() {
 
       {/* four ideas, zigzag */}
       <section className="wrap ld-zz">
-        <article className="zz reveal">
+        <article className="zz zz--a reveal">
           <div className="zz-text">
+            <span className="zz-kick"><Icon name="tablet" size={16} />Hojas de examen</span>
             <h2>Escribes como en el examen</h2>
             <p>Hojas originales con el formato de la Prueba 2: pregunta, [marcas] y recuadro. En el iPad las resuelves a mano con el Apple Pencil; en la computadora, tecleando un paso por renglón.</p>
           </div>
-          <div className="zz-art"><PsiLive pose="ipad" uid="zz1" jumpOnTap={false} /></div>
+          <div className="zz-art"><PsiLive pose="ipad" uid="zz1" jumpOnTap={false} /><span className="zz-stk">Prueba 2 · [3 marcas]</span></div>
         </article>
 
-        <article className="zz flip reveal">
+        <article className="zz zz--b flip reveal">
           <div className="zz-text">
+            <span className="zz-kick"><Icon name="check" size={16} />Corrección</span>
             <h2>Cada paso, corregido con el esquema de marcas</h2>
             <p>Cada renglón se compara con el esquema: M1 por el método, A1 por la respuesta. Ves exactamente en qué paso se te fue el punto.</p>
           </div>
-          <div className="zz-art zz-sheet"><HeroSheet /></div>
+          <div className="zz-art zz-sheet"><HeroSheet /><span className="zz-stk">3 / 3 marcas</span></div>
         </article>
 
-        <article className="zz reveal">
+        <article className="zz zz--c reveal">
           <div className="zz-text">
+            <span className="zz-kick"><Icon name="flag" size={16} />Plan de 12 semanas</span>
             <h2>Un plan que empieza por lo más débil</h2>
             <p>Al terminar el diagnóstico recibes un plan de 12 semanas, unidad por unidad, ordenado por lo que más te cuesta. Así cada hora de estudio rinde más.</p>
           </div>
-          <div className="zz-art"><PsiLive pose="lee" uid="zz3" jumpOnTap={false} /></div>
+          <div className="zz-art"><PsiLive pose="lee" uid="zz3" jumpOnTap={false} /><span className="zz-stk">Semana 1 · Unidad D</span></div>
         </article>
 
-        <article className="zz flip reveal">
+        <article className="zz zz--d flip reveal">
           <div className="zz-text">
+            <span className="zz-kick"><Icon name="chart" size={16} />Nota proyectada</span>
             <h2>Tu nota, del 1 al 7</h2>
             <p>Hasta que lo mides, tu nivel está en superposición. El diagnóstico lo ubica en un nivel de energía del 1 al 7, y cada hoja que resuelves te acerca al siguiente salto.</p>
           </div>
@@ -113,7 +128,9 @@ export default function Home() {
       </section>
 
       {/* how it works */}
-      <section className="wrap ld-sec reveal" id="como-funciona">
+      <section className="ld-band" id="como-funciona">
+        <svg className="ld-band-wave top" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60 L0 34 C 240 0, 480 0, 720 26 S 1200 60, 1440 22 L1440 60 Z" /></svg>
+        <div className="wrap ld-sec reveal">
         <div className="ld-head">
           <h2>De tu diagnóstico a tu primer simulacro</h2>
           <p>Cuatro pasos. El primero es gratis.</p>
@@ -128,6 +145,8 @@ export default function Home() {
             </li>
           ))}
         </ol>
+        </div>
+        <svg className="ld-band-wave bottom" viewBox="0 0 1440 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 L1440 0 L1440 26 C 1200 60, 960 60, 720 30 S 240 0, 0 38 Z" /></svg>
       </section>
 
       {/* the syllabus */}
@@ -233,7 +252,7 @@ export default function Home() {
         <h2>Empieza por saber en qué nivel estás</h2>
         <p>El diagnóstico es gratis, dura 15 minutos y te deja tu plan de 12 semanas.</p>
         <Link className="btn primary lg" href="/diagnostico">Haz el diagnóstico gratis</Link>
-        <div className="ld-final-art"><PsiLive pose="sube" uid="final" /></div>
+        <div className="ld-final-art"><span className="ld-rays" aria-hidden="true" /><PsiLive pose="sube" uid="final" /></div>
       </section>
 
       <SiteFooter />
